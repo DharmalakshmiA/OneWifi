@@ -8981,7 +8981,6 @@ int wifi_mgr_bus_subsription(bus_handle_t *handle)
 {
     int rc;
     char *component_name = "WifiMgr";
-
     rc = get_bus_descriptor()->bus_open_fn(handle, component_name);
     if (rc != bus_error_success) {
         wifi_util_error_print(WIFI_MGR, "%s:%d bus: bus_open_fn open failed for component:%s, rc:%d\n",
