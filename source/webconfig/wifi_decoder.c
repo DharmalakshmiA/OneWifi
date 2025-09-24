@@ -1063,6 +1063,24 @@ webconfig_error_t decode_radius_object(const cJSON *radius, wifi_radius_settings
         return webconfig_error_decode;
     }
 
+    decode_param_integer(radius, "EAPType", param);
+    radius_info->eap_type = param->valuedouble;
+    if ((radius_info->eap_type < 0) || (radius_info->eap_type > 254)) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "Invalid radius eap_type %d, should be between 0 and 254\n",
+            radius_info->eap_type);
+        return webconfig_error_decode;
+    }
+    
+    decode_param_integer(radius, "Phase2Auth", param);
+    radius_info->phase2 = param->valuedouble;
+    if ((radius_info->phase2 < 0) || (radius_info->phase2 > 5)) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "Invalid radius phase2 %d, should be between 0 and 5\n",
+            radius_info->eap_type);
+        return webconfig_error_decode;
+    }
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Value of eap type %d and phase 2 %d\n",__func__,__LINE__,radius_info->eap_type, radius_info->phase2);
     decode_param_integer(radius, "DasServerPort", param);
     radius_info->dasport = param->valuedouble;
 
