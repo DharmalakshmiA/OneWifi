@@ -2756,7 +2756,8 @@ void start_station_vaps(bool rf_status)
     wifi_vap_name_t vap_names[MAX_NUM_RADIOS] = { 0 };
     wifi_ctrl_t *ctrl;
     ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    char mac_str[18] = { 0 };
     data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
     if (data == NULL) {
         wifi_util_error_print(WIFI_CTRL,
@@ -2783,7 +2784,8 @@ void start_station_vaps(bool rf_status)
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                 &band);
             if (rf_status) {
-                wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
+                char cm_mac_str[32] = {0};
+		wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
                     rf_status);
                 snprintf(data->u.decoded.radios[radio_index]
                              .vaps.vap_map.vap_array[vap_array_index]
@@ -2807,7 +2809,64 @@ void start_station_vaps(bool rf_status)
                 data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.phase2 = WIFI_EAP_PHASE2_MSCHAP;
+		wifi_util_error_print(WIFI_CTRL, "[%s %d] type : %d phase2 : %d\n", __func__, __LINE__, data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.eap_type, 
+		    data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.phase2);
+		
+		// Convert CM MAC bytes to string "XX:XX:XX:XX:XX:XX"
+                snprintf(cm_mac_str, sizeof(cm_mac_str),
+                    "%02X:%02X:%02X:%02X:%02X:%02X",
+                    mgr->hal_cap.wifi_prop.cm_mac[0],
+                    mgr->hal_cap.wifi_prop.cm_mac[1],
+                    mgr->hal_cap.wifi_prop.cm_mac[2],
+                    mgr->hal_cap.wifi_prop.cm_mac[3],
+                    mgr->hal_cap.wifi_prop.cm_mac[4],
+                    mgr->hal_cap.wifi_prop.cm_mac[5]);
+                 wifi_util_error_print(WIFI_CTRL, "cm-mac : %02X:%02X:%02X:%02X:%02X:%02X mac-str : %s\n",
+	            mgr->hal_cap.wifi_prop.cm_mac[0],
+                    mgr->hal_cap.wifi_prop.cm_mac[1],
+                    mgr->hal_cap.wifi_prop.cm_mac[2],
+                    mgr->hal_cap.wifi_prop.cm_mac[3],
+                    mgr->hal_cap.wifi_prop.cm_mac[4],
+                    mgr->hal_cap.wifi_prop.cm_mac[5], cm_mac_str) 
+		memset(&data->u.decoded.radios[radio_index]
+                          .vaps.vap_map.vap_array[vap_array_index]
+                          .u.sta_info.security.u.radius.identity, 
+			  0, sizeof(data->u.decoded.radios[radio_index]
+                          .vaps.vap_map.vap_array[vap_array_index]
+                          .u.sta_info.security.u.radius.identity));
+		strncpy(data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.identity,
+                    cm_mac_str,
+                    sizeof(data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.identity) - 1);
+                 wifi_util_error_print(WIFI_CTRL, "Identity : %s\n", data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.identity);
+
                 memset(&data->u.decoded.radios[radio_index]
+                          .vaps.vap_map.vap_array[vap_array_index]
+                          .u.sta_info.security.u.radius.key, 
+			  0, sizeof(data->u.decoded.radios[radio_index]
+                          .vaps.vap_map.vap_array[vap_array_index]
+                          .u.sta_info.security.u.radius.key));
+                strncpy(data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.key, mgr->hal_cap.wifi_prop.serialNo,
+		    sizeof(data->u.decoded.radios[radio_index]
+                  .vaps.vap_map.vap_array[vap_array_index]
+                  .u.sta_info.security.u.radius.key) - 1);
+                 wifi_util_error_print(WIFI_CTRL, "Serial-no : %s key : %s\n", mgr->hal_cap.wifi_prop.serialNo,
+		    data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.u.radius.key);
+
+		memset(&data->u.decoded.radios[radio_index]
                            .vaps.vap_map.vap_array[vap_array_index]
                            .u.sta_info.security.u.radius.ip,
                     0,

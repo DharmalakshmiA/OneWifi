@@ -1073,9 +1073,21 @@ webconfig_error_t encode_radius_object(const wifi_radius_settings_t *radius_info
         cJSON_AddStringToObject(radius, "SecondaryRadiusSecret", radius_info->s_key);
     }
 
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d type : %d phase : %d identity : %s password : %s\n", __func__, __LINE__, radius_info->eap_type, radius_info->phase2, radius_info->identity, radius_info->key);
     cJSON_AddNumberToObject(radius, "EAPType", radius_info->eap_type);
     cJSON_AddNumberToObject(radius, "Phase2Auth", radius_info->phase2);
+    if (strlen((char *)radius_info->identity) == 0) {
+        cJSON_AddStringToObject(radius, "Identity", "username_empty");
+    } else {
+        cJSON_AddStringToObject(radius, "Identity", radius_info->identity);
+    }
 
+    if (strlen((char *)radius_info->key) == 0) {
+        cJSON_AddStringToObject(radius, "Key", INVALID_KEY);
+    } else {
+        cJSON_AddStringToObject(radius, "Key", radius_info->key);
+    }
+    
     memset(str, 0, sizeof(str));
     getIpStringFromAdrress(str, &radius_info->dasip);
     cJSON_AddStringToObject(radius, "DasServerIPAddr", str);

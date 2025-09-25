@@ -1080,7 +1080,24 @@ webconfig_error_t decode_radius_object(const cJSON *radius, wifi_radius_settings
             radius_info->eap_type);
         return webconfig_error_decode;
     }
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Value of eap type %d and phase 2 %d\n",__func__,__LINE__,radius_info->eap_type, radius_info->phase2);
+
+    decode_param_string(radius, "Identity", param);
+    memset(radius_info->identity, '\0', 64);
+    strncpy(radius_info->identity, param->valuestring, strlen(param->valuestring));
+    if ((strlen(radius_info->identity) <= 0) || (strlen(radius_info->identity) > 64)) {
+	 wifi_util_error_print(WIFI_WEBCONFIG, "[%s %d] Invalid identity\n", __func__, __LINE__);
+	 return webconfig_error_decode;
+    }
+
+    decode_param_string(radius, "Key", param);
+    memset(radius_info->Key, '\0', 64);
+    strncpy(radius_info->Key, param->valuestring, strlen(param->valuestring));
+    if ((strlen(radius_info->Key) <= 0) || (strlen(radius_info->Key) > 64)) {
+         wifi_util_error_print(WIFI_WEBCONFIG, "[%s %d] Invalid key\n", __func__, __LINE__);
+         return webconfig_error_decode;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Value of eap type %d phase 2 %d identity %s password %s\n",__func__,__LINE__,radius_info->eap_type, radius_info->phase2, radius_info->identity, radius_info->Key);
     decode_param_integer(radius, "DasServerPort", param);
     radius_info->dasport = param->valuedouble;
 
