@@ -1223,13 +1223,16 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
             &rdk_vap_info[i]);
         get_wifidb_obj()->desc.update_wifi_security_config_fn(getVAPName(map->vap_array[i].vap_index),
             &map->vap_array[i].u.sta_info.security);
-        
-	if (!is_sta_enabled()) {
-            ext_set_conn_state(ext, connection_state_disconnected_steady, __func__, __LINE__);
-        } else {
-            if (ctrl->rf_status_down == true) {
-                ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__, __LINE__);
-                wifi_util_info_print(WIFI_CTRL, "%s:%d sta is enabled starting the station vaps\n",__FUNCTION__,__LINE__);
+
+        wifi_util_info_print(WIFI_CTRL, "%s:%d eth_bh_status : %d rf-status : %d\n", __func__, __LINE__, ctrl->eth_bh_status, ctrl->rf_status_down);
+        if (ctrl->eth_bh_status == true) {
+            if (ctrl->rf_status_down == false) {
+                ext_set_conn_state(ext, connection_state_disconnected_steady, __func__, __LINE__);
+            } else {
+                ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__,
+                    __LINE__);
+                wifi_util_info_print(WIFI_CTRL, "%s:%d sta is enabled starting the station vaps\n",
+                    __FUNCTION__, __LINE__);
                 schedule_connect_sm(svc);
                 ext->is_started = true;
             }
