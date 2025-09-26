@@ -814,10 +814,6 @@ void start_gateway_vaps()
 	wifi_vap_info->u.sta_info.ignite_enabled = value;
 	wifi_util_info_print(WIFI_CTRL, "%s:%d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, wifi_vap_info->u.sta_info.ignite_enabled);
     }
-    if (is_sta_enabled() == true) {
-            wifi_util_info_print(WIFI_CTRL, "%s:%d start mesh sta\n",__func__, __LINE__);
-            //start_station_vaps();
-    }
 }
 
 void stop_gateway_vaps()
