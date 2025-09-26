@@ -2757,7 +2757,6 @@ void start_station_vaps(bool rf_status)
     wifi_ctrl_t *ctrl;
     ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     wifi_mgr_t *mgr = get_wifimgr_obj();
-    char mac_str[18] = { 0 };
     data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
     if (data == NULL) {
         wifi_util_error_print(WIFI_CTRL,
@@ -2831,7 +2830,7 @@ void start_station_vaps(bool rf_status)
                     mgr->hal_cap.wifi_prop.cm_mac[2],
                     mgr->hal_cap.wifi_prop.cm_mac[3],
                     mgr->hal_cap.wifi_prop.cm_mac[4],
-                    mgr->hal_cap.wifi_prop.cm_mac[5], cm_mac_str) 
+                    mgr->hal_cap.wifi_prop.cm_mac[5], cm_mac_str); 
 		memset(&data->u.decoded.radios[radio_index]
                           .vaps.vap_map.vap_array[vap_array_index]
                           .u.sta_info.security.u.radius.identity, 
