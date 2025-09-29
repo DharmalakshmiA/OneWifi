@@ -1635,6 +1635,10 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
 
     // Enabled
     cJSON_AddBoolToObject(vap_obj, "Enabled", vap_info->u.sta_info.enabled);
+    
+    // Ignite Status
+    cJSON_AddBoolToObject(vap_obj, "Ignite_Enabled", vap_info->u.sta_info.ignite_enabled);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Ignite-REnable : %d\n", __FUNC__, __LINE__, vap_info->u.sta_info.ignite_enabled);
 
     //ConnectStatus
     if (vap_info->u.sta_info.conn_status == wifi_connection_status_connected) {

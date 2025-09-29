@@ -127,7 +127,6 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
     (void)user_data;
     bus_error_t rc = bus_error_success;
     bool rf_status = false;
-    wifi_vap_info_t *vap_info = NULL;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     if (ctrl == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
@@ -139,13 +138,11 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_general;
     }
     rf_status = p_data->raw_data.b;
-    ctrl->rf_status_down = rf_status;
-    
-    vap_info = getVapInfo(ap_index);
-    if (vap_info != NULL) {
-        vap_info->u.sta_info.ignite_enabled = rf_status;
+    if (rf_status == true) {
+        ctrl->ignite_rfc_enable = true;
     }
-    wifi_util_error_print(WIFI_CTRL, "%s:%d RF-Status : %d Ignite-Enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, vap_info->u.sta_info.ignite_enabled);
+    ctrl->rf_status_down = rf_status;
+    wifi_util_error_print(WIFI_CTRL, "%s:%d RF-Status : %d Ignite-Enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, ctrl->ignite_rfc_enable);
     start_station_vaps(rf_status);
 
     return rc;

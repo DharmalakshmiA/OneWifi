@@ -1224,12 +1224,12 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
         get_wifidb_obj()->desc.update_wifi_security_config_fn(getVAPName(map->vap_array[i].vap_index),
             &map->vap_array[i].u.sta_info.security);
 
-        wifi_util_info_print(WIFI_CTRL, "%s:%d vap-idx : %d eth_bh_status : %d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, i, ctrl->eth_bh_status, ctrl->rf_status_down, map->vap_array[i].u.sta_info.ignite_enabled);
-        if (map->vap_array[i].u.sta_info.ignite_enabled == true) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d vap-idx : %d eth_bh_status : %d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, i, ctrl->eth_bh_status, ctrl->rf_status_down, ctrl->ignite_rfc_enable);
+        if (ctrl->ignite_rfc_enable == true) {
             if (ctrl->rf_status_down == false) {
                 ext_set_conn_state(ext, connection_state_disconnected_steady, __func__, __LINE__);
-		map->vap_array[i].u.sta_info.ignite_enabled = false;
-            } else {
+                ctrl->ignite_rfc_enable = false;
+	    } else {
                 ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__,
                     __LINE__);
                 wifi_util_info_print(WIFI_CTRL, "%s:%d sta is enabled starting the station vaps\n",

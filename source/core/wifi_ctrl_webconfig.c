@@ -2808,6 +2808,12 @@ void start_station_vaps(bool rf_status)
                 data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.phase2 = WIFI_EAP_PHASE2_MSCHAP;
+		data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.ignite_enabled = true;
+		data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.enabled = true;
 		wifi_util_error_print(WIFI_CTRL, "[%s %d] type : %d phase2 : %d\n", __func__, __LINE__, data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.eap_type, 
@@ -2910,6 +2916,12 @@ void start_station_vaps(bool rf_status)
                                .u.sta_info.security.u.key.key,
                         "12345678");
                 }
+		data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.ignite_enabled = false;
+		data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.enabled = false;
             }
         }
     }

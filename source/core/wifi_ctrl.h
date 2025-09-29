@@ -265,6 +265,7 @@ typedef struct wifi_ctrl {
     events_bus_data_t   events_bus_data;
     hotspot_cfg_sem_param_t hotspot_sem_param;
     bool                rf_status_down;
+    bool                ignite_rfc_enable;
 } wifi_ctrl_t;
 
 
