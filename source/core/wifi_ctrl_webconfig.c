@@ -36,7 +36,7 @@
 #include "wifi_webconfig_consumer.h"
 #endif
 #define OW_CONF_BARRIER_TIMEOUT_MSEC (60 * 1000)
-
+bool is_sta_set = false;
 struct ow_conf_vif_config_cb_arg
 {
     rdk_wifi_vap_info_t *rdk_vap_info;
@@ -2427,7 +2427,8 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
                     ctrl->webconfig_state |= ctrl_webconfig_state_vap_mesh_sta_cfg_rsp_pending;
                     webconfig_analytic_event_data_to_hal_apply(data);
                     ret = webconfig_hal_mesh_sta_vap_apply(ctrl, &data->u.decoded);
-                }
+                    is_sta_set = true;
+		}
             }
             break;
 
@@ -2480,6 +2481,7 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
                         return webconfig_error_apply;
                     }
                 }
+		is_sta_set = true;
             }
             break;
 
@@ -2783,6 +2785,7 @@ void start_station_vaps(bool rf_status)
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                 &band);
             if (rf_status) {
+                CcspTraceInfo(("Docsis disabled. Starting Station Vaps\n"));
                 char cm_mac_str[32] = {0};
 		wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
                     rf_status);
@@ -2886,6 +2889,7 @@ void start_station_vaps(bool rf_status)
                             .vaps.vap_map.vap_array[vap_array_index]
                             .u.sta_info.security.u.radius.s_ip));
             } else {
+                CcspTraceInfo(("Docsis Enabled. Stoping Station Vaps\n"));
                 wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
                     rf_status);
                 snprintf(data->u.decoded.radios[radio_index]

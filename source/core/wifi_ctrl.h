@@ -115,8 +115,9 @@ extern "C" {
 #define LNF 0b1000000
 
 #define BUS_DML_CONFIG_FILE "bus_dml_config.json"
-
 #define CTRL_QUEUE_SIZE_MAX (700 * getNumberRadios())
+
+extern bool is_sta_set;
 
 typedef enum {
     ctrl_webconfig_state_none = 0,
@@ -265,7 +266,6 @@ typedef struct wifi_ctrl {
     events_bus_data_t   events_bus_data;
     hotspot_cfg_sem_param_t hotspot_sem_param;
     bool                rf_status_down;
-    bool                ignite_rfc_enable;
 } wifi_ctrl_t;
 
 

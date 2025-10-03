@@ -245,6 +245,7 @@ void sta_selfheal_handing(wifi_ctrl_t *ctrl, vap_svc_t *l_svc)
     if (ctrl->rf_status_down == true) {
         wifi_util_info_print(WIFI_CTRL, "%s:%d Sta selfheal mode deactivated due to Ignite mode\n",
             __func__, __LINE__);
+        return;
     }
     static bool radio_reset_triggered = false;
     static unsigned int disconnected_time = 0;
@@ -1771,9 +1772,6 @@ int start_wifi_ctrl(wifi_ctrl_t *ctrl)
     ctrl->exit_ctrl = false;
     ctrl->ctrl_initialized = true;
     register_endpoint_components(ctrl);
-    wifi_util_info_print(WIFI_CTRL,"%s:%d Testing\n", __func__, __LINE__);
-    get_stubs_descriptor()->v_secure_system_fn("touch /tmp/wifi_ready_to_process");
-    wifi_util_info_print(WIFI_CTRL,"%s:%d Testing\n", __func__, __LINE__);
     ctrl_queue_loop(ctrl);
 
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT

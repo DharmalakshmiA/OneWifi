@@ -138,11 +138,8 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_general;
     }
     rf_status = p_data->raw_data.b;
-    if (rf_status == true) {
-        ctrl->ignite_rfc_enable = true;
-    }
     ctrl->rf_status_down = rf_status;
-    wifi_util_error_print(WIFI_CTRL, "%s:%d RF-Status : %d Ignite-Enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, ctrl->ignite_rfc_enable);
+    wifi_util_error_print(WIFI_CTRL, "%s:%d RF-Status : %d\n", __func__, __LINE__, ctrl->rf_status_down);
     start_station_vaps(rf_status);
 
     return rc;
@@ -616,6 +613,13 @@ bus_error_t webconfig_init_data_get_subdoc(char *event_name, raw_data_t *p_data,
                     __FUNCTION__, __LINE__, sync_retries);
                 return bus_error_invalid_operation;
             }
+        }
+
+	if((ctrl->rf_status_down == true) && !is_sta_set) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: station is in configuring state\n",
+                    __FUNCTION__, __LINE__);
+                return bus_error_invalid_operation;
+
         }
         wifi_util_info_print(WIFI_CTRL,
             "%s:%d: sync_retries=%d wifidb and global radio config updated\n", __FUNCTION__,
