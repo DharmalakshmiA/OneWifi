@@ -1649,7 +1649,6 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     bss_candidate_t *candidate = NULL;
-    mac_addr_str_t bssid_str;
     bool found_candidate = false, send_event = false;
     unsigned int i = 0, index, j = 0;
     char cmd[128] = {0};
@@ -1749,7 +1748,6 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
                 } else {
 	            wifi_util_info_print(WIFI_CTRL,"%s:%d Connect status sent successfully to the WM\n", __func__,__LINE__);
 	        }
-		wifi_util_dbg_print(WIFI_CTRL,"%s:%d STA connected to BSSID: %s\n",  __func__,__LINE__, to_mac_str(sta_data->bss_info.bssid, bssid_str));
 	    }
 	    /* Self heal to check if the connected interface received valid ip after a timeout if not trigger a reconnection */
 
@@ -1824,7 +1822,6 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
         wifi_util_info_print(WIFI_CTRL, "%s:%d[PRAMOD]\n", __func__, __LINE__);
         apply_pending_channel_change(svc, sta_data->stats.vap_index);
 
-	wifi_util_dbg_print("%s %d STA disconnected from BSSID: %s\n", __func__, __LINE__, to_mac_str(sta_data->bss_info.bssid, bssid_str));
         if (ext->conn_state == connection_state_connected &&
             ext->connected_vap_index != sta_data->stats.vap_index) {
             wifi_util_info_print(WIFI_CTRL, "%s:%d: vap index %d is connected and received "
