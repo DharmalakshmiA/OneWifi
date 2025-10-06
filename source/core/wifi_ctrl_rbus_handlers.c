@@ -111,7 +111,6 @@ bus_error_t get_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
 {
     (void)user_data;
     bus_error_t rc = bus_error_success;
-    wifi_util_dbg_print(WIFI_CTRL,"%s:%d\n",__func__,__LINE__);
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     if (ctrl == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
@@ -139,7 +138,7 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
     }
     rf_status = p_data->raw_data.b;
     ctrl->rf_status_down = rf_status;
-    wifi_util_error_print(WIFI_CTRL, "%s:%d RF-Status : %d\n", __func__, __LINE__, ctrl->rf_status_down);
+    wifi_util_info_print(WIFI_CTRL, "%s:%d RF-Status : %d\n", __func__, __LINE__, ctrl->rf_status_down);
     start_station_vaps(rf_status);
 
     return rc;
@@ -616,9 +615,8 @@ bus_error_t webconfig_init_data_get_subdoc(char *event_name, raw_data_t *p_data,
         }
 
 	if((ctrl->rf_status_down == true) && !is_sta_set) {
-                wifi_util_info_print(WIFI_CTRL, "%s:%d: station is in configuring state\n",
-                    __FUNCTION__, __LINE__);
-                return bus_error_invalid_operation;
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: station is in configuring state\n", __FUNCTION__, __LINE__);
+            return bus_error_invalid_operation;
 
         }
         wifi_util_info_print(WIFI_CTRL,
@@ -820,12 +818,11 @@ bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_d
         snprintf(status,sizeof(status),"Down");
    }
    str_size = strlen(status) + 1;
-    p_data->data_type = bus_data_type_string;
-    p_data->raw_data.bytes = malloc(str_size);
-    if (p_data->raw_data.bytes == NULL) {
-        wifi_util_error_print(WIFI_CTRL,"%s:%d memory allocation is failed:%d\r\n",__func__,
-            __LINE__, str_size);
-        return bus_error_out_of_resources;
+   p_data->data_type = bus_data_type_string;
+   p_data->raw_data.bytes = malloc(str_size);
+   if (p_data->raw_data.bytes == NULL) {
+       wifi_util_error_print(WIFI_CTRL,"%s:%d memory allocation is failed:%d\r\n",__func__, __LINE__, str_size);
+       return bus_error_out_of_resources;
     }
     strncpy((char *)p_data->raw_data.bytes, status, str_size);
     p_data->raw_data_len = str_size;
@@ -3182,7 +3179,6 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
 {
     int rc = bus_error_success;
     int num_elements;
-    wifi_util_info_print(WIFI_CTRL,"%s:%d Testing\n", __func__, __LINE__);
     bus_data_element_t data_elements[] = {
                          { WIFI_ENDPOINT_CONNECT_STATUS, bus_element_type_method,
                                     { get_endpoint_status,NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
@@ -3193,14 +3189,12 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
                                     { bus_data_type_boolean, true, 0, 0, 0, NULL } },
      };
      num_elements = (sizeof(data_elements) / sizeof(bus_data_element_t));
-    wifi_util_info_print(WIFI_CTRL,"%s:%d num-elements : %d\n", __func__, __LINE__, num_elements);
      rc = get_bus_descriptor()->bus_reg_data_element_fn(&ctrl->handle,data_elements, num_elements);
-     wifi_util_error_print(WIFI_CTRL, "%s %d rc : %d\n", __func__, __LINE__, rc);
      if (rc != bus_error_success) {
         wifi_util_error_print(WIFI_CTRL, "%s %dbus: bus_regDataElements failed\n", __FUNCTION__, __LINE__);
         return;
      }
-      wifi_util_error_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
+     wifi_util_dbg_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
      return;
 }
 

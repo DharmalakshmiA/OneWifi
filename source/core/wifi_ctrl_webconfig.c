@@ -869,7 +869,6 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
 
             start_wifi_sched_timer(vap_info->vap_index, ctrl, wifi_vap_sched);
 
-	    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d [TESTING]\n", __func__, __LINE__);
             if (svc->update_fn(svc, tgt_radio_idx, p_tgt_vap_map, &tgt_rdk_vap_info) != RETURN_OK) {
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: failed to apply\n", __func__, __LINE__);
                 memset(update_status, 0, sizeof(update_status));
@@ -901,7 +900,6 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
              * So, it won't be updated within update_fn -> wifidb_update_wifi_vap_info. Thats the reason why I leaved memcpy here. 
              */
             memcpy(mgr_vap_info, &p_tgt_vap_map->vap_array[0], sizeof(wifi_vap_info_t));
-	    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d [TESTING]\n", __func__, __LINE__);
 
             // This block of code is only used for updating VAP mac.
             //if (vap_info->vap_mode == wifi_vap_mode_ap && is_bssid_valid(p_tgt_vap_map->vap_array[0].u.bss_info.bssid)) {
@@ -2749,7 +2747,6 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
 
 void start_station_vaps(bool rf_status)
 {
-    wifi_util_error_print(WIFI_CTRL, "%s:%d \n", __func__, __LINE__);
     webconfig_subdoc_data_t *data = NULL;
     int status = RETURN_OK;
     int vap_index, radio_index = 0, vap_array_index = 0, band = 0;
@@ -2772,7 +2769,6 @@ void start_station_vaps(bool rf_status)
         &vap_names[0]);
 
     for (size_t i = 0; i < num_vaps; i++) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d \n", __func__, __LINE__);
         vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[i]);
         if (vap_index == RETURN_ERR) {
             continue;
@@ -2787,8 +2783,6 @@ void start_station_vaps(bool rf_status)
             if (rf_status) {
                 wifi_util_dbg_print(WIFI_CTRL, "%s:%d Docsis disabled. Starting Station Vaps\n", __func__, __LINE__);
                 char cm_mac_str[32] = {0};
-		wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
-                    rf_status);
                 snprintf(data->u.decoded.radios[radio_index]
                              .vaps.vap_map.vap_array[vap_array_index]
                              .u.sta_info.ssid,
@@ -2817,12 +2811,6 @@ void start_station_vaps(bool rf_status)
 		data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.enabled = true;
-		wifi_util_error_print(WIFI_CTRL, "[%s %d] type : %d phase2 : %d\n", __func__, __LINE__, data->u.decoded.radios[radio_index]
-                    .vaps.vap_map.vap_array[vap_array_index]
-                    .u.sta_info.security.u.radius.eap_type, 
-		    data->u.decoded.radios[radio_index]
-                    .vaps.vap_map.vap_array[vap_array_index]
-                    .u.sta_info.security.u.radius.phase2);
 		
 		// Convert CM MAC bytes to string "XX:XX:XX:XX:XX:XX"
                 snprintf(cm_mac_str, sizeof(cm_mac_str),
@@ -2833,7 +2821,7 @@ void start_station_vaps(bool rf_status)
                     mgr->hal_cap.wifi_prop.cm_mac[3],
                     mgr->hal_cap.wifi_prop.cm_mac[4],
                     mgr->hal_cap.wifi_prop.cm_mac[5]);
-                 wifi_util_error_print(WIFI_CTRL, "cm-mac : %02X:%02X:%02X:%02X:%02X:%02X mac-str : %s\n",
+                 wifi_util_dbg_print(WIFI_CTRL, "cm-mac : %02X:%02X:%02X:%02X:%02X:%02X mac-str : %s\n",
 	            mgr->hal_cap.wifi_prop.cm_mac[0],
                     mgr->hal_cap.wifi_prop.cm_mac[1],
                     mgr->hal_cap.wifi_prop.cm_mac[2],
@@ -2853,7 +2841,7 @@ void start_station_vaps(bool rf_status)
                     sizeof(data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.identity) - 1);
-                 wifi_util_error_print(WIFI_CTRL, "Identity : %s\n", data->u.decoded.radios[radio_index]
+                 wifi_util_dbg_print(WIFI_CTRL, "Identity : %s\n", data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.identity);
 
@@ -2869,7 +2857,7 @@ void start_station_vaps(bool rf_status)
 		    sizeof(data->u.decoded.radios[radio_index]
                   .vaps.vap_map.vap_array[vap_array_index]
                   .u.sta_info.security.u.radius.key) - 1);
-                 wifi_util_error_print(WIFI_CTRL, "Serial-no : %s key : %s\n", mgr->hal_cap.wifi_prop.serialNo,
+                 wifi_util_dbg_print(WIFI_CTRL, "Serial-no : %s key : %s\n", mgr->hal_cap.wifi_prop.serialNo,
 		    data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.u.radius.key);
@@ -2890,8 +2878,6 @@ void start_station_vaps(bool rf_status)
                             .u.sta_info.security.u.radius.s_ip));
             } else {
 		wifi_util_dbg_print(WIFI_CTRL, "%s:%d Docsis enabled. Stoping Station Vaps\n", __func__, __LINE__);
-                wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
-                    rf_status);
                 snprintf(data->u.decoded.radios[radio_index]
                              .vaps.vap_map.vap_array[vap_array_index]
                              .u.sta_info.ssid,
@@ -2932,7 +2918,7 @@ void start_station_vaps(bool rf_status)
 
     if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_mesh_sta) ==
         webconfig_error_none) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d -webconfig_encode success\n", __FUNCTION__,
+        wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__,
             __LINE__);
         str = data->u.encoded.raw;
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,

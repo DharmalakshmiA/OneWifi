@@ -1073,7 +1073,6 @@ webconfig_error_t encode_radius_object(const wifi_radius_settings_t *radius_info
         cJSON_AddStringToObject(radius, "SecondaryRadiusSecret", radius_info->s_key);
     }
 
-    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d type : %d phase : %d identity : %s password : %s\n", __func__, __LINE__, radius_info->eap_type, radius_info->phase2, radius_info->identity, radius_info->key);
     cJSON_AddNumberToObject(radius, "EAPType", radius_info->eap_type);
     cJSON_AddNumberToObject(radius, "Phase2Auth", radius_info->phase2);
     if (strlen((char *)radius_info->identity) == 0) {
@@ -1638,7 +1637,6 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     
     // Ignite Status
     cJSON_AddBoolToObject(vap_obj, "Ignite_Enabled", vap_info->u.sta_info.ignite_enabled);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Ignite-REnable : %d\n", __FUNCTION__, __LINE__, vap_info->u.sta_info.ignite_enabled);
 
     //ConnectStatus
     if (vap_info->u.sta_info.conn_status == wifi_connection_status_connected) {
@@ -1653,7 +1651,6 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     // Security
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Security", obj);
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d SREESH Value of vap_index = %d and vap_name = %s and vap_mode = %d\n",__func__,__LINE__,vap_info->vap_index,vap_info->vap_name, vap_info->vap_mode);
     if (encode_security_object(&vap_info->u.sta_info.security, obj, is_6g, vap_info->vap_mode) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Security object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
