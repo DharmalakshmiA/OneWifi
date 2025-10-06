@@ -1224,11 +1224,11 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
         get_wifidb_obj()->desc.update_wifi_security_config_fn(getVAPName(map->vap_array[i].vap_index),
             &map->vap_array[i].u.sta_info.security);
 
-        wifi_util_info_print(WIFI_CTRL, "%s:%d vap-idx : %d  idx : %d eth_bh_status : %d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, i, map->vap_array[i].vap_index,  ctrl->eth_bh_status, ctrl->rf_status_down, map->vap_array[i].sta_info.ignite_enabled);
-        if (map->vap_array[i].sta_info.ignite_enabled == true) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d vap-idx : %d  idx : %d eth_bh_status : %d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, i, map->vap_array[i].vap_index,  ctrl->eth_bh_status, ctrl->rf_status_down, map->vap_array[i].u.sta_info.ignite_enabled);
+        if (map->vap_array[i].u.sta_info.ignite_enabled == true) {
             if (ctrl->rf_status_down == false) {
                 ext_set_conn_state(ext, connection_state_disconnected_steady, __func__, __LINE__);
-                map->vap_array[i].sta_info.ignite_enabled = false;
+                map->vap_array[i].u.sta_info.ignite_enabled = false;
 	    } else {
                 ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__,
                     __LINE__);
@@ -1745,11 +1745,11 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
 	        ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
        
 	        if (ret == RETURN_ERR) {
-                    CcspTraceInfo(("Failed to publish connect status to WM\n"));
+                    wifi_util_error_print(WIFI_CTRL,"%s:%d Failed to publish connect status to WM\n", __func__,__LINE__);
                 } else {
-	            CcspTraceInfo(("Connect status sent successfully to the WM\n"));
+	            wifi_util_info_print(WIFI_CTRL,"%s:%d Connect status sent successfully to the WM\n", __func__,__LINE__);
 	        }
-		CcspTraceInfo(("STA connected to BSSID: %s\n", to_mac_str(sta_data->bss_info.bssid, bssid_str));
+		wifi_util_dbg_print(WIFI_CTRL,"%s:%d STA connected to BSSID: %s\n",  __func__,__LINE__, to_mac_str(sta_data->bss_info.bssid, bssid_str));
 	    }
 	    /* Self heal to check if the connected interface received valid ip after a timeout if not trigger a reconnection */
 
@@ -1824,7 +1824,7 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
         wifi_util_info_print(WIFI_CTRL, "%s:%d[PRAMOD]\n", __func__, __LINE__);
         apply_pending_channel_change(svc, sta_data->stats.vap_index);
 
-	CcspTraceInfo(("STA disconnected from BSSID: %s\n", to_mac_str(sta_data->bss_info.bssid, bssid_str)));
+	wifi_util_dbg_print("%s %d STA disconnected from BSSID: %s\n", __func__, __LINE__, to_mac_str(sta_data->bss_info.bssid, bssid_str));
         if (ext->conn_state == connection_state_connected &&
             ext->connected_vap_index != sta_data->stats.vap_index) {
             wifi_util_info_print(WIFI_CTRL, "%s:%d: vap index %d is connected and received "
@@ -1861,10 +1861,10 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
             ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
        
 	    if (ret == RETURN_ERR) {
-                CcspTraceInfo(("Failed to publish disconnect status to WM\n"));
-            } else {
-                CcspTraceInfo(("%s:%d Disconnect status sent successfully to the WM\n"));
-            }
+                wifi_util_error_print(WIFI_CTRL,"%s:%d Failed to publish disconnect status to WM\n", __func__,__LINE__);
+	    } else {
+                wifi_util_info_print(WIFI_CTRL,"%s:%d Disconnect status sent successfully to the WM\n", __func__,__LINE__);
+	    }
             // ret = set_endpoint_enable(sta_data->stats.connect_status);
 
             // Workaround for sta disconnection

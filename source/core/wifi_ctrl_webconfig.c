@@ -2785,7 +2785,7 @@ void start_station_vaps(bool rf_status)
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                 &band);
             if (rf_status) {
-                CcspTraceInfo(("Docsis disabled. Starting Station Vaps\n"));
+                wifi_util_dbg_print(WIFI_CTRL, "%s:%d Docsis disabled. Starting Station Vaps\n", __func__, __LINE__);
                 char cm_mac_str[32] = {0};
 		wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
                     rf_status);
@@ -2889,7 +2889,7 @@ void start_station_vaps(bool rf_status)
                             .vaps.vap_map.vap_array[vap_array_index]
                             .u.sta_info.security.u.radius.s_ip));
             } else {
-                CcspTraceInfo(("Docsis Enabled. Stoping Station Vaps\n"));
+		wifi_util_dbg_print(WIFI_CTRL, "%s:%d Docsis enabled. Stoping Station Vaps\n", __func__, __LINE__);
                 wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__,
                     rf_status);
                 snprintf(data->u.decoded.radios[radio_index]
