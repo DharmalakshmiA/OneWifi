@@ -617,6 +617,7 @@ bus_error_t webconfig_init_data_get_subdoc(char *event_name, raw_data_t *p_data,
         if((ctrl->rf_status_down == true) && !is_sta_set) {
             wifi_util_info_print(WIFI_CTRL, "%s:%d: station is in configuring state\n", __FUNCTION__, __LINE__);
             return bus_error_invalid_operation;
+
         }
         wifi_util_info_print(WIFI_CTRL,
             "%s:%d: sync_retries=%d wifidb and global radio config updated\n", __FUNCTION__,

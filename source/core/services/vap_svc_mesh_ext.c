@@ -527,13 +527,13 @@ int process_udhcp_ip_check(vap_svc_t *svc)
             (ext->conn_state == connection_state_connected)) {
             char iface[32] = "brww0";
             if (has_valid_ip(iface)) {
-                wifi_util_info_print(WIFI_CTRL, "%s:%d IGNTE_RF_FAILURE: Received Valid IP address on brww0 interface\n", __func__, __LINE__);
+                wifi_util_info_print(WIFI_CTRL, "IGNTE_RF_DOWN: Received Valid IP address on brww0 interface\n");
                 scheduler_cancel_timer_task(ctrl->sched, ext->ext_udhcp_ip_check_id);
                 ext->ext_udhcp_ip_check_id = 0;
                 ip_check_count = 0;
                 return 0;
             } else {
-                wifi_util_error_print(WIFI_CTRL, "%s:%d IGNTE_RF_FAILURE: Invalid IP address detected on brww0 interface\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_CTRL, "IGNTE_RF_DOWN: Invalid IP address detected on brww0 interface\n");
             }
         }
     }
@@ -1737,9 +1737,9 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
 
                 ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
          	if (ret == RETURN_ERR) {
-                    wifi_util_error_print(WIFI_CTRL,"%s:%d Failed to publish connect status to WM\n", __func__,__LINE__);
+                    wifi_util_error_print(WIFI_CTRL,"IGNITE_RF_DOWN: Failed to publish connect status to WM\n");
                 } else {
-                    wifi_util_info_print(WIFI_CTRL,"%s:%d Connect status sent successfully to the WM\n", __func__,__LINE__);
+                    wifi_util_info_print(WIFI_CTRL,"IGNITE_RF_DOWN: Connect status sent successfully to the WM\n");
                 }
             }
 	    /* Self heal to check if the connected interface received valid ip after a timeout if not trigger a reconnection */
@@ -1848,9 +1848,9 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
             ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
 
             if (ret == RETURN_ERR) {
-                wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to publish disconnect status to WM\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_CTRL, "IGNITE_RF_DOWN: Failed to publish disconnect status to WM\n");
             } else {
-                wifi_util_info_print(WIFI_CTRL, "%s:%d Disconnect status sent successfully to the WM\n", __func__, __LINE__);
+                wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Disconnect status sent successfully to the WM\n");
             }
 
             memset(cmd, '\0', 128);
