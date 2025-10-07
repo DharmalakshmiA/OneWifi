@@ -115,6 +115,7 @@ extern "C" {
 #define LNF 0b1000000
 
 #define BUS_DML_CONFIG_FILE "bus_dml_config.json"
+
 #define CTRL_QUEUE_SIZE_MAX (700 * getNumberRadios())
 
 extern bool is_sta_set;

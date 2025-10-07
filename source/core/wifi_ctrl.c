@@ -253,14 +253,13 @@ void sta_selfheal_handing(wifi_ctrl_t *ctrl, vap_svc_t *l_svc)
     vap_svc_ext_t *ext;
     ext = &l_svc->u.ext;
 
-    wifi_util_info_print(WIFI_CTRL, "%s:%d\n", __func__, __LINE__);
     /* Reboot device is STA connection is unsuccessful */
     if ((ext != NULL) && (ext->conn_state != connection_state_connected)) {
         disconnected_time++;
         connection_timeout++;
-        wifi_util_info_print(WIFI_CTRL, "%s:%d selfheal STA Connection Timeout  event publish time is set to %d minutes, "
-            "disconnected_time:%d\n", __func__, __LINE__, selfheal_event_publish_time(), disconnected_time);
-        if ((disconnected_time * STA_CONN_RETRY_TIMEOUT) > (selfheal_event_publish_time() * 60)) {
+        wifi_util_info_print(WIFI_CTRL,"%s:%d selfheal STA Connection Timeout  event publish time is set to %d minutes, disconnected_time:%d\n",
+                        __func__, __LINE__, selfheal_event_publish_time(), disconnected_time);        
+	if ((disconnected_time * STA_CONN_RETRY_TIMEOUT) > (selfheal_event_publish_time() * 60)) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d selfheal: STA connection failed for %d minutes, publish selfheal "
                 "connection timeout\n", __func__, __LINE__, selfheal_event_publish_time());
             /* publish selfheal STA Connection Timeout  device */
@@ -268,12 +267,11 @@ void sta_selfheal_handing(wifi_ctrl_t *ctrl, vap_svc_t *l_svc)
             disconnected_time = 0;
             connection_timeout = 0;
         } else if (((disconnected_time * STA_CONN_RETRY_TIMEOUT) >= ((selfheal_event_publish_time() * 60) / 2)) &&
-            (radio_reset_triggered == false)) {
+(radio_reset_triggered == false)) {
             reset_wifi_radios();
             radio_reset_triggered = true;
         } else if ((connection_timeout * STA_CONN_RETRY_TIMEOUT) >= MAX_CONNECTION_ALGO_TIMEOUT) {
-            l_svc->event_fn(l_svc, wifi_event_type_exec, wifi_event_exec_timeout,
-                vap_svc_event_none, NULL);
+            l_svc->event_fn(l_svc, wifi_event_type_exec, wifi_event_exec_timeout, vap_svc_event_none, NULL);
             connection_timeout = 0;
         }
     } else {
@@ -796,15 +794,15 @@ void start_gateway_vaps()
     if (bus_get_active_gw_parameter(WIFI_ACTIVE_GATEWAY_CHECK, &value) == RETURN_OK) {
         ctrl->active_gw_check = value;
     }
-    if (is_sta_enabled() == true) {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d start mesh sta\n",__func__, __LINE__);
-        start_extender_vaps();
-    }
     value = false;
     if (bus_get_active_gw_parameter(WIFI_ENDPOINT_ENABLE_CHECK, &value) == RETURN_OK) {
         ctrl->rf_status_down = value;
 	wifi_vap_info->u.sta_info.ignite_enabled = value;
 	wifi_util_dbg_print(WIFI_CTRL, "%s:%d rf-status : %d ignite-enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, wifi_vap_info->u.sta_info.ignite_enabled);
+    }
+    if (is_sta_enabled() == true) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d start mesh sta\n",__func__, __LINE__);
+        start_extender_vaps();
     }
 }
 
@@ -2248,9 +2246,7 @@ static void ctrl_queue_timeout_scheduler_tasks(wifi_ctrl_t *ctrl)
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, run_cac_event, NULL, (CAC_PERIOD * 1000), 0, FALSE);
 #endif
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, run_greylist_event, NULL, (GREYLIST_CHECK_IN_SECONDS * 1000), 0, FALSE);
-    if (ctrl->rf_status_down == false) {
-	scheduler_add_timer_task(ctrl->sched, FALSE, NULL, sta_connectivity_selfheal, NULL, (STA_CONN_RETRY_TIMEOUT * 1000), 0, FALSE);
-    }
+    scheduler_add_timer_task(ctrl->sched, FALSE, NULL, sta_connectivity_selfheal, NULL, (STA_CONN_RETRY_TIMEOUT * 1000), 0, FALSE);
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, bus_check_and_subscribe_events, NULL, (ctrl->poll_period * 1000), 0, FALSE);
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, pending_states_webconfig_analyzer, NULL, (ctrl->poll_period * 1000), 0, FALSE);
 
