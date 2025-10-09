@@ -1726,13 +1726,27 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
 
             // copy the bss bssid info to global chache
             memcpy (temp_vap_info->u.sta_info.bssid, sta_data->bss_info.bssid, sizeof(temp_vap_info->u.sta_info.bssid));
-
+            char mac_str[32] = {'\0'};
             // change the state
             ext_set_conn_state(ext, connection_state_connected, __func__, __LINE__);
             if (ctrl->rf_status_down == true) { 
-                wifi_hal_add_station_bridge(sta_data->interface_name,bridge_name);
+                uint8_mac_to_string_mac(temp_vap_info->u.sta_info.mac, mac_str);
+                //wifi_hal_add_station_bridge(sta_data->interface_name,bridge_name);
+                wifi_util_info_print(WIFI_CTRL, "%s:%d Bridge:%s  Using MAC-Str:%s MAC : %02x:%02x:%02x:%02x:%02x:%02x\n",
+                     __func__, __LINE__,
+                     bridge_name, mac_str, temp_vap_info->u.sta_info.mac[0], temp_vap_info->u.sta_info.mac[1], temp_vap_info->u.sta_info.mac[2], temp_vap_info->u.sta_info.mac[3], temp_vap_info->u.sta_info.mac[4], temp_vap_info->u.sta_info.mac[5]);
+	            snprintf(cmd, sizeof(cmd), "ovs-vsctl set bridge %s other-config:hwaddr=%s", bridge_name, mac_str);
+	            wifi_util_info_print(WIFI_CTRL, "%s:%d Cmd : %s\n", __func__, __LINE__);
+	            ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
+                if (ret != 0) {
+    		        wifi_util_dbg_print(WIFI_CTRL, "%s:%d Failed to set bridge MAC, ret=%d\n",
+                        __func__, __LINE__, ret);
+	            } else {
+    		        wifi_util_info_print(WIFI_CTRL, "%s:%d Successfully set bridge MAC to %s\n",
+                         __func__, __LINE__, mac_str);
+	            }
                 snprintf(cmd, sizeof(cmd), "ip link set dev %s up", bridge_name);
-                wifi_util_dbg_print(WIFI_CTRL,"%s:%d cmd : %s\n",__func__,__LINE__, cmd);
+                wifi_util_dbg_print(WIFI_CTRL,"%s:%d SREESH Trying to enable bridge cmd : %s\n",__func__,__LINE__, cmd);
                 get_stubs_descriptor()->v_secure_system_fn(cmd);
 
                 ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
