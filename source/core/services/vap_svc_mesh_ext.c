@@ -49,6 +49,41 @@ static void swap_bss(bss_candidate_t *a, bss_candidate_t *b)
     *a = *b;
     *b = t;
 }
+
+static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int rssi_2_4_normalizer_val)
+{
+    int normalizer_val = 0;
+    int pivot_snr;
+    int pidx = start;
+
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d\n", __func__, __LINE__, bss[end].radio_freq_band, bss[end].external_ap.rssi, bss[end].external_ap.noise);
+    // Calculate pivot SNR
+    if (bss[end].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
+        pivot_snr = (bss[end].external_ap.rssi - rssi_2_4_normalizer_val) - bss[end].external_ap.noise;
+    } else {
+        pivot_snr = bss[end].external_ap.rssi - bss[end].external_ap.noise;
+    }
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] pivot-snr : %d\n",  __func__, __LINE__, pivot_snr);
+
+    for (int i = start; i < end; i++) {
+        normalizer_val = 0;
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d\n", __func__, __LINE__, bss[i].radio_freq_band, bss[i].external_ap.rssi, bss[i].external_ap.noise);
+	
+	if (bss[i].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
+            normalizer_val = rssi_2_4_normalizer_val;
+        }
+
+        int snr = (bss[i].external_ap.rssi - normalizer_val) - bss[i].external_ap.noise;
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr : %d pivot-snr : %d\n", __func__, __LINE__, snr, pivot_snr);
+	if (snr > pivot_snr) {
+            swap_bss(&bss[pidx], &bss[i]);
+            pidx++;
+        }
+    }
+    swap_bss(&bss[pidx], &bss[end]);
+    return pidx;
+}
+
 static int partition(bss_candidate_t *bss, int start, int end, int rssi_2_4_normalizer_val)
 {
     int normalizer_val = 0;
@@ -107,9 +142,13 @@ static void get_rssi_normalizer_value(char *path_to_file, int *rssi_2_4_normaliz
 
 static void start_sorting_by_rssi(bss_candidate_t *bss, int start, int end, int rssi_2_4_normalizer_val)
 {
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] start : %d end : %d rssi-2.4-normalizer : %d\n", __func__, __LINE__, start, end, rssi_2_4_normalizer_val);
     if (start < end) {
-        int pidx = partition(bss, start, end, rssi_2_4_normalizer_val);
-
+        if (ctrl->rf_status_down == true) {
+	    int pidx = partition_based_on_snr(bss, start, end, rssi_2_4_normalizer_val); 
+	} else {
+            int pidx = partition(bss, start, end, rssi_2_4_normalizer_val);
+        }
         start_sorting_by_rssi(bss, start, pidx - 1, rssi_2_4_normalizer_val);
         start_sorting_by_rssi(bss, pidx + 1, end, rssi_2_4_normalizer_val);
     }
@@ -1495,10 +1534,10 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
         scan_list->conn_attempt = connection_attempt_wait;
         scan_list->conn_retry_attempt = 0;
         scan_list->radio_freq_band = band;
-        wifi_util_dbg_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, freq:%d\n",
-            __func__, __LINE__, tmp_bss->ssid, to_mac_str(tmp_bss->bssid, bssid_str), tmp_bss->rssi, tmp_bss->freq);
-        wifi_util_info_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, freq:%d\n",
-            __func__, __LINE__, scan_list->external_ap.ssid, to_mac_str(scan_list->external_ap.bssid, bssid_str), scan_list->external_ap.rssi, scan_list->external_ap.freq);
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, noise : %d, snr  %d, freq:%d\n",
+            __func__, __LINE__, tmp_bss->ssid, to_mac_str(tmp_bss->bssid, bssid_str), tmp_bss->rssi, tmp_bss->noise, (tmp_bss->rssi - tmp_bss->noise), tmp_bss->freq);
+        wifi_util_info_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, noise : %d, snr  %d, freq:%d\n",
+            __func__, __LINE__, scan_list->external_ap.ssid, to_mac_str(scan_list->external_ap.bssid, bssid_str), scan_list->external_ap.rssi, scan_list->external_ap.noise, (scan_list->external_ap.rssi - scan_list->external_ap.noise),  scan_list->external_ap.freq);
         tmp_bss++;
         scan_list++;
     }
