@@ -143,11 +143,13 @@ static void get_rssi_normalizer_value(char *path_to_file, int *rssi_2_4_normaliz
 static void start_sorting_by_rssi(bss_candidate_t *bss, int start, int end, int rssi_2_4_normalizer_val)
 {
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] start : %d end : %d rssi-2.4-normalizer : %d\n", __func__, __LINE__, start, end, rssi_2_4_normalizer_val);
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    int pidx = 0;
     if (start < end) {
         if (ctrl->rf_status_down == true) {
-	    int pidx = partition_based_on_snr(bss, start, end, rssi_2_4_normalizer_val); 
+	    pidx = partition_based_on_snr(bss, start, end, rssi_2_4_normalizer_val); 
 	} else {
-            int pidx = partition(bss, start, end, rssi_2_4_normalizer_val);
+            pidx = partition(bss, start, end, rssi_2_4_normalizer_val);
         }
         start_sorting_by_rssi(bss, start, pidx - 1, rssi_2_4_normalizer_val);
         start_sorting_by_rssi(bss, pidx + 1, end, rssi_2_4_normalizer_val);
