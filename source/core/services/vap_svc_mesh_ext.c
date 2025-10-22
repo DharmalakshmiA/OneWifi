@@ -50,14 +50,252 @@ static void swap_bss(bss_candidate_t *a, bss_candidate_t *b)
     *b = t;
 }
 
+
+#if 0
+int get_chan_stats(unsigned int freq, int radio_index)
+{
+    wifi_radio_operationParam_t* radioOperation = NULL;
+    wifi_radio_capabilities_t *wifi_cap = NULL;
+    wifi_channelStats_t *chan_stats = NULL;
+    int   num_channels = 0;
+    unsigned int channel = 0;
+    int channels[64] = {0};
+    int noise = 0;
+
+    convert_freq_to_channel(freq, (unsigned char *) &channel);
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] freq : %u channel : %c %u\n", __func__, __LINE__, freq, (unsigned char *)channel, channel);
+    
+    radioOperation = getRadioOperationParam(radio_index);
+    if (radioOperation == NULL) {
+        wifi_util_error_print(WIFI_MON,"%s:%d NULL radioOperation pointer for radio : %d\n", __func__, __LINE__, args->radio_index);
+        return RETURN_ERR;
+    }
+
+    wifi_cap = getRadioCapability(radio_index);
+
+    if (get_allowed_channels(radioOperation->band, wifi_cap, channels, &num_channels, radioOperation->DfsEnabled) != RETURN_OK) {
+        wifi_util_error_print(WIFI_MON, "%s:%d get allowed channels failed for the radio : %d\n",__func__,__LINE__, args->radio_index);
+        return RETURN_ERR;
+    }
+
+
+    chan_stats = (wifi_channelStats_t *) calloc(num_channels, sizeof(wifi_channelStats_t));
+    if (chan_stats == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d Failed to alloc memory for the radio : %d\n",__func__,__LINE__, args->radio_index);
+        return RETURN_ERR;
+    }
+
+    for (chan_count = 0; chan_count < (unsigned int)num_channels; chan_count++) {
+        chan_stats[chan_count].ch_number = channels[chan_count];
+        chan_stats[chan_count].ch_in_pool= TRUE;
+    }
+
+    ret = wifi_getRadioChannelStats(radio_index, chan_stats, chan_count);
+    if (ret != RETURN_OK) {
+        wifi_util_error_print(WIFI_MON, "%s : %d  Failed to get radio channel statistics for scan mode %d radio index %d\n",__func__,__LINE__, args->scan_mode, args->radio_index);
+        if (chan_stats != NULL) {
+            free(chan_stats);
+            chan_stats = NULL;
+        }
+        return RETURN_ERR;
+    }
+
+    wifi_util_dbg_print(WIFI_MON, "%s:%d NL: radio channel stats for radio index: %d chan_count : %d scan_mode %d\n", __func__,
+            __LINE__, args->radio_index, chan_count, args->scan_mode);
+    for (i = 0; i < chan_count; i++) {
+        wifi_util_dbg_print(WIFI_MON, "channel: %d noise: %d ch_radar_noise: %d "
+                "ch_max_80211_rssi: %d ch_non_80211_noise:%d ch_utilization: %d "
+                "ch_utilization_total: %llu ch_utilization_busy: %llu ch_utilization_busy_tx: %llu "
+                "ch_utilization_busy_rx: %llu ch_utilization_busy_self: %llu "
+                "ch_utilization_busy_ext: %llu\n",
+                chan_stats[i].ch_number, chan_stats[i].ch_noise,
+                chan_stats[i].ch_radar_noise, chan_stats[i].ch_max_80211_rssi,
+                chan_stats[i].ch_non_80211_noise, chan_stats[i].ch_utilization,
+                chan_stats[i].ch_utilization_total, chan_stats[i].ch_utilization_busy,
+                chan_stats[i].ch_utilization_busy_tx, chan_stats[i].ch_utilization_busy_rx,
+                chan_stats[i].ch_utilization_busy_self, chan_stats[i].ch_utilization_busy_ext);
+	if (channel == chan_stats[i].ch_number) {
+	    noise = chan_stats[i].ch_noise;
+	    found = 1;
+	}
+    }
+    if (found == 1) {
+        wifi_util_dbg_print(WIFI_MON, "[%s %d] 	Channel found. Noise updated as %d\n", __func__, __LINE__, noise);
+    } else {
+        wifi_util_dbg_print(WIFI_MON, "[%s %d] Channel not found\n", __func__, __LINE__);
+    }
+
+    if (chan_stats != NULL) {
+        free(chan_stats);
+        chan_stats = NULL;
+    }
+    
+    return noise;
+}
+#endif
+
+typedef struct {
+    int radio_index;
+    int num_channels;
+    wifi_channelStats_t *chan_stats;
+} radio_stats_cache_t;
+
+static radio_stats_cache_t g_radio_stats[MAX_RADIOS]; // Global cache
+
+static int init_radio_chan_stats(int radio_index)
+{
+    wifi_radio_operationParam_t *radioOperation = NULL;
+    wifi_radio_capabilities_t *wifi_cap = NULL;
+    int channels[64] = {0};
+    int num_channels = 0;
+    int ret = 0, i;
+
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Initializing channel stats for radio: %d\n",
+        __func__, __LINE__, radio_index);
+
+    /* Get radio operational parameters */
+    radioOperation = getRadioOperationParam(radio_index);
+    if (radioOperation == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL radioOperation pointer for radio: %d\n",
+            __func__, __LINE__, radio_index);
+        return RETURN_ERR;
+    }
+
+    /* Get radio capabilities */
+    wifi_cap = getRadioCapability(radio_index);
+    if (wifi_cap == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL radio capability for radio: %d\n",
+            __func__, __LINE__, radio_index);
+        return RETURN_ERR;
+    }
+
+    /* Get allowed channels */
+    ret = get_allowed_channels(radioOperation->band, wifi_cap, channels,
+                               &num_channels, radioOperation->DfsEnabled);
+    if (ret != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get allowed channels for radio: %d\n",
+            __func__, __LINE__, radio_index);
+        return RETURN_ERR;
+    }
+
+    /* Allocate memory */
+    wifi_channelStats_t *chan_stats =
+        (wifi_channelStats_t *)calloc(num_channels, sizeof(wifi_channelStats_t));
+    if (!chan_stats) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Memory allocation failed for radio: %d\n",
+            __func__, __LINE__, radio_index);
+        return RETURN_ERR;
+    }
+
+    /* Initialize channel list */
+    for (i = 0; i < num_channels; i++) {
+        chan_stats[i].ch_number = channels[i];
+        chan_stats[i].ch_in_pool = TRUE;
+    }
+
+    /* Fetch channel stats */
+    ret = wifi_getRadioChannelStats(radio_index, chan_stats, num_channels);
+    if (ret != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get channel stats for radio: %d\n",
+            __func__, __LINE__, radio_index);
+        free(chan_stats);
+        return RETURN_ERR;
+    }
+
+    /* Store in cache */
+    g_radio_stats[radio_index].radio_index = radio_index;
+    g_radio_stats[radio_index].num_channels = num_channels;
+    g_radio_stats[radio_index].chan_stats = chan_stats;
+
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Initialized %d channels for radio %d\n",
+        __func__, __LINE__, num_channels, radio_index);
+
+    return RETURN_OK;
+}
+
+wifi_channelStats_t *get_chan_stats(unsigned int freq, int radio_index)
+{
+    int i;
+    unsigned int channel = 0;
+    wifi_channelStats_t *chan_stats = NULL;
+    int num_channels = 0;
+
+    convert_freq_to_channel(freq, (unsigned char *)&channel);
+
+    wifi_util_dbg_print(WIFI_CTRL,
+        "[%s %d] Checking freq: %u → channel: %u for radio %d\n",
+        __func__, __LINE__, freq, channel, radio_index);
+
+    /* Initialize radio stats once per radio */
+    if (g_radio_stats[radio_index].chan_stats == NULL) {
+        if (init_radio_chan_stats(radio_index) != RETURN_OK) {
+            wifi_util_error_print(WIFI_CTRL,
+                "%s:%d Failed to initialize radio %d channel stats\n",
+                __func__, __LINE__, radio_index);
+            return NULL;
+        }
+    }
+
+    chan_stats = g_radio_stats[radio_index].chan_stats;
+    num_channels = g_radio_stats[radio_index].num_channels;
+
+    /* Search for matching channel */
+    for (i = 0; i < num_channels; i++) {
+        if (chan_stats[i].ch_number == channel) {
+            wifi_util_dbg_print(WIFI_CTRL,
+                "[%s %d] Found channel %u stats: noise=%d util=%d radar=%d rssi=%d\n",
+                __func__, __LINE__,
+                channel,
+                chan_stats[i].ch_noise,
+                chan_stats[i].ch_utilization,
+                chan_stats[i].ch_radar_noise,
+                chan_stats[i].ch_max_80211_rssi);
+            return &chan_stats[i];
+        }
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+        "[%s %d] Channel %u not found in radio %d stats\n",
+        __func__, __LINE__, channel, radio_index);
+
+    return NULL;
+}
+
+void free_radio_chan_stats()
+{
+    for (int i = 0; i < MAX_RADIOS; i++) {
+        if (g_radio_stats[i].chan_stats != NULL) {
+            free(g_radio_stats[i].chan_stats);
+            g_radio_stats[i].chan_stats = NULL;
+	    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Stats freed for radio %d\n", __func__, __LINE__, i);
+        }
+    }
+}
+
 static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int rssi_2_4_normalizer_val)
 {
     int normalizer_val = 0;
     int pivot_snr;
     int pidx = start;
-
-    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d\n", __func__, __LINE__, bss[end].radio_freq_band, bss[end].external_ap.rssi, bss[end].external_ap.noise);
+    unsigned int freq = 0;
+    wifi_channelStats_t *chan_stats = NULL;
+    unsigned int chan_count = 0;
+    int radio_index = 0;
+    int rc = 0;
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d util : %u freq : %u\n", __func__, __LINE__, bss[end].radio_freq_band, bss[end].external_ap.rssi, bss[end].external_ap.noise, bss[end].external_ap.chan_utilization, bss[end].external_ap.freq);
     // Calculate pivot SNR
+    
+    freq = bss[end].external_ap.freq;
+    rc = convert_freq_band_to_radio_index(bss[end].external_ap.freq, &radio_index);
+    if (rc != RETURN_OK) {
+        wifi_util_dbg_print(WIFI_SM, "%s:%d: failed to convert freq_band=%d to radio_index\n", __func__, __LINE__, bss[end].external_ap.freq);
+        rc = RETURN_ERR;
+    }
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] radio-idx : %d\n", __func__, __LINE__, radio_index);
+    chan_stats = get_chan_stats(freq, radio_index);
+    bss[end].external_ap.noise = chan_stats->ch_noise;
+    bss[end].external_ap.chan_utilization = (unsigned int *)chan_stats->ch_utilization; 
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] noise : %d util : %u\n", __func__, __LINE__,  bss[end].external_ap.noise, bss[end].external_ap.chan_utilization); 
     if (bss[end].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
         pivot_snr = (bss[end].external_ap.rssi - rssi_2_4_normalizer_val) - bss[end].external_ap.noise;
     } else {
@@ -67,8 +305,23 @@ static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int 
 
     for (int i = start; i < end; i++) {
         normalizer_val = 0;
-        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d\n", __func__, __LINE__, bss[i].radio_freq_band, bss[i].external_ap.rssi, bss[i].external_ap.noise);
-	
+
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d chan-util : %u\n", __func__, __LINE__, bss[i].radio_freq_band, bss[i].external_ap.rssi, bss[i].external_ap.noise, bss[end].external_ap.chan_utilization);
+
+	freq = rc = radio_index = 0;
+        freq = bss[i].external_ap.freq;
+        rc = convert_freq_band_to_radio_index(bss[i].external_ap.freq, &radio_index);
+        if (rc != RETURN_OK) {
+            wifi_util_dbg_print(WIFI_SM, "%s:%d: failed to convert freq_band=%d to radio_index\n", __func__, __LINE__, bss[end].external_ap.freq);
+            //rc = RETURN_ERR;
+        }
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] radio-idx : %d\n", __func__, __LINE__, radio_index);
+        chan_stats = NULL;
+	chan_stats = get_chan_stats(freq, radio_index);
+        bss[i].external_ap.noise = chan_stats->ch_noise;
+        bss[i].external_ap.chan_utilization = (unsigned int *)chan_stats->ch_utilization;
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] i : %d noise : %d util : %u\n", __func__, __LINE__, i, bss[i].external_ap.noise, bss[i].external_ap.chan_utilization);
+
 	if (bss[i].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
             normalizer_val = rssi_2_4_normalizer_val;
         }
@@ -154,6 +407,7 @@ static void start_sorting_by_rssi(bss_candidate_t *bss, int start, int end, int 
         start_sorting_by_rssi(bss, start, pidx - 1, rssi_2_4_normalizer_val);
         start_sorting_by_rssi(bss, pidx + 1, end, rssi_2_4_normalizer_val);
     }
+    free_radio_chan_stats();
 }
 
 void sort_bss_results_by_rssi(bss_candidate_t *bss, int start, int end)
