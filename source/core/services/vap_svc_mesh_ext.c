@@ -134,6 +134,8 @@ int get_chan_stats(unsigned int freq, int radio_index)
 }
 #endif
 
+#define MAX_RADIOS  3
+
 typedef struct {
     int radio_index;
     int num_channels;
@@ -241,7 +243,7 @@ wifi_channelStats_t *get_chan_stats(unsigned int freq, int radio_index)
 
     /* Search for matching channel */
     for (i = 0; i < num_channels; i++) {
-        if (chan_stats[i].ch_number == channel) {
+        if ((unsigned int)chan_stats[i].ch_number == channel) {
             wifi_util_dbg_print(WIFI_CTRL,
                 "[%s %d] Found channel %u stats: noise=%d util=%d radar=%d rssi=%d\n",
                 __func__, __LINE__,
@@ -279,7 +281,6 @@ static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int 
     int pidx = start;
     unsigned int freq = 0;
     wifi_channelStats_t *chan_stats = NULL;
-    unsigned int chan_count = 0;
     int radio_index = 0;
     int rc = 0;
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] band : %d end-bss-rssi : %d end-bss-noise : %d util : %u freq : %u\n", __func__, __LINE__, bss[end].radio_freq_band, bss[end].external_ap.rssi, bss[end].external_ap.noise, bss[end].external_ap.chan_utilization, bss[end].external_ap.freq);
@@ -294,7 +295,7 @@ static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int 
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] radio-idx : %d\n", __func__, __LINE__, radio_index);
     chan_stats = get_chan_stats(freq, radio_index);
     bss[end].external_ap.noise = chan_stats->ch_noise;
-    bss[end].external_ap.chan_utilization = (unsigned int *)chan_stats->ch_utilization; 
+    bss[end].external_ap.chan_utilization = (unsigned int)chan_stats->ch_utilization; 
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] noise : %d util : %u\n", __func__, __LINE__,  bss[end].external_ap.noise, bss[end].external_ap.chan_utilization); 
     if (bss[end].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
         pivot_snr = (bss[end].external_ap.rssi - rssi_2_4_normalizer_val) - bss[end].external_ap.noise;
@@ -319,7 +320,7 @@ static int partition_based_on_snr(bss_candidate_t *bss, int start, int end, int 
         chan_stats = NULL;
 	chan_stats = get_chan_stats(freq, radio_index);
         bss[i].external_ap.noise = chan_stats->ch_noise;
-        bss[i].external_ap.chan_utilization = (unsigned int *)chan_stats->ch_utilization;
+        bss[i].external_ap.chan_utilization = (unsigned int)chan_stats->ch_utilization;
         wifi_util_dbg_print(WIFI_CTRL, "[%s %d] i : %d noise : %d util : %u\n", __func__, __LINE__, i, bss[i].external_ap.noise, bss[i].external_ap.chan_utilization);
 
 	if (bss[i].radio_freq_band == WIFI_FREQUENCY_2_4_BAND) {
