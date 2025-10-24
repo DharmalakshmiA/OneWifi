@@ -119,7 +119,7 @@ struct ovs_vapname_cloudvifname_map  cloud_vif_map[] = {
     {"home-ap-50", "private_ssid_5g"},
     {"bhaul-ap-50", "mesh_backhaul_5g"},
 }
-#elif defined (_HUB4_PRODUCT_REQ_)
+#elif defined (_HUB4_PRODUCT_REQ_) && !defined (_SR213_PRODUCT_REQ_)
 struct ovs_vapname_cloudvifname_map cloud_vif_map[] = {
        {"wl0",   "private_ssid_2g"},
        {"wl1",   "private_ssid_5g"},
@@ -1416,6 +1416,7 @@ webconfig_error_t translate_macfilter_from_ovsdb_to_rdk_vap(const struct schema_
         }
     }
 
+    wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: num of mac acl config:%d\n", __func__, __LINE__, row->mac_list_len);
     for (i = 0; i < row->mac_list_len; i++) {
         mac_str = (char *)row->mac_list[i];
         if (mac_str == NULL) {
