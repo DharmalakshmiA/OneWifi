@@ -1188,6 +1188,89 @@ static int process_ext_webconfig_set_data_sta_bssid(vap_svc_t *svc, void *arg)
     return 0;
 }
 
+
+int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_info_map_t *map,
+    rdk_wifi_vap_info_t *rdk_vap_info)
+{
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+    unsigned int i;
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+    vap_svc_ext_t *ext = &svc->u.ext;
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+    wifi_ctrl_t *ctrl = svc->ctrl;
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+
+    for (i = 0; i < map->num_vaps; i++) {
+
+        /* Allocate tgt_vap_map from heap */
+        wifi_vap_info_map_t *tgt_vap_map = malloc(sizeof(wifi_vap_info_map_t));
+        if (!tgt_vap_map) {
+            wifi_util_error_print(WIFI_CTRL,"%s: malloc failed\n", __FUNCTION__);
+            return -1;
+        }
+
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+        memset(tgt_vap_map, 0, sizeof(*tgt_vap_map));
+
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check.. heap address : %p\n",
+                                __func__, __LINE__, (void *)tgt_vap_map);
+
+        memcpy(&tgt_vap_map->vap_array[0], &map->vap_array[i], sizeof(wifi_vap_info_t));
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+        tgt_vap_map->num_vaps = 1;
+
+        /* Debug prints */
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] sta-enable : %d\n", __func__, __LINE__,
+                tgt_vap_map->vap_array[0].u.sta_info.enabled);
+
+        if (tgt_vap_map->vap_array[0].u.sta_info.enabled == false && is_sta_enabled()) {
+            wifi_util_info_print(WIFI_CTRL, "%s:%d vap_index:%d skip disabling sta\n", __func__,
+                __LINE__, tgt_vap_map->vap_array[0].vap_index);
+            tgt_vap_map->vap_array[0].u.sta_info.enabled = true;
+        }
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+
+        if (wifi_hal_createVAP(radio_index, tgt_vap_map) != RETURN_OK) {
+            wifi_util_error_print(WIFI_CTRL,"%s: wifi vap create failure: radio_index:%d vap_index:%d\n",
+                                    __FUNCTION__, radio_index, map->vap_array[i].vap_index);
+            free(tgt_vap_map);
+            continue;
+        }
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+
+        memcpy(&map->vap_array[i], &tgt_vap_map->vap_array[0], sizeof(wifi_vap_info_t));
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+        get_wifidb_obj()->desc.update_wifi_vap_info_fn(
+            getVAPName(map->vap_array[i].vap_index), &map->vap_array[i], &rdk_vap_info[i]);
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+
+        get_wifidb_obj()->desc.update_wifi_security_config_fn(
+            getVAPName(map->vap_array[i].vap_index), &map->vap_array[i].u.sta_info.security);
+
+        wifi_util_info_print(WIFI_CTRL, "%s:%d RF-Status : %d Ignite-Enable : %d\n", __func__,
+                __LINE__, ctrl->rf_status_down, map->vap_array[i].u.sta_info.ignite_enabled);
+
+        if (ctrl->rf_status_down == true) {
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+            ext_set_conn_state(ext, connection_state_disconnected_scan_list_none,
+                               __func__, __LINE__);
+            wifi_util_info_print(WIFI_CTRL, "%s:%d sta is enabled starting the station vaps\n",
+                                    __FUNCTION__, __LINE__);
+            schedule_connect_sm(svc);
+            ext->is_started = true;
+        }
+
+        /* Free per-iteration allocation */
+        if (tgt_vap_map) {
+	   free(tgt_vap_map);
+	   tgt_vap_map = NULL;
+	}
+    }
+
+    return 0;
+}
+
+#if 0
 int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_info_map_t *map,
     rdk_wifi_vap_info_t *rdk_vap_info)
 {
@@ -1245,6 +1328,7 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
     }
     return 0;
 }
+#endif
 
 int process_ext_webconfig_set_data(vap_svc_t *svc, void *arg)
 {
