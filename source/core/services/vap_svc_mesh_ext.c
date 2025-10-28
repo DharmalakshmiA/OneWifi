@@ -1192,22 +1192,32 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
     rdk_wifi_vap_info_t *rdk_vap_info)
 {
     unsigned int i;
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
     wifi_vap_info_map_t tgt_vap_map;
     vap_svc_ext_t *ext = &svc->u.ext;
     wifi_ctrl_t *ctrl = svc->ctrl;
+    wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
 
     for (i = 0; i < map->num_vaps; i++) {
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
         memset((unsigned char *)&tgt_vap_map, 0, sizeof(tgt_vap_map));
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check.. size : %zu %zu\n", __func__, __LINE__, sizeof(*map), sizeof(tgt_vap_map));
         memcpy((unsigned char *)&tgt_vap_map.vap_array[0], (unsigned char *)&map->vap_array[i],
                     sizeof(wifi_vap_info_t));
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
         tgt_vap_map.num_vaps = 1;
-
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
+	wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check... tgt-vap-map address : %p\n", __func__, __LINE__, (void *)&tgt_vap_map);
+	wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check... sta-enable : %d\n", __func__, __LINE__, tgt_vap_map.vap_array[0].u.sta_info.enabled);
+	wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check... Ignite-enable : %d\n", __func__, __LINE__, tgt_vap_map.vap_array[0].u.sta_info.ignite_enabled);
         // avoid disabling mesh sta in extender mode
         if (tgt_vap_map.vap_array[0].u.sta_info.enabled == false && is_sta_enabled()) {
             wifi_util_info_print(WIFI_CTRL, "%s:%d vap_index:%d skip disabling sta\n", __func__,
                 __LINE__, tgt_vap_map.vap_array[0].vap_index);
             tgt_vap_map.vap_array[0].u.sta_info.enabled = true;
         }
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Crash check\n", __func__, __LINE__);
 
         if (wifi_hal_createVAP(radio_index, &tgt_vap_map) != RETURN_OK) {
             wifi_util_error_print(WIFI_CTRL,"%s: wifi vap create failure: radio_index:%d vap_index:%d\n",__FUNCTION__,
