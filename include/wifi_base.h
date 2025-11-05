@@ -260,6 +260,12 @@ typedef struct {
 } active_msmt_t;
 
 typedef struct {
+    int SNR_threshold;
+    uint8_t ChanUtil_threshold;
+}ignite_config_t;
+
+
+typedef struct {
     int type;  //Device.WiFi.X_RDKCENTRAL-COM_vAPStatsEnable= 0, Device.WiFi.AccessPoint.<vAP>.X_RDKCENTRAL-COM_StatsEnable = 1
     bool enable; // true, false
 } client_stats_enable_t;
