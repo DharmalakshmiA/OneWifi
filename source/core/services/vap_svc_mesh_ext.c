@@ -1442,13 +1442,13 @@ void process_ext_connected_scan_results(vap_svc_t *svc, void *arg)
 // Partition for sorting by channel utilization (ascending order)
 static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
 {
-    int pivot = bss[end].external_ap.channel_utilization;
+    int pivot = bss[end].external_ap.chan_utilization;
     int pidx = start;
     wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
 
     for (int i = start; i < end; i++) {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].external_ap.channel_utilization);        
-        if (bss[i].external_ap.channel_utilization < pivot) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].external_ap.chan_utilization);        
+        if (bss[i].external_ap.chan_utilization < pivot) {
             swap_bss(&bss[pidx], &bss[i]);
             pidx++;
         }
@@ -1506,12 +1506,12 @@ static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end)
     
     while (i <= end) {
         int group_start = i;
-	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization);
-        int current_chan_util = bss[i].external_ap.channel_utilization;
+	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.chan_utilization);
+        int current_chan_util = bss[i].external_ap.chan_utilization;
         
         // Find all BSS with the same channel utilization
-        while (i <= end && bss[i].external_ap.channel_utilization == current_chan_util) {
-	    wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization);
+        while (i <= end && bss[i].external_ap.chan_utilization == current_chan_util) {
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.chan_utilization);
             i++;
         }
         int group_end = i - 1;
@@ -1527,8 +1527,8 @@ static bool has_low_chan_util_bss(bss_candidate_t *bss, int start, int end, bool
 {
     *flag = false;
     for (int i = start; i <= end; i++) {
-       wifi_util_info_print(WIFI_CTRL, "%s:%d chan-util : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization); 
-       if (bss[i].external_ap.channel_utilization < CHANNEL_UTIL_THRESHOLD) {
+       wifi_util_info_print(WIFI_CTRL, "%s:%d chan-util : %u\n", __func__, __LINE__, bss[i].external_ap.chan_utilization); 
+       if (bss[i].external_ap.chan_utilization < CHANNEL_UTIL_THRESHOLD) {
             *flag = true;
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d flag : %d\n", __func__, __LINE__, *flag);
             return true;
