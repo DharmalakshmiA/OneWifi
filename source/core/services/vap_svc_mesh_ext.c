@@ -43,6 +43,8 @@
 #define EXT_DISCONNECTION_DISCONNECT 1
 #define EXT_DISCONNECTION_DISCONNECT_AND_IGNORE_RADIO 2
 
+#define CHANNEL_UTIL_THRESHOLD 30
+
 static void swap_bss(bss_candidate_t *a, bss_candidate_t *b)
 {
     bss_candidate_t t = *a;
@@ -1516,6 +1518,19 @@ static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end)
     }
 }
 
+static bool has_low_chan_util_bss(bss_candidate_t *bss, int start, int end, bool *flag)
+{
+    *flag = false;
+    for (int i = start; i <= end; i++) {
+       wifi_util_info_print(WIFI_CTRL, "%s:%d chan-util : %u\n", __func__, __LINE__, bss[i].channel_utilization); 
+       if (bss[i].channel_utilization < CHANNEL_UTIL_THRESHOLD) {
+            *flag = true;
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d flag : %d\n", __func__, __LINE__, *flag);
+            return true;
+        }
+    }
+    return false;
+}
 
 int process_ext_scan_results(vap_svc_t *svc, void *arg)
 {
