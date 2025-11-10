@@ -45,6 +45,13 @@
 
 #define CHANNEL_UTIL_THRESHOLD 30
 
+
+static int partition_by_snr(bss_candidate_t *bss, int start, int end);
+static void start_sorting_by_snr(bss_candidate_t *bss, int start, int end);
+static int partition_by_chan_util(bss_candidate_t *bss, int start, int end);
+static void start_sorting_by_chan_util(bss_candidate_t *bss, int start, int end);
+static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end);
+
 static void swap_bss(bss_candidate_t *a, bss_candidate_t *b)
 {
     bss_candidate_t t = *a;
@@ -1435,30 +1442,19 @@ void process_ext_connected_scan_results(vap_svc_t *svc, void *arg)
 // Partition for sorting by channel utilization (ascending order)
 static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
 {
-    int pivot = bss[end].channel_utilization;
+    int pivot = bss[end].external_ap.channel_utilization;
     int pidx = start;
     wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
 
     for (int i = start; i < end; i++) {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].channel_utilization);        
-        if (bss[i].channel_utilization < pivot) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].external_ap.channel_utilization);        
+        if (bss[i].external_ap.channel_utilization < pivot) {
             swap_bss(&bss[pidx], &bss[i]);
             pidx++;
         }
     }
     swap_bss(&bss[pidx], &bss[end]);
     return pidx;
-}
-
-// Quicksort by SNR (for low channel utilization BSS)
-static void start_sorting_by_snr(bss_candidate_t *bss, int start, int end)
-{
-    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d\n", __func__, __LINE__, start, end);        
-    if (start < end) {
-        int pidx = partition_by_snr(bss, start, end);
-        start_sorting_by_snr(bss, start, pidx - 1);
-        start_sorting_by_snr(bss, pidx + 1, end);
-    }
 }
 
 // Modified partition function to sort by SNR for low channel utilization BSS
@@ -1480,6 +1476,17 @@ static int partition_by_snr(bss_candidate_t *bss, int start, int end)
     return pidx;
 }
 
+// Quicksort by SNR (for low channel utilization BSS)
+static void start_sorting_by_snr(bss_candidate_t *bss, int start, int end)
+{
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d\n", __func__, __LINE__, start, end);        
+    if (start < end) {
+        int pidx = partition_by_snr(bss, start, end);
+        start_sorting_by_snr(bss, start, pidx - 1);
+        start_sorting_by_snr(bss, pidx + 1, end);
+    }
+}
+
 // Quicksort by channel utilization (ascending order)
 static void start_sorting_by_chan_util(bss_candidate_t *bss, int start, int end)
 {
@@ -1499,12 +1506,12 @@ static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end)
     
     while (i <= end) {
         int group_start = i;
-	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].channel_utilization);
-        int current_chan_util = bss[i].channel_utilization;
+	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization);
+        int current_chan_util = bss[i].external_ap.channel_utilization;
         
         // Find all BSS with the same channel utilization
-        while (i <= end && bss[i].channel_utilization == current_chan_util) {
-	    wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].channel_utilization);
+        while (i <= end && bss[i].external_ap.channel_utilization == current_chan_util) {
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization);
             i++;
         }
         int group_end = i - 1;
@@ -1520,8 +1527,8 @@ static bool has_low_chan_util_bss(bss_candidate_t *bss, int start, int end, bool
 {
     *flag = false;
     for (int i = start; i <= end; i++) {
-       wifi_util_info_print(WIFI_CTRL, "%s:%d chan-util : %u\n", __func__, __LINE__, bss[i].channel_utilization); 
-       if (bss[i].channel_utilization < CHANNEL_UTIL_THRESHOLD) {
+       wifi_util_info_print(WIFI_CTRL, "%s:%d chan-util : %u\n", __func__, __LINE__, bss[i].external_ap.channel_utilization); 
+       if (bss[i].external_ap.channel_utilization < CHANNEL_UTIL_THRESHOLD) {
             *flag = true;
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d flag : %d\n", __func__, __LINE__, *flag);
             return true;
@@ -1529,6 +1536,7 @@ static bool has_low_chan_util_bss(bss_candidate_t *bss, int start, int end, bool
     }
     return false;
 }
+
 
 int process_ext_scan_results(vap_svc_t *svc, void *arg)
 {
@@ -1613,11 +1621,12 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
         scan_list++;
     }
 
-    if (ctrl->ignite_enabled == false) {
+    if (ctrl->rf_status_down == false) {
     if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 1))
         sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
     } else {
-        has_low_chan_util_bss(bss, start, end, &low_chan_util_flag);
+	sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
+        has_low_chan_util_bss(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1, &low_chan_util_flag);
 	if (low_chan_util_flag == true) {
             wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Found BSS with channel utilization < %d, flag set to true\n",
                             __FUNCTION__, __LINE__, CHANNEL_UTIL_THRESHOLD);
@@ -1625,10 +1634,10 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 	      wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Scanned BSS greater than threshold\n", __func__, __LINE__);
 	}
         // First, sort all BSS by channel utilization (ascending order)
-        start_sorting_by_chan_util(bss, start, end);
+        start_sorting_by_chan_util(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
         
         // Second level: Sort groups with same channel utilization by SNR
-        sort_same_chan_util_by_snr(bss, start, end);
+        sort_same_chan_util_by_snr(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
         
         wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Sorting completed: Primary by channel util, Secondary by SNR\n",
                             __FUNCTION__, __LINE__);
