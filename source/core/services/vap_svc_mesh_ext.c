@@ -1430,6 +1430,93 @@ void process_ext_connected_scan_results(vap_svc_t *svc, void *arg)
     schedule_connect_sm(svc);
 }
 
+
+
+// Quicksort by SNR (for low channel utilization BSS)
+static void start_sorting_by_snr(bss_candidate_t *bss, int start, int end)
+{
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d\n", __func__, __LINE__, start, end);        
+    if (start < end) {
+        int pidx = partition_by_snr(bss, start, end);
+        start_sorting_by_snr(bss, start, pidx - 1);
+        start_sorting_by_snr(bss, pidx + 1, end);
+    }
+}
+
+// Modified partition function to sort by SNR for low channel utilization BSS
+static int partition_by_snr(bss_candidate_t *bss, int start, int end)
+{
+    int pivot_snr = bss[end].external_ap.snr;
+    int pidx = start;
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d snr : %d\n", __func__, __LINE__, start, end, pivot_snr);        
+    
+    for (int i = start; i < end; i++) {
+        // Sort in descending order by SNR
+	wifi_util_info_print(WIFI_CTRL, "%s:%d pidx : %d pivot-snr : %d ap-snr : %d\n", __func__, __LINE__, pidx, pivot_snr, bss[i].external_ap.snr);
+        if (bss[i].external_ap.snr > pivot_snr) {
+            swap_bss(&bss[pidx], &bss[i]);
+            pidx++;
+        }
+    }
+    swap_bss(&bss[pidx], &bss[end]);
+    return pidx;
+}
+
+// Partition for sorting by channel utilization (ascending order)
+static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
+{
+    int pivot = bss[end].channel_utilization;
+    int pidx = start;
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
+
+    for (int i = start; i < end; i++) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].channel_utilization);        
+        if (bss[i].channel_utilization < pivot) {
+            swap_bss(&bss[pidx], &bss[i]);
+            pidx++;
+        }
+    }
+    swap_bss(&bss[pidx], &bss[end]);
+    return pidx;
+}
+
+// Quicksort by channel utilization (ascending order)
+static void start_sorting_by_chan_util(bss_candidate_t *bss, int start, int end)
+{
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d\n", __func__, __LINE__, start, end);
+    if (start < end) {
+        int pidx = partition_by_chan_util(bss, start, end);
+        start_sorting_by_chan_util(bss, start, pidx - 1);
+        start_sorting_by_chan_util(bss, pidx + 1, end);
+    }
+}
+
+// Sort groups with same channel utilization by SNR (descending)
+static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end)
+{
+    wifi_util_info_print(WIFI_CTRL, "%s:%d start : %d end : %d\n", __func__, __LINE__, start, end);
+    int i = start;
+    
+    while (i <= end) {
+        int group_start = i;
+	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].channel_utilization);
+        int current_chan_util = bss[i].channel_utilization;
+        
+        // Find all BSS with the same channel utilization
+        while (i <= end && bss[i].channel_utilization == current_chan_util) {
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].channel_utilization);
+            i++;
+        }
+        int group_end = i - 1;
+        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d\n", __func__, __LINE__, group_start, group_end);        
+        // If group has more than one element, sort by SNR
+        if (group_end > group_start) {
+            start_sorting_by_snr(bss, group_start, group_end);
+        }
+    }
+}
+
+
 int process_ext_scan_results(vap_svc_t *svc, void *arg)
 {
     wifi_bss_info_t *bss;
@@ -1450,7 +1537,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     num = results->num;
 
     tmp_bss = bss;
-
+    bool low_chan_util_flag = false;
     if (ext->conn_state == connection_state_connected_scan_list) {
         process_ext_connected_scan_results(svc, arg);
         return 0;
@@ -1513,9 +1600,26 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
         scan_list++;
     }
 
+    if (ctrl->ignite_enabled == false) {
     if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 1))
         sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
-
+    } else {
+        has_low_chan_util_bss(bss, start, end, &low_chan_util_flag);
+	if (low_chan_util_flag == true) {
+            wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Found BSS with channel utilization < %d, flag set to true\n",
+                            __FUNCTION__, __LINE__, CHANNEL_UTIL_THRESHOLD);
+	} else {
+	      wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Scanned BSS greater than threshold\n", __func__, __LINE__);
+	}
+        // First, sort all BSS by channel utilization (ascending order)
+        start_sorting_by_chan_util(bss, start, end);
+        
+        // Second level: Sort groups with same channel utilization by SNR
+        sort_same_chan_util_by_snr(bss, start, end);
+        
+        wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] Sorting completed: Primary by channel util, Secondary by SNR\n",
+                            __FUNCTION__, __LINE__);
+    }
     if (ext->ext_scan_result_wait_timeout_handler_id != 0) {
         scheduler_cancel_timer_task(ctrl->sched, ext->ext_scan_result_wait_timeout_handler_id);
         ext->ext_scan_result_wait_timeout_handler_id = 0;
