@@ -110,17 +110,6 @@ static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_
     return ret;
 }
 
-bus_error_t get_ignite_config(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
-{
-    (void)user_data;
-    bus_error_t rc = bus_error_success;
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    if (ctrl == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
-        return bus_error_general;
-    }
-}
-
 bus_error_t get_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
@@ -2169,32 +2158,6 @@ bus_error_t events_STAtable_addrowhandler(char const *tableName, char const *ali
 
     return bus_error_success;
 }
-
-bus_error_t events_Ignitetable_removerowhandler(char const *rowName)
-{
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    ctrl->ignite_tree_instance_num--;
-
-    wifi_util_info_print(WIFI_CTRL, "%s() called:\n\t rowName=%s: instance_num:%d\n", __func__,
-        rowName, ctrl->ignite_tree_instance_num);
-
-    return bus_error_success;
-}
-
-bus_error_t events_Ignitetable_addrowhandler(char const *tableName, char const *aliasName,
-    uint32_t *instNum)
-{
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-
-    wifi_util_dbg_print(WIFI_CTRL, "%s:%d: tableAddRowHandler1 called. tableName=%s, aliasName=%s\n",
-        __FUNCTION__, __LINE__, tableName, aliasName);
-
-    *instNum = ++ctrl->ignite_tree_instance_num;
-    wifi_util_dbg_print(WIFI_CTRL,"%s:%d instance_num:%d\r\n",__func__, __LINE__, ctrl->ignite_tree_instance_num);
-
-    return bus_error_success;
-}
-
 static event_bus_element_t *events_getEventElement(char *eventName)
 {
     int i;
@@ -3333,10 +3296,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_WEBCONFIG_GET_ASSOC, bus_element_type_method,
                                     { get_assoc_clients_data, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
-                                { WIFI_IGNITE_NAMESPACE, bus_element_type_table,
-                                    { get_ignite_config, set_ignite_config, events_Ignitetable_addrowhandler, events_Ignitetable_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
-                                    { bus_data_type_object, false, 0, 0, 0, NULL } },
-				{ WIFI_STA_NAMESPACE, bus_element_type_table,
+                                { WIFI_STA_NAMESPACE, bus_element_type_table,
                                     { NULL, NULL, events_STAtable_addrowhandler, events_STAtable_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } },
                                 { WIFI_STA_CONNECT_STATUS, bus_element_type_property,
