@@ -1442,7 +1442,7 @@ void process_ext_connected_scan_results(vap_svc_t *svc, void *arg)
 // Partition for sorting by channel utilization (ascending order)
 static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
 {
-    int pivot = bss[end].external_ap.chan_utilization;
+    unsigned int pivot = bss[end].external_ap.chan_utilization;
     int pidx = start;
     wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
 
@@ -1507,7 +1507,7 @@ static void sort_same_chan_util_by_snr(bss_candidate_t *bss, int start, int end)
     while (i <= end) {
         int group_start = i;
 	 wifi_util_info_print(WIFI_CTRL, "%s:%d chutil : %u\n", __func__, __LINE__, bss[i].external_ap.chan_utilization);
-        int current_chan_util = bss[i].external_ap.chan_utilization;
+        unsigned int current_chan_util = bss[i].external_ap.chan_utilization;
         
         // Find all BSS with the same channel utilization
         while (i <= end && bss[i].external_ap.chan_utilization == current_chan_util) {
