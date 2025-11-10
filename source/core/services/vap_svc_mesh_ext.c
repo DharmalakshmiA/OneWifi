@@ -1432,7 +1432,23 @@ void process_ext_connected_scan_results(vap_svc_t *svc, void *arg)
     schedule_connect_sm(svc);
 }
 
+// Partition for sorting by channel utilization (ascending order)
+static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
+{
+    int pivot = bss[end].channel_utilization;
+    int pidx = start;
+    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
 
+    for (int i = start; i < end; i++) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].channel_utilization);        
+        if (bss[i].channel_utilization < pivot) {
+            swap_bss(&bss[pidx], &bss[i]);
+            pidx++;
+        }
+    }
+    swap_bss(&bss[pidx], &bss[end]);
+    return pidx;
+}
 
 // Quicksort by SNR (for low channel utilization BSS)
 static void start_sorting_by_snr(bss_candidate_t *bss, int start, int end)
@@ -1456,24 +1472,6 @@ static int partition_by_snr(bss_candidate_t *bss, int start, int end)
         // Sort in descending order by SNR
 	wifi_util_info_print(WIFI_CTRL, "%s:%d pidx : %d pivot-snr : %d ap-snr : %d\n", __func__, __LINE__, pidx, pivot_snr, bss[i].external_ap.snr);
         if (bss[i].external_ap.snr > pivot_snr) {
-            swap_bss(&bss[pidx], &bss[i]);
-            pidx++;
-        }
-    }
-    swap_bss(&bss[pidx], &bss[end]);
-    return pidx;
-}
-
-// Partition for sorting by channel utilization (ascending order)
-static int partition_by_chan_util(bss_candidate_t *bss, int start, int end)
-{
-    int pivot = bss[end].channel_utilization;
-    int pidx = start;
-    wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d\n", __func__, __LINE__, start, end, pivot);        
-
-    for (int i = start; i < end; i++) {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d group-start : %d group_end : %d pivot-util : %d chan-util : %u\n", __func__, __LINE__, start, end, pivot, bss[i].channel_utilization);        
-        if (bss[i].channel_utilization < pivot) {
             swap_bss(&bss[pidx], &bss[i]);
             pidx++;
         }
