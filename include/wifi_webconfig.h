@@ -142,6 +142,7 @@ typedef enum {
     webconfig_subdoc_type_em_ap_metrics_report,
 #endif
     webconfig_subdoc_type_memwraptool,
+    webconfig_subdoc_type_ignite,
     webconfig_subdoc_type_max
 } webconfig_subdoc_type_t;
 

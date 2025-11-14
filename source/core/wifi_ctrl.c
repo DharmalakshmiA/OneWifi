@@ -2335,6 +2335,17 @@ rdk_wifi_vap_info_t* get_wifidb_rdk_vaps(uint8_t radio_index)
     }
 }
 
+ignite_config_t *get_wifidb_ignite_config(uint8_t radio_index)
+{
+    wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
+    if (radio_index < getNumberRadios()) {
+        return &g_wifi_mgr->ignite_config[radio_index];
+    } else {
+        wifi_util_error_print(WIFI_CTRL, "%s: wrong radio_index %d\n", __FUNCTION__, radio_index);
+        return NULL;
+    }
+}
+
 wifi_vap_info_map_t* get_wifidb_vap_map(uint8_t radio_index)
 {
     wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();

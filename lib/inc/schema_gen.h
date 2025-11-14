@@ -1686,6 +1686,17 @@
         PJS_OVS_UUID(post_assoc) \
     )
 
+#define PJS_SCHEMA_Wifi_Ignite_Config \
+    PJS(schema_Wifi_Ignite_Config, \
+        PJS_OVS_UUID_Q(_uuid) \
+        PJS_OVS_UUID_Q(_version) \
+        PJS_OVS_STRING(ignite_name, 128 + 1) \
+        PJS_OVS_REAL(min_chanutil_threshold) \
+        PJS_OVS_REAL(max_chanutil_threshold) \
+        PJS_OVS_REAL(SNR_threshold) \
+        PJS_OVS_REAL(SNR_difference) \
+    )
+
 #define PJS_GEN_TABLE \
      PJS_SCHEMA_AWLAN_Node \
      PJS_SCHEMA_Wifi_Device_Config \
@@ -1781,7 +1792,8 @@
      PJS_SCHEMA_MLD_Config \
      PJS_SCHEMA_Reboot_Status \
      PJS_SCHEMA_Service_Announcement \
-     PJS_SCHEMA_Node_Services
+     PJS_SCHEMA_Node_Services \
+     PJS_SCHEMA_Wifi_Ignite_Config 
 
 #define SCHEMA_LIST \
     SCHEMA(AWLAN_Node) \
@@ -1805,6 +1817,7 @@
     SCHEMA(Wifi_Preassoc_Control_Config) \
     SCHEMA(Wifi_Postassoc_Control_Config) \
     SCHEMA(Wifi_Connection_Control_Config) \
+    SCHEMA(Wifi_Ignite_Config) \
     SCHEMA(Wifi_Anqp_Config) \
     SCHEMA(Wifi_Passpoint_Config) \
     SCHEMA(Wifi_Radio_State) \
@@ -1904,6 +1917,7 @@
     SCHEMA(Wifi_Preassoc_Control_Config) \
     SCHEMA(Wifi_Postassoc_Control_Config) \
     SCHEMA(Wifi_Connection_Control_Config) \
+    SCHEMA(Wifi_Ignite_Config) \
     SCHEMA(Wifi_Radio_State) \
     SCHEMA(Wifi_Credential_Config) \
     SCHEMA(Wifi_VIF_Config) \
@@ -3354,6 +3368,14 @@
     COLUMN(pre_assoc) \
     COLUMN(post_assoc) \
 
+#define SCHEMA__Wifi_Ignite_Config "Wifi_Ignite_Config"
+#define SCHEMA_COLUMN__Wifi_Ignite_Config(COLUMN) \
+    COLUMN(ignite_name) \
+    COLUMN(min_chanutil_threshold) \
+    COLUMN(max_chanutil_threshold) \
+    COLUMN(SNR_threshold) \
+    COLUMN(SNR_difference) \
+
 #define SCHEMA__AWLAN_Node__id "id"
 #define SCHEMA__AWLAN_Node__model "model"
 #define SCHEMA__AWLAN_Node__revision "revision"
@@ -4620,3 +4642,9 @@
 #define SCHEMA__Wifi_Connection_Control_Config__vap_name "vap_name"
 #define SCHEMA__Wifi_Connection_Control_Config__pre_assoc "pre_assoc"
 #define SCHEMA__Wifi_Connection_Control_Config__post_assoc "post_assoc"
+
+#define SCHEMA__Wifi_Ignite_Config__ignite_name "ignite_name"
+#define SCHEMA__Wifi_Ignite_Config__min_chanutil_threshold "min_chanutil_threshold"
+#define SCHEMA__Wifi_Ignite_Config__max_chanutil_threshold "max_chanutil_threshold"
+#define SCHEMA__Wifi_Ignite_Config__SNR_threshold "SNR_threshold"
+#define SCHEMA__Wifi_Ignite_Config__SNR_difference "SNR_difference"
