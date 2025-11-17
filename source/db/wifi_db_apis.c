@@ -3364,14 +3364,6 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     return 0;
 }
 
-int wifidb_update_wifi_ignite_config(ignite_config_t *ignite_cfg)
-{
-    struct schema_Wifi_Ignite_Config *pcfg = NULL;
-    json_t *where;
-    int count;
-    wifi_db_t *g_wifidb;
-    g_wifidb = (wifi_db_t*) get_wifidb_obj();
-
 int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
 {
     struct schema_Wifi_Ignite_Config *pcfg = NULL;
