@@ -88,6 +88,7 @@ typedef enum
     bus_data_type_bytes,
     bus_data_type_property,
     bus_data_type_object,
+    bus_data_type_float,
     bus_data_type_none
 } bus_data_type_t;
 

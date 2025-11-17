@@ -302,13 +302,15 @@ void callback_Wifi_Ignite_Config(ovsdb_update_monitor_t *mon,
 
 {
       wifi_util_dbg_print(WIFI_DB, "[%s %d]\n", __func__, __LINE__);
+      ignite_config_t *ignite_cfg = get_wifi_db_ignite_config(new_rec->ignite_name);
       wifi_mgr_t *g_wifidb = get_wifimgr_obj();
-      ignite_config_t *ignite_cfg = get_wifi_db_ignite_config();
 
       if (ignite_cfg == NULL) {
            wifi_util_dbg_print(WIFI_DB, "[%s %d] Ignite Config Null\n", __func__, __LINE__);
 	   return;
       }
+
+      wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite-name : %s\n", __func__, __LINE__, new_rec->ignite_name);
       if ((mon->mon_type == OVSDB_UPDATE_NEW) || (mon->mon_type == OVSDB_UPDATE_MODIFY)) {
            wifi_util_dbg_print(WIFI_DB, "[%s %d] Ignite config newly added or updated\n", __func__, __LINE__);
            pthread_mutex_lock(&g_wifidb->data_cache_lock);
@@ -3200,7 +3202,7 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
         return RETURN_ERR;
     }
     struct schema_Wifi_Ignite_Config cfg;
-    char *filter_ignite[] = {"-", NULL}; 
+    json_t *where;
     wifi_db_t *g_wifidb;
     g_wifidb = (wifi_db_t*) get_wifidb_obj();
 
@@ -3217,8 +3219,9 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
     cfg.SNR_difference = ignite_cfg->SNR_difference;
     wifi_util_error_print(WIFI_DB, "[%s %d] chutil-threshold[min, max] = %f %f SNR[threshold, diff] = %f %f name : %s\n", __func__, __LINE__, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference, ignite_cfg->ignite_name);
 
+    
     where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
-    int ret = onewifi_ovsdb_table_upsert_with_parent(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config,where, &cfg) ;
+    int ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config,where, &cfg) ;
 
     if (ret == -1) {
         wifidb_print("%s:%d WIFI DB update error !!!. Failed to update table_Wifi_Interworking_Config table \n",__func__, __LINE__);
@@ -3377,7 +3380,7 @@ int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
         wifidb_print("%s:%d Failed to Get Ignite Config \n",__func__, __LINE__);
         return RETURN_ERR;
     }
-    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, name);
+    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
     pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path, &table_Wifi_Radio_Config, where, &count);
     if (pcfg == NULL) {
         wifidb_print("%s:%d Table table_Wifi_Ignite_Config not found, entry count=%d\n",__func__, __LINE__, count);
@@ -6937,7 +6940,7 @@ int wifidb_init_ignite_config_default(int radio_index, ignite_config_t *ignite_c
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s] Ch-util-threshold [%f %f] SNR [%f %f]\n", __func__, __LINE__, local_ignite_config.ignite_name, local_ignite_config.min_chanutil_threshold, local_ignite_config.max_chanutil_threshold, local_ignite_config.SNR_threshold, local_ignite_config.SNR_difference);
 
     pthread_mutex_lock(&g_wifidb->data_cache_lock);
-    memcpy(config,&cfg,sizeof(local_ignite_config));
+    memcpy(ignite_cfg,&local_ignite_config,sizeof(local_ignite_config));
     pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     return RETURN_OK;
 }
@@ -7678,6 +7681,7 @@ void wifidb_init_default_value()
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
     wifi_vap_info_map_t *l_vap_param_cfg = NULL;
+    ignite_config_t *ignite_cfg = NULL;
     mac_address_t temp_mac_address[MAX_NUM_RADIOS*MAX_NUM_VAP_PER_RADIO];
     int l_vap_index = 0;
 
@@ -7763,6 +7767,7 @@ void wifidb_init_default_value()
 
     for (r_index = 0; r_index < num_radio; r_index++)
     {
+	memset(ignite_cfg, '\0', sizeof(ignite_config_t));
 	ignite_cfg = get_wifidb_ignite_config(r_index);
 	if (ignite_cfg == NULL) {
 	    wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
@@ -7808,7 +7813,6 @@ void wifidb_init_default_value()
     wifidb_reset_macfilter_hashmap();
     wifidb_init_gas_config_default(&g_wifidb->global_config.gas_config);
     wifidb_init_rfc_config_default(&g_wifidb->rfc_dml_parameters);
-    wifidb_init_ignite_config_default(&g_wifidb->ignite_config_t);
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi db update completed\n",__func__, __LINE__);
 
 }
@@ -7920,6 +7924,7 @@ void init_wifidb_data()
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
     wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
+    ignite_config_t *ignite_cfg = NULL;
     char country_code[COUNTRY_CODE_LEN] = {0};
 
     wifi_util_info_print(WIFI_DB,"%s:%d No of radios %d\n",__func__, __LINE__,getNumberRadios());
@@ -8069,7 +8074,13 @@ void init_wifidb_data()
         }
 
 	for (r_index = 0; r_index < num_radio; r_index++) {
-	    if (wifidb_get_wifi_ignite_config(r_index, ignite_cfg) == -1) {
+	     memset(ignite_cfg, '\0', sizeof(ignite_config_t));
+             ignite_cfg = get_wifidb_ignite_config(r_index);
+             if (ignite_cfg == NULL) {
+                 wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
+                 return;
+            }
+	    if (wifidb_get_wifi_ignite_config(ignite_cfg) == -1) {
                 wifidb_print("%s:%d wifidb_get_wifi_vap_config failed\n",__func__, __LINE__);
                 wifidb_update_ignite_config(ignite_cfg);
             }
@@ -8178,7 +8189,7 @@ int init_wifidb_tables()
     ONEWIFI_OVSDB_TABLE_INIT_NO_KEY(Wifi_Global_Config);
     ONEWIFI_OVSDB_TABLE_INIT(Wifi_Passpoint_Config, vap_name);
     ONEWIFI_OVSDB_TABLE_INIT(Wifi_Anqp_Config, vap_name);
-    ONEWIFI_OVSDB_TABLE_INIT(Wifi_Ignite_Config, vap_name);
+    ONEWIFI_OVSDB_TABLE_INIT(Wifi_Ignite_Config, ignite_name);
     //connect to wifidb with sock path
     if (is_db_consolidated()) {
         snprintf(g_wifidb->wifidb_sock_path, sizeof(g_wifidb->wifidb_sock_path), WIFIDB_CONSOLIDATED_PATH);

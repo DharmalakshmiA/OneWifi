@@ -1386,24 +1386,23 @@ static bool is_ignite_config_changed(ignite_config_t *data_ignite_config)
 #endif
 static int webconfig_ignite_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
 {
-    int i = 0;
     wifi_mgr_t *mgr = get_wifimgr_obj();
     if (mgr == NULL) {
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Null data\n", __func__, __LINE__);
         return false;
     }
 
-    for (i = 0; i < params->num_radios; i++) {
+    for (unsigned int i = 0; i < data->num_radios; i++) {
 	 ignite_config_t *data_ignite_config = &data->ignite_config[i];
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] name : %s\n", __func__, __LINE__, ignite_config->ignite_name);
-         if (!ignite_config_equal(mgr->ignite_config[i], data_ignite_config)) {
+         wifi_util_error_print(WIFI_CTRL, "[%s %d] name : %s\n", __func__, __LINE__, data_ignite_config->ignite_name);
+         if (!ignite_config_equal(&mgr->ignite_config[i], data_ignite_config)) {
               wifi_util_dbg_print(WIFI_CTRL, "Ignite param changed\n");
          } else {
               wifi_util_dbg_print(WIFI_CTRL, "Same config for ignite param\n");
               continue;
 	 }
 
-	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config changed for %s\n", __func__, __LINE__, ignite_config->ignite_name);
+	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config changed for %s\n", __func__, __LINE__, data_ignite_config->ignite_name);
     
         if ((wifidb_update_ignite_config(data_ignite_config)) != 0) {
            wifi_util_dbg_print(WIFI_CTRL, "Failed to update the ignite config\n");

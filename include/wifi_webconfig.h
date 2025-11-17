@@ -212,7 +212,7 @@ typedef struct {
     active_msmt_t blaster;
     instant_measurement_config_t  harvester;
     levl_config_t levl;
-    ignite_config_t ignite_config;
+    ignite_config_t ignite_config[MAX_NUM_RADIOS];
     hash_map_t  *stats_config_map;
     hash_map_t  *steering_config_map;
     hash_map_t  *steering_client_map;

@@ -32,8 +32,6 @@
 #define MAX_EVENT_NAME_SIZE 200
 #define MAX_STR_LEN 128
 #define MAX_STATUS_LEN 5
-
-
 static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_type_t *subdoc,
     char *eventName)
 {
@@ -2030,13 +2028,12 @@ bus_error_t get_sta_connection_timeout(char *name, raw_data_t *p_data, bus_user_
     return bus_error_success;
 }
 
-bus_error_t get_ignite_attribs(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+bus_error_t get_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
     unsigned int index = 0;
     char extension[64] = { 0 };
-    ignite_config_t ignite_config
     if (name == NULL) {
 	wifi_util_error_print(WIFI_CTRL, "%s:%d property name is not found\r\n", __FUNCTION__,
              __LINE__);
@@ -2077,11 +2074,14 @@ bus_error_t get_ignite_attribs(char *name, raw_data_t *p_data, bus_user_data_t *
 bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
-    bus_error_t rc = bus_error_success;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     webconfig_subdoc_data_t *data = NULL;
+    char *str;
+    unsigned int index = 0;
+    char extension[64] = { 0 };
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
     if (mgr == NULL) {
-        wifi_util_error_print(WIFI_CTRL, , "%s:%d NULL pointers\n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
 	return bus_error_general;
     }
     
@@ -2089,15 +2089,15 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     if (data == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s: malloc failed to allocate webconfig_subdoc_data_t, size %d\n", __func__,
             sizeof(webconfig_subdoc_data_t));
-        return;
+        return bus_error_general;
     }
     wifi_util_dbg_print(WIFI_CTRL, "%s bus property=%s\n", __FUNCTION__, name);
     webconfig_init_subdoc_data(data);
     
     sscanf(name, "Device.WiFi.Ignite_Control.%d.%s", &index, extension);
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %d extension : %s\n", __func__, __LINE__, index, extension);
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", __func__, __LINE__, index, extension);
     if (index > getNumberRadios()) {
-        wifi_util_error_print(WIFI_CTRL, "%s Invalid index %d\n", __FUNCTION__, index);
+        wifi_util_error_print(WIFI_CTRL, "%s Invalid index %u\n", __FUNCTION__, index);
         return bus_error_invalid_operation;
     }
     
@@ -2112,7 +2112,7 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
 	    strncpy(data->u.decoded.ignite_config[index].ignite_name, "ignite_6g", MAX_NAME_LEN);
             break;
         default:
-	    wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%d]\n", __func__, __LINE__, index);
+	    wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%u]\n", __func__, __LINE__, index);
     }
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, data->u.decoded.ignite_config[index].ignite_name);
 
@@ -2143,7 +2143,9 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
      } else {
          webconfig_data_free(data);
     }
-	 
+    return bus_error_success;
+}    
+
 	 
 bus_error_t get_sta_attribs(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -3450,7 +3452,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_IGNITE_SNR_THRESHOLD, bus_element_type_property,
                                     { get_ignite_attributes, set_ignite_attributes, NULL, NULL, NULL, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } },
-                                { WIFI_IGNITE_WEIGHTING_FACTOR, bus_element_type_property,
+                                { WIFI_IGNITE_SNR_DIFFERENCE, bus_element_type_property,
                                     { get_ignite_attributes, set_ignite_attributes, NULL, NULL, NULL, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } },
                                 
