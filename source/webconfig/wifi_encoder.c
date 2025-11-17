@@ -1906,7 +1906,7 @@ webconfig_error_t encode_ignite_object(ignite_config_t *ignite_config, cJSON *ig
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Ignite info is NULL\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
-    cJSON_AddNumberToObject(ignite_obj, "ignite_name", ignite_config->ignite_name);
+    cJSON_AddStringToObject(ignite_obj, "ignite_name", ignite_config->ignite_name);
     cJSON_AddNumberToObject(ignite_obj, "ignite_minchutil_threshold", ignite_config->min_chanutil_threshold);
     cJSON_AddNumberToObject(ignite_obj, "ignite_maxchutil_threshold", ignite_config->max_chanutil_threshold);
     cJSON_AddNumberToObject(ignite_obj, "ignite_snr_threshold", ignite_config->SNR_threshold);

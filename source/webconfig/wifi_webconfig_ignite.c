@@ -91,7 +91,7 @@ webconfig_error_t encode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_dat
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(json, "Parameters", obj);
 
-    for (i = 0; i < params->num_radios; i++) {
+    for (unsigned int i = 0; i < params->num_radios; i++) {
 
         if (encode_ignite_object(&params->ignite_config, obj) !=
             webconfig_error_none) {
@@ -134,7 +134,7 @@ webconfig_error_t decode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_dat
     }
     memset(&params->ignite_config, 0, sizeof(ignite_config_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
-    for (i = 0; i < params->num_radios; i++) {
+    for (unsigned int i = 0; i < params->num_radios; i++) {
     if (decode_ignite_object(obj_config, &params->ignite_config) !=
         webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
