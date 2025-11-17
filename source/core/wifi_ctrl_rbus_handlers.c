@@ -110,17 +110,6 @@ static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_
     return ret;
 }
 
-bus_error_t get_ignite_config(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
-{
-    (void)user_data;
-    bus_error_t rc = bus_error_success;
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    if (ctrl == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
-        return bus_error_general;
-    }
-}
-
 bus_error_t get_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
