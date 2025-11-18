@@ -62,60 +62,66 @@ webconfig_error_t translate_to_ignite_subdoc(webconfig_t *config,
 webconfig_error_t encode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data)
 {
     cJSON *json;
-    cJSON *obj;
+    cJSON *obj, *obj_array;
     char *str;
     webconfig_subdoc_decoded_data_t *params;
-
     wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
+    
     if (data == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL data pointer\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
-
+    
     params = &data->u.decoded;
     if (params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
-
+    
     json = cJSON_CreateObject();
     if (json == NULL) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to create JSON object\n", __func__,
-            __LINE__);
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to create JSON object\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
-
+    
     data->u.encoded.json = json;
     cJSON_AddStringToObject(json, "Version", "1.0");
     cJSON_AddStringToObject(json, "SubDocName", "ignite config");
-    obj = cJSON_CreateObject();
-    cJSON_AddItemToObject(json, "Parameters", obj);
-
+    
+    // FIX: Create ARRAY instead of object
+    obj_array = cJSON_CreateArray();
+    cJSON_AddItemToObject(json, "Parameters", obj_array);
+    
     for (unsigned int i = 0; i < params->num_radios; i++) {
-
-        if (encode_ignite_object(&params->ignite_config, obj) !=
-            webconfig_error_none) {
+        obj = cJSON_CreateObject();
+        cJSON_AddItemToArray(obj_array, obj);
+        
+        // FIX: Pass the correct ignite_config for this radio
+        if (encode_ignite_object(&params->ignite_config[i], obj) != webconfig_error_none) {
             wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode ignite config\n",
                 __func__, __LINE__);
             cJSON_Delete(json);
             return webconfig_error_encode;
         }
     }
-	
+    
     str = cJSON_Print(json);
-
     data->u.encoded.raw = (webconfig_subdoc_encoded_raw_t)calloc(strlen(str) + 1, sizeof(char));
     if (data->u.encoded.raw == NULL) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to allocate memory\n", __func__,
-            __LINE__);
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to allocate memory\n", __func__, __LINE__);
         cJSON_free(str);
         cJSON_Delete(json);
         return webconfig_error_encode;
     }
+    
     memcpy(data->u.encoded.raw, str, strlen(str));
+    
+    // FIX: Print before freeing str
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Encoded JSON:\n%s\n", __func__, __LINE__, str);
+    
     cJSON_free(str);
     cJSON_Delete(json);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Encoded JSON:\n%s\n", __func__, __LINE__, str);
+    
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Encoded success\n", __func__, __LINE__);
     return webconfig_error_none;
 }
@@ -123,27 +129,62 @@ webconfig_error_t encode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_dat
 webconfig_error_t decode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data)
 {
     webconfig_subdoc_decoded_data_t *params;
+    cJSON *obj_array;
     cJSON *obj_config;
     cJSON *json;
+    unsigned int array_size;
 
     params = &data->u.decoded;
     json = data->u.encoded.json;
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering decode\n", __func__, __LINE__);
+
     if (json == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL json pointer\n", __func__, __LINE__);
         return webconfig_error_decode;
     }
-    memset(&params->ignite_config, 0, sizeof(ignite_config_t));
-    obj_config = cJSON_GetObjectItem(json, "Parameters");
-    for (unsigned int i = 0; i < params->num_radios; i++) {
-    if (decode_ignite_object(obj_config, &params->ignite_config) !=
-        webconfig_error_none) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
-            __LINE__);
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s\n", (char *)data->u.encoded.raw);
+
+    // Get the Parameters array
+    obj_array = cJSON_GetObjectItem(json, "Parameters");
+    if (obj_array == NULL || !cJSON_IsArray(obj_array)) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Parameters is not an array\n", __func__, __LINE__);
         cJSON_Delete(json);
-        return webconfig_error_invalid_subdoc;
+        return webconfig_error_decode;
     }
+
+    // Get array size
+    array_size = cJSON_GetArraySize(obj_array);
+    if (array_size != params->num_radios) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Array size mismatch. Expected: %d, Got: %d\n",
+            __func__, __LINE__, params->num_radios, array_size);
     }
+
+    // Clear the ignite configs
+    memset(params->ignite_config, 0, sizeof(ignite_config_t) * params->num_radios);
+
+    // Iterate through each array item
+    for (unsigned int i = 0; i < params->num_radios && i < array_size; i++) {
+        // Get the i-th object from the array
+        obj_config = cJSON_GetArrayItem(obj_array, i);
+        if (obj_config == NULL) {
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to get array item %d\n",
+                __func__, __LINE__, i);
+            cJSON_Delete(json);
+            return webconfig_error_decode;
+        }
+
+        // Decode this specific ignite config
+        if (decode_ignite_object(obj_config, &params->ignite_config[i]) != webconfig_error_none) {
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed for index %d\n",
+                __func__, __LINE__, i);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s\n", (char *)data->u.encoded.raw);
+            cJSON_Delete(json);
+            return webconfig_error_invalid_subdoc;
+        }
+	wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Decoded ignite_config[%d]: ignite_name='%s'\n",
+            __func__, __LINE__, i, params->ignite_config[i].ignite_name);
+    }
+
     cJSON_Delete(json);
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Decoded success\n", __func__, __LINE__);
     return webconfig_error_none;
