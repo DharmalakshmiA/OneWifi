@@ -32,6 +32,8 @@
 #define MAX_EVENT_NAME_SIZE 200
 #define MAX_STR_LEN 128
 #define MAX_STATUS_LEN 5
+#define MAX_VAL_LEN 16
+
 static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_type_t *subdoc,
     char *eventName)
 {
