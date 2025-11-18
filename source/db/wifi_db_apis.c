@@ -7777,6 +7777,7 @@ void wifidb_init_default_value()
 	    return;
 	}
 	wifidb_init_ignite_config_default(r_index, ignite_cfg);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s] Ch-util-threshold [%f %f] SNR [%f %f]\n", __func__, __LINE__, ignite_cfg->ignite_name, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference);
     }
 
     for (UINT index = 0; index < getTotalNumberVAPs(); index++)
