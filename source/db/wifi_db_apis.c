@@ -7767,7 +7767,10 @@ void wifidb_init_default_value()
 
     for (r_index = 0; r_index < num_radio; r_index++)
     {
-	memset(ignite_cfg, '\0', sizeof(ignite_config_t));
+	if (ignite_cfg != NULL) {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d Resetting ignite_cfg\n", __func__, __LINE__);
+	    memset(ignite_cfg, '\0', sizeof(ignite_config_t));
+	}
 	ignite_cfg = get_wifidb_ignite_config(r_index);
 	if (ignite_cfg == NULL) {
 	    wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
@@ -8074,7 +8077,10 @@ void init_wifidb_data()
         }
 
 	for (r_index = 0; r_index < num_radio; r_index++) {
-	     memset(ignite_cfg, '\0', sizeof(ignite_config_t));
+	     if (ignite_cfg != NULL) {
+                 wifi_util_dbg_print(WIFI_DB,"%s:%d Resetting ignite_cfg\n", __func__, __LINE__);
+                  memset(ignite_cfg, '\0', sizeof(ignite_config_t));
+             }
              ignite_cfg = get_wifidb_ignite_config(r_index);
              if (ignite_cfg == NULL) {
                  wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
