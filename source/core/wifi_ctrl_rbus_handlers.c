@@ -2302,7 +2302,7 @@ bus_error_t events_STAtable_addrowhandler(char const *tableName, char const *ali
     return bus_error_success;
 }
 
-bus_error_t events_Ignitetable_removerowhandler(char const *rowName)
+bus_error_t ignite_table_removerowhandler(char const *rowName)
 {
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     ctrl->ignite_tree_instance_num--;
@@ -2313,7 +2313,7 @@ bus_error_t events_Ignitetable_removerowhandler(char const *rowName)
     return bus_error_success;
 }
 
-bus_error_t events_Ignitetable_addrowhandler(char const *tableName, char const *aliasName,
+bus_error_t ignite_table_addrowhandler(char const *tableName, char const *aliasName,
     uint32_t *instNum)
 {
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
@@ -3466,7 +3466,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                     { get_assoc_clients_data, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
                                 { WIFI_IGNITE_NAMESPACE, bus_element_type_table,
-                                    { NULL, NULL, events_Ignitetable_addrowhandler, events_Ignitetable_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
+                                    { NULL, NULL, ignite_table_addrowhandler, ignite_table_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } },
                                 { WIFI_IGNITE_MIN_CHUTIL_THRESHOLD, bus_element_type_property,
                                     { get_ignite_attributes, set_ignite_attributes, NULL, NULL, NULL, NULL}, slow_speed, num_of_radio,

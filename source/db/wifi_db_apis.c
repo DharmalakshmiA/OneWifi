@@ -96,6 +96,11 @@
 #define MLD_UNIT_COUNT 1
 #endif /* CONFIG_NO_MLD_ONLY_PRIVATE */
 
+#define IGNITE_MIN_CHUTIL_THRESHOLD  20
+#define IGNITE_MAX_CHUTIL_THRESHOLD 70
+#define IGNITE_SNR_THRESHOLD   20
+#define IGNITE_SNR_DIFFERENCE 20
+
 ovsdb_table_t table_Wifi_Radio_Config;
 ovsdb_table_t table_Wifi_VAP_Config;
 ovsdb_table_t table_Wifi_Security_Config;
@@ -4723,6 +4728,40 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     pthread_mutex_unlock(&g_wifidb->data_cache_lock);
 
 }
+static void wifidb_upgrade_wifi_ignite_config()
+{
+     wifi_mgr_t *g_wifidb = get_wifimgr_obj();
+     if (g_wifidb->db_version == 0) {
+        return;
+     }
+     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_IGNITE_FLAG) {
+         wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade ignite config, old db version %d \n", __func__,
+            __LINE__, g_wifidb->db_version);
+     }
+
+     for(unsigned int index = 0; index < getNumberRadios(); index++) {
+         wifi_util_dbg_print(WIFI_DB, "%s:%d index : %u\n", __func__, __LINE__, index);
+          switch (index) {
+         case 0:
+             strncpy(g_wifidb->ignite_config[index].ignite_name, "ignite_2g", MAX_NAME_LEN);
+             break;
+         case 1:
+            strncpy(g_wifidb->ignite_config[index].ignite_name, "ignite_5g", MAX_NAME_LEN);
+            break;
+          case 2:
+           strncpy(g_wifidb->ignite_config[index].ignite_name, "ignite_6g", MAX_NAME_LEN);
+            break;
+        default:
+           wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%d]\n", __func__, __LINE__, index);
+        }
+	g_wifidb->ignite_config[index].min_chanutil_threshold = IGNITE_MIN_CHUTIL_THRESHOLD;
+	g_wifidb->ignite_config[index].max_chanutil_threshold = IGNITE_MAX_CHUTIL_THRESHOLD;
+        g_wifidb->ignite_config[index].SNR_threshold = IGNITE_SNR_THRESHOLD;
+	g_wifidb->ignite_config[index].SNR_difference = IGNITE_SNR_DIFFERENCE;
+	wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s] Ch-util-threshold [%f %f] SNR [%f %f]\n", __func__, __LINE__, g_wifidb->ignite_config[index].ignite_name, g_wifidb->ignite_config[index].min_chanutil_threshold, g_wifidb->ignite_config[index].max_chanutil_threshold, g_wifidb->ignite_config[index].SNR_threshold, g_wifidb->ignite_config[index].SNR_difference);
+     }
+     return;
+}
 
 static void wifidb_global_config_upgrade()
 {
@@ -6933,10 +6972,10 @@ int wifidb_init_ignite_config_default(int radio_index, ignite_config_t *ignite_c
     }
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, local_ignite_config.ignite_name);
     //Configured commonly for now. Based on the radio, we can update in the above switch cases.
-    local_ignite_config.min_chanutil_threshold = 30;
-    local_ignite_config.max_chanutil_threshold = 70;
-    local_ignite_config.SNR_threshold = 18;
-    local_ignite_config.SNR_difference = 20;
+    local_ignite_config.min_chanutil_threshold = IGNITE_MIN_CHUTIL_THRESHOLD;
+    local_ignite_config.max_chanutil_threshold = IGNITE_MAX_CHUTIL_THRESHOLD;
+    local_ignite_config.SNR_threshold = IGNITE_SNR_THRESHOLD;
+    local_ignite_config.SNR_difference = IGNITE_SNR_DIFFERENCE;
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s] Ch-util-threshold [%f %f] SNR [%f %f]\n", __func__, __LINE__, local_ignite_config.ignite_name, local_ignite_config.min_chanutil_threshold, local_ignite_config.max_chanutil_threshold, local_ignite_config.SNR_threshold, local_ignite_config.SNR_difference);
 
     pthread_mutex_lock(&g_wifidb->data_cache_lock);
@@ -7928,7 +7967,7 @@ void init_wifidb_data()
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
     wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
-    ignite_config_t *ignite_cfg = NULL;
+    ignite_config_t *ignite_cfg;
     char country_code[COUNTRY_CODE_LEN] = {0};
 
     wifi_util_info_print(WIFI_DB,"%s:%d No of radios %d\n",__func__, __LINE__,getNumberRadios());
@@ -8078,19 +8117,20 @@ void init_wifidb_data()
         }
 
 	for (r_index = 0; r_index < num_radio; r_index++) {
-	     if (ignite_cfg != NULL) {
-                 wifi_util_dbg_print(WIFI_DB,"%s:%d Resetting ignite_cfg\n", __func__, __LINE__);
-                  memset(ignite_cfg, '\0', sizeof(ignite_config_t));
-             }
-             ignite_cfg = get_wifidb_ignite_config(r_index);
-             if (ignite_cfg == NULL) {
-                 wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
-                 return;
+            ignite_cfg = NULL; 
+            ignite_cfg = get_wifidb_ignite_config(r_index);
+            if (ignite_cfg == NULL) {
+                wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
+                pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+                return;
             }
-	    if (wifidb_get_wifi_ignite_config(ignite_cfg) == -1) {
-                wifidb_print("%s:%d wifidb_get_wifi_vap_config failed\n",__func__, __LINE__);
-                wifidb_update_ignite_config(ignite_cfg);
-            }
+	    wifidb_get_wifi_ignite_config(ignite_cfg); 
+            wifidb_upgrade_wifi_ignite_config();        
+	    if (wifidb_update_ignite_config(ignite_cfg) != RETURN_OK) {
+                pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+	        wifi_util_dbg_print(WIFI_DB,"%s:%d: Failed to update ignite config\n", __func__, __LINE__);
+		return;
+	    }
 	}
         /* This is system-wide (file) flag. Hence, open the file after number of radio loop only in reboot case */
         file = fopen(ONEWIFI_BSS_MAXASSOC_FLAG, "a");

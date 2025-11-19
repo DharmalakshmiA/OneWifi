@@ -132,7 +132,7 @@ webconfig_error_t decode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_dat
     cJSON *obj_array;
     cJSON *obj_config;
     cJSON *json;
-    unsigned int array_size;
+    unsigned int size;
 
     params = &data->u.decoded;
     json = data->u.encoded.json;
@@ -153,17 +153,20 @@ webconfig_error_t decode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_dat
     }
 
     // Get array size
-    array_size = cJSON_GetArraySize(obj_array);
-    if (array_size != params->num_radios) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Array size mismatch. Expected: %d, Got: %d\n",
-            __func__, __LINE__, params->num_radios, array_size);
+    size = cJSON_GetArraySize(obj_array);
+    if (size < MIN_NUM_RADIOS || size > MAX_NUM_RADIOS) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Not correct number of vap objects: %d, expected: %d\n",
+            __func__, __LINE__, size, params->hal_cap.wifi_prop.numRadios);
+        cJSON_Delete(json);
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s\n", (char *)data->u.encoded.raw);
+        return webconfig_error_invalid_subdoc;
     }
 
     // Clear the ignite configs
     memset(params->ignite_config, 0, sizeof(ignite_config_t) * params->num_radios);
 
     // Iterate through each array item
-    for (unsigned int i = 0; i < params->num_radios && i < array_size; i++) {
+    for (unsigned int i = 0; i < params->hal_cap.wifi_prop.numRadios; i++) {
         // Get the i-th object from the array
         obj_config = cJSON_GetArrayItem(obj_array, i);
         if (obj_config == NULL) {
