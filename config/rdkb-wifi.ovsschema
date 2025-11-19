@@ -2549,7 +2549,7 @@
     },
     "Wifi_Ignite_Config": {
       "columns": {
-        “ignite_name": {
+        "ignite_name": {
           "type": {
             "key": {
               "type": "string"
@@ -2596,4 +2596,6 @@
         }
      },
     "isRoot": true
-    } 
+    }
+  }
+} 
