@@ -2561,7 +2561,7 @@
         "min_chanutil_threshold": {
           "type": {
             "key": {
-              "type": “real”
+              "type": "real"
             },
             "min": 0,
             "max": 1
@@ -2570,7 +2570,7 @@
         "max_chanutil_threshold": {
           "type": {
             "key": {
-              "type": “real”
+              "type": "real"
             },
             "min": 0,
             "max": 1
@@ -2579,7 +2579,7 @@
         "SNR_threshold": {
           "type": {
             "key": {
-              "type": “real”
+              "type": "real"
             },
             "min": 0,
             "max": 1
@@ -2588,7 +2588,7 @@
         "SNR_difference": {
           "type": {
             "key": {
-              "type": “real”
+              "type": "real"
             },
             "min": 0,
             "max": 1
