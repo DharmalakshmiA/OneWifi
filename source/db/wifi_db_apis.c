@@ -3206,15 +3206,21 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
 	wifi_util_dbg_print(WIFI_DB,"%s:%d Ignite config is NULL\n", __func__, __LINE__);
         return RETURN_ERR;
     }
-    struct schema_Wifi_Ignite_Config cfg;
+    struct schema_Wifi_Ignite_Config cfg, *pcfg;
     json_t *where;
+    bool update = false;
+    int count;
+    int ret;
     wifi_db_t *g_wifidb;
     g_wifidb = (wifi_db_t*) get_wifidb_obj();
 
-    if(ignite_cfg == NULL)
-    {
-        wifidb_print("%s:%d WIFI DB update error !!!. Failed to update ignite cfg - Null pointer \n",__func__, __LINE__);
-        return -1;
+    wifi_util_dbg_print(WIFI_DB,"%s:%d ignite-name : %s\n", __func__, __LINE__, ignite_cfg->ignite_name);
+    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
+    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, where, &count);
+    if ((count != 0) && (pcfg != NULL)) {
+        memcpy(&cfg, pcfg, sizeof(struct schema_Wifi_Ignite_Config));
+        update = true;
+        free(pcfg);
     }
 
     strncpy(cfg.ignite_name, ignite_cfg->ignite_name, strlen(ignite_cfg->ignite_name));
@@ -3222,19 +3228,27 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
     cfg.max_chanutil_threshold = ignite_cfg->max_chanutil_threshold;
     cfg.SNR_threshold = ignite_cfg->SNR_threshold;
     cfg.SNR_difference = ignite_cfg->SNR_difference;
+
     wifi_util_error_print(WIFI_DB, "[%s %d] chutil-threshold[min, max] = %f %f SNR[threshold, diff] = %f %f name : %s\n", __func__, __LINE__, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference, ignite_cfg->ignite_name);
 
-    
-    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
-    int ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config,where, &cfg) ;
-
-    if (ret == -1) {
-        wifidb_print("%s:%d WIFI DB update error !!!. Failed to update table_Wifi_Interworking_Config table \n",__func__, __LINE__);
-        return -1;
-    } else if (ret == 0) {
-         wifi_util_dbg_print(WIFI_DB,"%s:%d: nothing to update table_Wifi_Interworking_Config table\n", __func__, __LINE__);
+   if (update == true) {
+        where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name); 
+        ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, where, &cfg);
+        if (ret == -1) {
+            wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Wifi Ignite Config table \n",__func__, __LINE__);
+            return -1;
+        } else if (ret == 0) {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d: nothing to update table_Wifi_Ignite_Config table\n", __func__, __LINE__);
+        } else {
+            wifidb_print("%s:%d Updated WIFI DB. Wifi Ignite Config table updated successful. \n",__func__, __LINE__);
+        }
     } else {
-          wifidb_print("%s:%d Updated WIFI DB. table_Wifi_Interworking_Config table updated successful. \n",__func__, __LINE__);
+        if (onewifi_ovsdb_table_insert(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, &cfg) == false) {
+            wifidb_print("%s:%d WIFI DB update error !!!. Failed to insert in table_Wifi_Ignite_Config \n",__func__, __LINE__);
+            return -1;
+        } else {
+            wifidb_print("%s:%d Updated WIFI DB. insert in table_Wifi_Ignite_Config successful. \n",__func__, __LINE__);
+        }
     }
     return 0;
 }
