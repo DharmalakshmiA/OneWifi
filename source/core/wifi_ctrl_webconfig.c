@@ -1523,7 +1523,8 @@ static int webconfig_ignite_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
         return false;
     }
 
-    for (UINT index = 0; index < getTotalNumberVAPs(); index++){
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] radio-count : %u\n", __func__, __LINE__, getNumberRadios());
+    for (UINT index = 0; index < getNumberRadios(); index++){
 	 ignite_config_t *data_ignite_config = &data->ignite_config[index];
          wifi_util_error_print(WIFI_CTRL, "[%s %d] name : %s\n", __func__, __LINE__, data_ignite_config->ignite_name);
          if (!ignite_config_equal(&mgr->ignite_config[index], data_ignite_config)) {

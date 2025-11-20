@@ -8042,6 +8042,20 @@ void init_wifidb_data()
             wifidb_update_wifi_vap_config(r_index, l_vap_param_cfg, l_rdk_vap_param_cfg);
 
             wifidb_update_wifi_cac_config(l_vap_param_cfg);
+	    ignite_cfg = NULL;
+	    ignite_cfg = get_wifidb_ignite_config(r_index);
+	    wifi_util_dbg_print(WIFI_CTRL, "[%s %d]\n", __func__, __LINE__);
+	    if (ignite_cfg == NULL) {
+                wifi_util_dbg_print(WIFI_DB,"%s:%d: %d invalid get_wifidb_ignite_config \n",__func__, __LINE__,index);
+                pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+                return;
+            }
+	    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] name : %s\n", __func__, __LINE__, ignite_cfg->ignite_name);
+	    if (wifidb_update_ignite_config(ignite_cfg) != RETURN_OK) {
+                pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+	        wifi_util_dbg_print(WIFI_DB,"%s:%d: Failed to update ignite config\n", __func__, __LINE__);
+		return;
+	    }
         }
         if (country_code[0] != 0) {
             if (strcmp(country_code, g_wifidb->global_config.global_parameters.wifi_region_code) != 0) {
