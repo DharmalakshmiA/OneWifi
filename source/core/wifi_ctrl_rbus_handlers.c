@@ -2114,7 +2114,7 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     }
     wifi_util_dbg_print(WIFI_CTRL, "%s bus property=%s\n", __FUNCTION__, name);
     webconfig_init_subdoc_data(data);
-    memcpy((unsigned char *)&data.u.decoded.ignite_config, (unsigned char *)&mgr->ignite_config,
+    memcpy((unsigned char *)&data->u.decoded.ignite_config, (unsigned char *)&mgr->ignite_config,
   			sizeof(ignite_config_t)); 
     sscanf(name, "Device.WiFi.Ignite_Control.%d.%s", &index, extension);
     wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", __func__, __LINE__, index, extension);
