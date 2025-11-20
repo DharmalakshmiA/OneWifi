@@ -2113,11 +2113,11 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
   			num_of_radios * sizeof(ignite_config_t)); 
     sscanf(name, "Device.WiFi.Ignite_Control.%d.%s", &index, extension);
     wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", __func__, __LINE__, index, extension);
-    if (index > getNumberRadios()) {
+    if (index > num_of_radios) {
         wifi_util_error_print(WIFI_CTRL, "%s Invalid index %u\n", __FUNCTION__, index);
         return bus_error_invalid_operation;
     }
-    
+    data.u.decoded.num_radios = num_of_radios; 
     switch (index) {
 	case 1:
 	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_2g", MAX_NAME_LEN);
@@ -2154,16 +2154,17 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
 	 return bus_error_invalid_operation;
     }
     
-    if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_ignite) ==
+    if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_ignite) ==
 	  	    webconfig_error_none) {
 	wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__, __LINE__);
-        str = data.u.encoded.raw;
+        str = (char *)data.u.encoded.raw;
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
 	  	       wifi_event_webconfig_set_data_dml, NULL);
 
      } else {
-         webconfig_data_free(data);
+	 wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode failed\n", __func__, __LINE__);
     }
+    webconfig_data_free(&data);
     return bus_error_success;
 }    
 
