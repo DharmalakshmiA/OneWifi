@@ -2095,27 +2095,22 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
 {
     (void)user_data;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    webconfig_subdoc_data_t *data = NULL;
+    webconfig_subdoc_data_t data;
     char *str;
     char value[32] = {'\0'};
     unsigned int index = 0;
     char extension[64] = { 0 };
+    unsigned int num_of_radios = getNumberRadios();
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
     if (mgr == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
 	return bus_error_general;
     }
     
-    data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
-    if (data == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s: malloc failed to allocate webconfig_subdoc_data_t, size %d\n", __func__,
-            sizeof(webconfig_subdoc_data_t));
-        return bus_error_general;
-    }
     wifi_util_dbg_print(WIFI_CTRL, "%s bus property=%s\n", __FUNCTION__, name);
-    webconfig_init_subdoc_data(data);
-    memcpy((unsigned char *)&data->u.decoded.ignite_config, (unsigned char *)&mgr->ignite_config,
-  			sizeof(ignite_config_t)); 
+    memset(&data, 0, sizeof(webconfig_subdoc_data_t));
+    memcpy((unsigned char *)&data.u.decoded.ignite_config, (unsigned char *)&mgr->ignite_config,
+  			num_of_radios * sizeof(ignite_config_t)); 
     sscanf(name, "Device.WiFi.Ignite_Control.%d.%s", &index, extension);
     wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", __func__, __LINE__, index, extension);
     if (index > getNumberRadios()) {
@@ -2125,35 +2120,35 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     
     switch (index) {
 	case 1:
-	    strncpy(data->u.decoded.ignite_config[index-1].ignite_name, "ignite_2g", MAX_NAME_LEN);
+	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_2g", MAX_NAME_LEN);
 	    break;
         case 2:
-	    strncpy(data->u.decoded.ignite_config[index-1].ignite_name, "ignite_5g", MAX_NAME_LEN);
+	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_5g", MAX_NAME_LEN);
             break;
         case 3:
-	    strncpy(data->u.decoded.ignite_config[index-1].ignite_name, "ignite_6g", MAX_NAME_LEN);
+	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_6g", MAX_NAME_LEN);
             break;
         default:
 	    wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%u]\n", __func__, __LINE__, index);
     }
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, data->u.decoded.ignite_config[index-1].ignite_name);
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, data.u.decoded.ignite_config[index-1].ignite_name);
 
     if (strcmp(extension, "MinChutilThreshold") == 0) {
 	strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-        data->u.decoded.ignite_config[index-1].min_chanutil_threshold = atof(value);
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", __func__, __LINE__,value, data->u.decoded.ignite_config[index-1].min_chanutil_threshold);
+        data.u.decoded.ignite_config[index-1].min_chanutil_threshold = atof(value);
+	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", __func__, __LINE__,value, data.u.decoded.ignite_config[index-1].min_chanutil_threshold);
     } else if (strcmp(extension, "MaxChutilThreshold") == 0) {
 	strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-	data->u.decoded.ignite_config[index-1].max_chanutil_threshold = atof(value);
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", __func__, __LINE__, value, data->u.decoded.ignite_config[index-1].max_chanutil_threshold);
+	data.u.decoded.ignite_config[index-1].max_chanutil_threshold = atof(value);
+	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].max_chanutil_threshold);
     } else if (strcmp(extension, "SNRThreshold") == 0) {
 	 strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-	 data->u.decoded.ignite_config[index-1].SNR_threshold = atof(value);
-	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", __func__, __LINE__, value, data->u.decoded.ignite_config[index-1].SNR_threshold);
+	 data.u.decoded.ignite_config[index-1].SNR_threshold = atof(value);
+	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].SNR_threshold);
     } else if (strcmp(extension, "SNRDifference") == 0) {
 	 strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-         data->u.decoded.ignite_config[index-1].SNR_difference =  atof(value);
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", __func__, __LINE__, value, data->u.decoded.ignite_config[index-1].SNR_difference);
+         data.u.decoded.ignite_config[index-1].SNR_difference =  atof(value);
+         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].SNR_difference);
     } else {
          wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported Parameter\n", __func__, __LINE__);
 	 return bus_error_invalid_operation;
@@ -2162,7 +2157,7 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_ignite) ==
 	  	    webconfig_error_none) {
 	wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__, __LINE__);
-        str = data->u.encoded.raw;
+        str = data.u.encoded.raw;
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
 	  	       wifi_event_webconfig_set_data_dml, NULL);
 
