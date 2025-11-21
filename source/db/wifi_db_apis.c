@@ -310,15 +310,16 @@ void callback_Wifi_Ignite_Config(ovsdb_update_monitor_t *mon,
       ignite_config_t *ignite_cfg = get_wifi_db_ignite_config(new_rec->ignite_name);
       wifi_mgr_t *g_wifidb = get_wifimgr_obj();
 
+      if (dbwritten == false) {
+	  wifi_util_info_print(WIFI_CTRL, "%s:%d: Db is not initialised yet\n", __func__, __LINE__);
+	  return;
+      }
+      
       if (ignite_cfg == NULL) {
            wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite Config Null\n", __func__, __LINE__);
 	   return;
       }
 
-      if (dbwritten == false) {
-	  wifi_util_info_print(WIFI_CTRL, "%s:%d: Db is not initialised yet\n", __func__, __LINE__);
-	  return;
-      }
 
       wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite-name : %s\n", __func__, __LINE__, new_rec->ignite_name);
       if ((mon->mon_type == OVSDB_UPDATE_NEW) || (mon->mon_type == OVSDB_UPDATE_MODIFY)) {
