@@ -2241,7 +2241,7 @@ void init_pending_ignite_config(void)
            num_radios * sizeof(ignite_config_t));
 
     for (unsigned int i = 0; i < num_radios; i++) {
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config for radio %u : [%s %f %f %f %f]\n", __func__, __LINE__, i, g_pending_ignite_config.config.ignite_name, g_pending_ignite_config.config.min_chanutil_threshold, g_pending_ignite_config.max_chanutil_threshold, g_pending_ignite_config.config.SNR_threshold,  g_pending_ignite_config.config.SNR_difference);
+         wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config for radio %u : [%s %f %f %f %f]\n", __func__, __LINE__, i, g_pending_ignite_config.config[i].ignite_name, g_pending_ignite_config.config[i].min_chanutil_threshold, g_pending_ignite_config.config[i].max_chanutil_threshold, g_pending_ignite_config.config[i].SNR_threshold,  g_pending_ignite_config.config[i].SNR_difference);
     }
     g_pending_ignite_config.is_dirty = false;
 
