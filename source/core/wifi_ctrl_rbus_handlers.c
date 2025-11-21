@@ -2250,7 +2250,7 @@ void init_pending_ignite_config(void)
     pthread_mutex_unlock(&g_pending_ignite_config.lock);
 }
 
-void init_function(void) {
+void init_ignite_function(void) {
     memset(&g_pending_ignite_config, 0, sizeof(g_pending_ignite_config));
     g_pending_ignite_config.is_dirty = false;
     pthread_mutex_init(&g_pending_ignite_config.lock, NULL);
