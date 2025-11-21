@@ -362,7 +362,6 @@ int start_wifimgr()
         return -1;
     }
 
-    init_function();
     return 0;
 }
 
