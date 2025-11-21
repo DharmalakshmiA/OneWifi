@@ -2385,6 +2385,7 @@ wifi_radio_feature_param_t* get_wifidb_radio_feat_map(uint8_t radio_index)
 ignite_config_t* get_wifidb_ignite_config(uint8_t radio_index)
 {
     wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
+    wifi_util_error_print(WIFI_CTRL, "%s %d radio_idx : %u total-radio : %u\n", __func__, __LINE__, radio_index, getNumberRadios());
     if (radio_index < getNumberRadios()) { 
         return &g_wifi_mgr->ignite_config[radio_index];
     } else {

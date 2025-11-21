@@ -8148,6 +8148,7 @@ void init_wifidb_data()
             }
         }
 
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d]Testing...radio-count : %u\n", __func__, __LINE__, num_radio);
 	for (r_index = 0; r_index < num_radio; r_index++) {
             ignite_cfg = NULL; 
             ignite_cfg = get_wifidb_ignite_config(r_index);

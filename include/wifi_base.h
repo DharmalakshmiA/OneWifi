@@ -71,6 +71,7 @@ extern "C" {
 #define WIFI_IGNITE_MAX_CHUTIL_THRESHOLD    "Device.WiFi.Ignite_Control.{i}.MaxChutilThreshold"
 #define WIFI_IGNITE_SNR_THRESHOLD           "Device.WiFi.Ignite_Control.{i}.SNRThreshold"
 #define WIFI_IGNITE_SNR_DIFFERENCE        "Device.WiFi.Ignite_Control.{i}.SNRDifference"
+#define WIFI_IGNITE_APPLY_CONFIG            "Device.WiFi.ApplyIgniteSettings"
 #define WIFI_COLLECT_STATS_TABLE            "Device.WiFi.CollectStats.Radio.{i}."
 #define WIFI_COLLECT_STATS_RADIO_ON_CHANNEL_STATS      "Device.WiFi.CollectStats.Radio.{i}.ScanMode.on_channel.ChannelStats"
 #define WIFI_COLLECT_STATS_RADIO_OFF_CHANNEL_STATS     "Device.WiFi.CollectStats.Radio.{i}.ScanMode.off_channel.ChannelStats"
@@ -286,6 +287,14 @@ typedef struct {
     float max_chanutil_threshold;
 }ignite_config_t;
 
+// Global pending ignite configuration
+typedef struct {
+    ignite_config_t config[MAX_NUM_RADIOS];
+    bool is_dirty;
+    pthread_mutex_t lock;
+} pending_ignite_config_t;
+
+extern pending_ignite_config_t g_pending_ignite_config;
 
 typedef struct {
     int type;  //Device.WiFi.X_RDKCENTRAL-COM_vAPStatsEnable= 0, Device.WiFi.AccessPoint.<vAP>.X_RDKCENTRAL-COM_StatsEnable = 1

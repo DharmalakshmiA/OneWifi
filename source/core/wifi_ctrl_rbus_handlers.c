@@ -34,6 +34,8 @@
 #define MAX_STATUS_LEN 5
 #define MAX_VAL_LEN 16
 
+pending_ignite_config_t g_pending_ignite_config;
+
 static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_type_t *subdoc,
     char *eventName)
 {
@@ -2091,84 +2093,168 @@ bus_error_t get_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     return bus_error_success;
 }
 
+
+
 bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    webconfig_subdoc_data_t data;
-    char *str;
     char value[32] = {'\0'};
     unsigned int index = 0;
     char extension[64] = { 0 };
     unsigned int num_of_radios = getNumberRadios();
-    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
-    if (mgr == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
-	return bus_error_general;
-    }
     
     wifi_util_dbg_print(WIFI_CTRL, "%s bus property=%s\n", __FUNCTION__, name);
-    memset(&data, 0, sizeof(webconfig_subdoc_data_t));
-    memcpy((unsigned char *)&data.u.decoded.ignite_config, (unsigned char *)&mgr->ignite_config,
-  			num_of_radios * sizeof(ignite_config_t)); 
+    
     sscanf(name, "Device.WiFi.Ignite_Control.%d.%s", &index, extension);
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", __func__, __LINE__, index, extension);
-    if (index > num_of_radios) {
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] index : %u extension : %s\n", 
+                         __func__, __LINE__, index, extension);
+    
+    if (index == 0 || index > num_of_radios) {
         wifi_util_error_print(WIFI_CTRL, "%s Invalid index %u\n", __FUNCTION__, index);
         return bus_error_invalid_operation;
     }
-    data.u.decoded.num_radios = num_of_radios; 
+    
+    pthread_mutex_lock(&g_pending_ignite_config.lock);
+    
+    // Set ignite_name based on index
     switch (index) {
-	case 1:
-	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_2g", MAX_NAME_LEN);
-	    break;
+        case 1:
+            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_2g", 
+                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
+            break;
         case 2:
-	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_5g", MAX_NAME_LEN);
+            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_5g", 
+                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
             break;
         case 3:
-	    strncpy(data.u.decoded.ignite_config[index-1].ignite_name, "ignite_6g", MAX_NAME_LEN);
+            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_6g", 
+                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
             break;
         default:
-	    wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%u]\n", __func__, __LINE__, index);
-    }
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, data.u.decoded.ignite_config[index-1].ignite_name);
-
-    if (strcmp(extension, "MinChutilThreshold") == 0) {
-	strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-        data.u.decoded.ignite_config[index-1].min_chanutil_threshold = atof(value);
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", __func__, __LINE__,value, data.u.decoded.ignite_config[index-1].min_chanutil_threshold);
-    } else if (strcmp(extension, "MaxChutilThreshold") == 0) {
-	strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-	data.u.decoded.ignite_config[index-1].max_chanutil_threshold = atof(value);
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].max_chanutil_threshold);
-    } else if (strcmp(extension, "SNRThreshold") == 0) {
-	 strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-	 data.u.decoded.ignite_config[index-1].SNR_threshold = atof(value);
-	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].SNR_threshold);
-    } else if (strcmp(extension, "SNRDifference") == 0) {
-	 strncpy(value, p_data->raw_data.bytes, MAX_VAL_LEN);
-         data.u.decoded.ignite_config[index-1].SNR_difference =  atof(value);
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", __func__, __LINE__, value, data.u.decoded.ignite_config[index-1].SNR_difference);
-    } else {
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported Parameter\n", __func__, __LINE__);
-	 return bus_error_invalid_operation;
+            pthread_mutex_unlock(&g_pending_ignite_config.lock);
+            wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%u]\n", 
+                                 __func__, __LINE__, index);
+            return bus_error_invalid_operation;
     }
     
-    if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_ignite) ==
-	  	    webconfig_error_none) {
-	wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__, __LINE__);
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, 
+                         g_pending_ignite_config.config[index-1].ignite_name);
+    
+    // Update the specific field in global pending config
+    strncpy(value, p_data->raw_data.bytes, sizeof(value) - 1);
+    value[sizeof(value) - 1] = '\0';
+    
+    if (strcmp(extension, "MinChutilThreshold") == 0) {
+        g_pending_ignite_config.config[index-1].min_chanutil_threshold = atof(value);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", 
+                             __func__, __LINE__, value, 
+                             g_pending_ignite_config.config[index-1].min_chanutil_threshold);
+    } else if (strcmp(extension, "MaxChutilThreshold") == 0) {
+        g_pending_ignite_config.config[index-1].max_chanutil_threshold = atof(value);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", 
+                             __func__, __LINE__, value, 
+                             g_pending_ignite_config.config[index-1].max_chanutil_threshold);
+    } else if (strcmp(extension, "SNRThreshold") == 0) {
+        g_pending_ignite_config.config[index-1].SNR_threshold = atof(value);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", 
+                             __func__, __LINE__, value, 
+                             g_pending_ignite_config.config[index-1].SNR_threshold);
+    } else if (strcmp(extension, "SNRDifference") == 0) {
+        g_pending_ignite_config.config[index-1].SNR_difference = atof(value);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", 
+                             __func__, __LINE__, value, 
+                             g_pending_ignite_config.config[index-1].SNR_difference);
+    } else {
+        pthread_mutex_unlock(&g_pending_ignite_config.lock);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported Parameter\n", __func__, __LINE__);
+        return bus_error_invalid_operation;
+    }
+    
+    g_pending_ignite_config.is_dirty = true;
+    
+    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+    
+    return bus_error_success;
+}
+
+bus_error_t apply_ignite_config(void)
+{
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
+    webconfig_subdoc_data_t data;
+    char *str;
+    unsigned int num_of_radios = getNumberRadios();
+
+    if (mgr == NULL || ctrl == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+
+    pthread_mutex_lock(&g_pending_ignite_config.lock);
+
+    if (!g_pending_ignite_config.is_dirty) {
+        pthread_mutex_unlock(&g_pending_ignite_config.lock);
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d No pending changes\n", __func__, __LINE__);
+        return bus_error_success;
+    }
+
+    // Prepare data for encoding
+    memset(&data, 0, sizeof(webconfig_subdoc_data_t));
+    data.u.decoded.num_radios = num_of_radios;
+
+    // Copy pending config to data
+    memcpy(&data.u.decoded.ignite_config, &g_pending_ignite_config.config,
+           num_of_radios * sizeof(ignite_config_t));
+
+    // Clear dirty flag
+    g_pending_ignite_config.is_dirty = false;
+
+    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+
+    // Encode and push to queue
+    if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_ignite)
+        == webconfig_error_none) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__, __LINE__);
         str = (char *)data.u.encoded.raw;
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
-	  	       wifi_event_webconfig_set_data_dml, NULL);
-
-     } else {
-	 wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode failed\n", __func__, __LINE__);
+                                 wifi_event_webconfig_set_data_dml, NULL);
+    } else {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig_encode failed\n", __func__, __LINE__);
+        webconfig_data_free(&data);
+        return bus_error_general;
     }
+
     webconfig_data_free(&data);
     return bus_error_success;
-}    
+}
 
-	 
+void init_pending_ignite_config(void)
+{
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    unsigned int num_radios = getNumberRadios();
+
+    pthread_mutex_lock(&g_pending_ignite_config.lock);
+
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] Testing\n", __func__, __LINE__);
+    // Initialize with current mgr config
+    memcpy(&g_pending_ignite_config.config, &mgr->ignite_config,
+           num_radios * sizeof(ignite_config_t));
+
+    for (unsigned int i = 0; i < num_radios; i++) {
+         wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config for radio %u : [%s %f %f %f %f]\n", __func__, __LINE__, i, g_pending_ignite_config.config.ignite_name, g_pending_ignite_config.config.min_chanutil_threshold, g_pending_ignite_config.max_chanutil_threshold, g_pending_ignite_config.config.SNR_threshold,  g_pending_ignite_config.config.SNR_difference);
+    }
+    g_pending_ignite_config.is_dirty = false;
+
+    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+}
+
+void init_function(void) {
+    memset(&g_pending_ignite_config, 0, sizeof(g_pending_ignite_config));
+    g_pending_ignite_config.is_dirty = false;
+    pthread_mutex_init(&g_pending_ignite_config.lock, NULL);
+    init_pending_ignite_config();
+}
+
 bus_error_t get_sta_attribs(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
@@ -3446,7 +3532,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
     int num_of_radio = getNumberRadios();
     int num_of_vaps = getTotalNumberVAPs(NULL);
     int num_elements;
-        bus_data_element_t dataElements[] = {
+    bus_data_element_t dataElements[] = {
                                 { WIFI_WEBCONFIG_DOC_DATA_SOUTH, bus_element_type_method,
                                     { NULL, webconfig_set_subdoc, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, true, 0, 0, 0, NULL } },
@@ -3477,6 +3563,9 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_IGNITE_SNR_DIFFERENCE, bus_element_type_property,
                                     { get_ignite_attributes, set_ignite_attributes, NULL, NULL, NULL, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_bytes, false, 0, 0, 0, NULL } },
+                                { WIFI_IGNITE_APPLY_CONFIG, bus_element_type_property,
+                                    { NULL, apply_ignite_config, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+                                    { bus_data_type_boolean, false, 0, 0, 0, NULL } },
                                 
 				{ WIFI_STA_CONNECT_STATUS, bus_element_type_property,
                                     { get_sta_attribs, set_sta_attribs, NULL, NULL, eventSubHandler, NULL }, slow_speed, ZERO_TABLE,
