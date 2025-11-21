@@ -1808,6 +1808,7 @@ int start_wifi_ctrl(wifi_ctrl_t *ctrl)
     ctrl->exit_ctrl = false;
     ctrl->ctrl_initialized = true;
     register_endpoint_components(ctrl);
+	init_ignite_function();
     ctrl_queue_loop(ctrl);
 
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT
