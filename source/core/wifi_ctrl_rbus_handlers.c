@@ -2177,7 +2177,9 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     return bus_error_success;
 }
 
-bus_error_t apply_ignite_config(void)
+bus_error_t apply_ignite_config(char *paramName,
+                                raw_data_t *value,
+                                bus_user_data_t *user_data)
 {
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
