@@ -2093,6 +2093,13 @@ bus_error_t get_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     return bus_error_success;
 }
 
+int validate_ignite_config(char *extension, float value) {
+    if ((value < 0.0) || (value > 100.0)) {
+	 wifi_util_error_print(WIFI_CTRL, "[%s %d] %s configured out of range [%f]\n", __func__, __LINE__, name, value);
+	 return RETURN_ERR;
+    }
+    return RETURN_OK;
+}
 
 
 bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
@@ -2100,6 +2107,7 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     (void)user_data;
     char value[32] = {'\0'};
     unsigned int index = 0;
+    int ret = RETURN_OK;
     char extension[64] = { 0 };
     unsigned int num_of_radios = getNumberRadios();
     
@@ -2145,21 +2153,41 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
     value[sizeof(value) - 1] = '\0';
     
     if (strcmp(extension, "MinChutilThreshold") == 0) {
-        g_pending_ignite_config.config[index-1].min_chanutil_threshold = atof(value);
+	ret = validate_ignite_config(extension, atof(value));
+	if (ret == RETURN_ERR) {
+	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+	    return bus_error_invalid_operation;
+	}
+	g_pending_ignite_config.config[index-1].min_chanutil_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", 
                              __func__, __LINE__, value, 
                              g_pending_ignite_config.config[index-1].min_chanutil_threshold);
     } else if (strcmp(extension, "MaxChutilThreshold") == 0) {
+	ret = validate_ignite_config(extension, atof(value));
+	if (ret == RETURN_ERR) {
+	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+	    return bus_error_invalid_operation;
+	}
         g_pending_ignite_config.config[index-1].max_chanutil_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", 
                              __func__, __LINE__, value, 
                              g_pending_ignite_config.config[index-1].max_chanutil_threshold);
     } else if (strcmp(extension, "SNRThreshold") == 0) {
+	ret = validate_ignite_config(extension, atof(value));
+	if (ret == RETURN_ERR) {
+	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+	    return bus_error_invalid_operation;
+	}
         g_pending_ignite_config.config[index-1].SNR_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", 
                              __func__, __LINE__, value, 
                              g_pending_ignite_config.config[index-1].SNR_threshold);
     } else if (strcmp(extension, "SNRDifference") == 0) {
+	ret = validate_ignite_config(extension, atof(value));
+	if (ret == RETURN_ERR) {
+	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+	    return bus_error_invalid_operation;
+	}
         g_pending_ignite_config.config[index-1].SNR_difference = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", 
                              __func__, __LINE__, value, 
@@ -2219,7 +2247,7 @@ bus_error_t apply_ignite_config(char *paramName,
         wifi_util_info_print(WIFI_CTRL, "%s:%d webconfig_encode success\n", __FUNCTION__, __LINE__);
         str = (char *)data.u.encoded.raw;
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
-                                 wifi_event_webconfig_set_data_dml, NULL);
+                                 wifi_event_webconfig_set_ignite_data, NULL);
     } else {
         wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig_encode failed\n", __func__, __LINE__);
         webconfig_data_free(&data);

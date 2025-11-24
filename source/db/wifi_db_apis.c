@@ -320,8 +320,7 @@ void callback_Wifi_Ignite_Config(ovsdb_update_monitor_t *mon,
 	   return;
       }
 
-
-      wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite-name : %s\n", __func__, __LINE__, new_rec->ignite_name);
+      wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite-config : [%s %f %f %f %f]\n", __func__, __LINE__, new_rec->ignite_name, new_rec->min_chanutil_threshold, new_rec->max_chanutil_threshold, new_rec->SNR_threshold, new_rec->SNR_difference);
       if ((mon->mon_type == OVSDB_UPDATE_NEW) || (mon->mon_type == OVSDB_UPDATE_MODIFY)) {
            wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite config newly added or updated\n", __func__, __LINE__);
            pthread_mutex_lock(&g_wifidb->data_cache_lock);
@@ -330,9 +329,9 @@ void callback_Wifi_Ignite_Config(ovsdb_update_monitor_t *mon,
 	   ignite_cfg->max_chanutil_threshold = new_rec->max_chanutil_threshold;
 	   ignite_cfg->SNR_threshold = new_rec->SNR_threshold;
 	   ignite_cfg->SNR_difference = new_rec->SNR_difference;
+           pthread_mutex_unlock(&g_wifidb->data_cache_lock);
       }
       wifi_util_dbg_print(WIFI_CTRL, "[%s %d] name : %s ch_util_threshold : [%f %f] SNR threshold : [%f %f]\n", __func__, __LINE__, ignite_cfg->ignite_name, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference);
-      pthread_mutex_unlock(&g_wifidb->data_cache_lock);
       return;
 }
 
