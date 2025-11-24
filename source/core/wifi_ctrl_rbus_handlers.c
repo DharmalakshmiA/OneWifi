@@ -2098,8 +2098,8 @@ bus_error_t get_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
 
 int validate_ignite_config(char *extension, float value) {
     if ((value < 0.0) || (value > 100.0)) {
-	 wifi_util_error_print(WIFI_CTRL, "[%s %d] %s configured out of range [%f]\n", __func__, __LINE__, name, value);
-	 return RETURN_ERR;
+	     wifi_util_error_print(WIFI_CTRL, "[%s %d] %s configured out of range [%f]\n", __func__, __LINE__, extension, value);
+	     return RETURN_ERR;
     }
     return RETURN_OK;
 }
