@@ -1520,21 +1520,28 @@ static int webconfig_ignite_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     wifi_mgr_t *mgr = get_wifimgr_obj();
     if (mgr == NULL) {
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Null data\n", __func__, __LINE__);
-        return false;
+        return RETURN_ERR;
     }
 
+        // Validate array bounds
+    if ((data == NULL) || (data->ignite_config == NULL)) {
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] ignite_config array is NULL\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
     wifi_util_error_print(WIFI_CTRL, "[%s %d] radio-count : %u\n", __func__, __LINE__, getNumberRadios());
     for (UINT index = 0; index < getNumberRadios(); index++){
 	 ignite_config_t *data_ignite_config = &data->ignite_config[index];
+	 if (data_ignite_config->ignite_name[0] == '\0') {
+	    wifi_util_error_print(WIFI_CTRL, "[%s %d] Skipping invalid ignite config at index %u\n", __func__, __LINE__, index);
+            continue;
+         }
          wifi_util_error_print(WIFI_CTRL, "[%s %d] name : %s\n", __func__, __LINE__, data_ignite_config->ignite_name);
-         if (!ignite_config_equal(&mgr->ignite_config[index], data_ignite_config)) {
-              wifi_util_dbg_print(WIFI_CTRL, "Ignite param changed\n");
-         } else {
-              wifi_util_dbg_print(WIFI_CTRL, "Same config for ignite param\n");
-              continue;
-	 }
+         if (ignite_config_equal(&mgr->ignite_config[index], data_ignite_config)) {
+            wifi_util_dbg_print(WIFI_CTRL, "Same config - skipping update for %s\n", data_ignite_config->ignite_name);
+            continue;
+        }
 
-	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config changed for %s\n", __func__, __LINE__, data_ignite_config->ignite_name);
+	 wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config changed for %s Configs : [%f %f %f %f]\n", __func__, __LINE__, data_ignite_config->ignite_name, data_ignite_config->min_chanutil_threshold, data_ignite_config->max_chanutil_threshold, data_ignite_config->SNR_threshold, data_ignite_config->SNR_difference);
     
         if ((wifidb_update_ignite_config(data_ignite_config)) != 0) {
            wifi_util_dbg_print(WIFI_CTRL, "Failed to update the ignite config\n");

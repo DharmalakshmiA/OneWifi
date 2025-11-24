@@ -281,10 +281,10 @@ typedef struct {
 
 typedef struct {
     char ignite_name[32];
-    float SNR_threshold;
-    float SNR_difference;
     float min_chanutil_threshold;
     float max_chanutil_threshold;
+    float SNR_threshold;
+    float SNR_difference;
 }ignite_config_t;
 
 // Global pending ignite configuration
