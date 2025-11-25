@@ -1690,11 +1690,11 @@
     PJS(schema_Wifi_Ignite_Config, \
         PJS_OVS_UUID_Q(_uuid) \
         PJS_OVS_UUID_Q(_version) \
-        PJS_OVS_STRING(ignite_name, 128 + 1) \
-        PJS_OVS_STRING(min_chanutil_threshold) \
-        PJS_OVS_STRING(max_chanutil_threshold) \
-        PJS_OVS_STRING(snr_threshold) \
-        PJS_OVS_STRING(snr_difference) \
+        PJS_OVS_STRING(ignite_name, 32 + 1) \
+        PJS_OVS_STRING(min_chanutil_threshold, 16 + 1) \
+        PJS_OVS_STRING(max_chanutil_threshold, 16 + 1) \
+        PJS_OVS_STRING(snr_threshold, 16 + 1) \
+        PJS_OVS_STRING(snr_difference, 16 + 1) \
     )
 
 #define PJS_GEN_TABLE \
