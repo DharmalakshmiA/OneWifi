@@ -3200,69 +3200,98 @@ int wifidb_update_table_entry(char *key, char *key_name,ovsdb_col_t key_type, ov
     return ret;
 }
 
+static void float_to_str(char *dst, size_t size, float val)
+{
+    if (dst == NULL || size == 0) return;
+    snprintf(dst, size, "%.2f", val);     // Keep 2 decimal accuracy
+}
+
 int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
 {
     if (ignite_cfg == NULL) {
-        wifi_util_dbg_print(WIFI_CTRL,"%s:%d Ignite config is NULL\n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d Ignite config is NULL\n",
+                            __func__, __LINE__);
         return RETURN_ERR;
     }
-    
-    // Validate input - reject empty names or all-zero configs
+
     if (ignite_cfg->ignite_name[0] == '\0') {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d: Invalid ignite config (empty name or all zeros)\n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Invalid ignite config name\n",
+                              __func__, __LINE__);
         return RETURN_ERR;
     }
-    
+
     struct schema_Wifi_Ignite_Config cfg, *pcfg;
     json_t *where;
     bool update = false;
-    int count;
-    int ret;
-    wifi_db_t *g_wifidb;
-    g_wifidb = (wifi_db_t*) get_wifidb_obj();
+    int count, ret;
+
+    wifi_db_t *g_wifidb = get_wifidb_obj();
     memset(&cfg, 0, sizeof(cfg));
 
-    wifi_util_dbg_print(WIFI_CTRL,"%s:%d ignite-name : %s\n", __func__, __LINE__, ignite_cfg->ignite_name);
-    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
-    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, where, &count);
-    if ((count != 0) && (pcfg != NULL)) {
-        memcpy(&cfg, pcfg, sizeof(struct schema_Wifi_Ignite_Config));
+    // Check existing entry
+    where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name",
+                                    OFUNC_EQ, ignite_cfg->ignite_name);
+
+    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
+                                            &table_Wifi_Ignite_Config,
+                                            where, &count);
+
+    if (pcfg && count > 0) {
+        memcpy(&cfg, pcfg, sizeof(cfg));
         update = true;
         free(pcfg);
     }
 
-    // Proper string copy with safe bounds checking
-    strncpy(cfg.ignite_name, ignite_cfg->ignite_name, sizeof(cfg.ignite_name) - 1);
-    cfg.ignite_name[sizeof(cfg.ignite_name) - 1] = '\0';  // Ensure null termination
-    
-    cfg.min_chanutil_threshold = ignite_cfg->min_chanutil_threshold;
-    cfg.max_chanutil_threshold = ignite_cfg->max_chanutil_threshold;
-    cfg.snr_threshold = ignite_cfg->SNR_threshold;
-    cfg.snr_difference = ignite_cfg->SNR_difference;
+    // Set ignite_name
+    strncpy(cfg.ignite_name, ignite_cfg->ignite_name,
+            sizeof(cfg.ignite_name) - 1);
+    cfg.ignite_name[sizeof(cfg.ignite_name) - 1] = '\0';
 
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] chutil-threshold[min, max] = %f %f SNR[threshold, diff] = %f %f name : %s\n", 
-                         __func__, __LINE__, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, 
-                         ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference, ignite_cfg->ignite_name);
+    // Convert float → string (critical fix!)
+    float_to_str(cfg.min_chanutil_threshold,
+                 sizeof(cfg.min_chanutil_threshold),
+                 ignite_cfg->min_chanutil_threshold);
 
-    if (update == true) {
-        where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
-        ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, where, &cfg);
-        if (ret == -1) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d WIFI DB update error !!!. Failed to update Wifi Ignite Config table \n",__func__, __LINE__);
-            return -1;
-        } else if (ret == 0) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d: nothing to update table_Wifi_Ignite_Config table\n", __func__, __LINE__);
-        } else {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d Updated WIFI DB. Wifi Ignite Config table updated successful. \n",__func__, __LINE__);
+    float_to_str(cfg.max_chanutil_threshold,
+                 sizeof(cfg.max_chanutil_threshold),
+                 ignite_cfg->max_chanutil_threshold);
+
+    float_to_str(cfg.snr_threshold,
+                 sizeof(cfg.snr_threshold),
+                 ignite_cfg->SNR_threshold);
+
+    float_to_str(cfg.snr_difference,
+                 sizeof(cfg.snr_difference),
+                 ignite_cfg->SNR_difference);
+
+    wifi_util_debug_print(WIFI_CTRL,
+         "%s:%d UPDATE → [%s %s %s %s %s]\n", __func__, __LINE__,
+         cfg.ignite_name,
+         cfg.min_chanutil_threshold,
+         cfg.max_chanutil_threshold,
+         cfg.snr_threshold,
+         cfg.snr_difference
+    );
+
+    if (update) {
+        ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path,
+                                               &table_Wifi_Ignite_Config,
+                                               where, &cfg);
+
+        if (ret < 0) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d Update failed\n",
+                                  __func__, __LINE__);
+            return RETURN_ERR;
         }
     } else {
-        if (onewifi_ovsdb_table_insert(g_wifidb->wifidb_sock_path, &table_Wifi_Ignite_Config, &cfg) == false) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d WIFI DB update error !!!. Failed to insert in table_Wifi_Ignite_Config \n",__func__, __LINE__);
-            return -1;
-        } else {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d Updated WIFI DB. insert in table_Wifi_Ignite_Config successful. \n",__func__, __LINE__);
+        if (!onewifi_ovsdb_table_insert(g_wifidb->wifidb_sock_path,
+                                        &table_Wifi_Ignite_Config, &cfg)) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d Insert failed\n",
+                                  __func__, __LINE__);
+            return RETURN_ERR;
         }
     }
+
     return 0;
 }
 
@@ -3399,36 +3428,66 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     return 0;
 }
 
+static float safe_atof(const char *s)
+{
+    if (s == NULL || *s == '\0')
+        return 0.0f;
+
+    return (float)strtod(s, NULL);
+}
+
 int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
 {
     struct schema_Wifi_Ignite_Config *pcfg = NULL;
     json_t *where;
     int count;
-    wifi_db_t *g_wifidb;
-    g_wifidb = (wifi_db_t*) get_wifidb_obj();
+    wifi_db_t *g_wifidb = get_wifidb_obj();
 
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] TESTING\n", __func__, __LINE__);
     if (ignite_cfg == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to Get Ignite Config \n",__func__, __LINE__);
+        wifi_util_error_print(WIFI_CTRL, "%s:%d ignite_cfg is NULL\n", __func__, __LINE__);
         return RETURN_ERR;
     }
+
     where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name", OFUNC_EQ, ignite_cfg->ignite_name);
-    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path, &table_Wifi_Radio_Config, where, &count);
+    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
+                                            &table_Wifi_Ignite_Config,
+                                            where,
+                                            &count);
+
     if (pcfg == NULL) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d Table table_Wifi_Ignite_Config not found, entry count=%d\n",__func__, __LINE__, count);
-	return RETURN_ERR;
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Ignite config not found, count=%d\n",
+                              __func__, __LINE__, count);
+        return RETURN_ERR;
     }
 
-    wifi_util_error_print(WIFI_CTRL,  "[%s %d] TESTING\n", __func__, __LINE__);
-    strncpy(ignite_cfg->ignite_name, pcfg->ignite_name, MAX_NAME_LEN);
-    ignite_cfg->min_chanutil_threshold = pcfg->min_chanutil_threshold;
-    ignite_cfg->max_chanutil_threshold = pcfg->max_chanutil_threshold;
-    ignite_cfg->SNR_threshold = pcfg->snr_threshold;
-    ignite_cfg->SNR_difference = pcfg->snr_difference;
+    wifi_util_error_print(WIFI_CTRL,
+        "[%s %d] Ignite raw strings [%s %s %s %s %s]\n",
+        __func__, __LINE__,
+        pcfg->ignite_name,
+        pcfg->min_chanutil_threshold,
+        pcfg->max_chanutil_threshold,
+        pcfg->snr_threshold,
+        pcfg->snr_difference);
 
-    wifi_util_error_print(WIFI_CTRL,  "[%s %d] name : %s chan-util-threshold : [%f %f] SNR : [%f %f]\n", __func__, __LINE__, ignite_cfg->ignite_name, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference);
+    strncpy(ignite_cfg->ignite_name, pcfg->ignite_name, MAX_NAME_LEN);
+
+    ignite_cfg->min_chanutil_threshold = safe_atof(pcfg->min_chanutil_threshold);
+    ignite_cfg->max_chanutil_threshold = safe_atof(pcfg->max_chanutil_threshold);
+    ignite_cfg->SNR_threshold          = safe_atof(pcfg->snr_threshold);
+    ignite_cfg->SNR_difference         = safe_atof(pcfg->snr_difference);
+
+    wifi_util_error_print(WIFI_CTRL,
+        "[%s %d] Converted values name=%s chanutil=[%f %f] snr=[%f %f]\n",
+        __func__, __LINE__,
+        ignite_cfg->ignite_name,
+        ignite_cfg->min_chanutil_threshold,
+        ignite_cfg->max_chanutil_threshold,
+        ignite_cfg->SNR_threshold,
+        ignite_cfg->SNR_difference);
+
     return 0;
 }
+
 
 /************************************************************************************
  ************************************************************************************
