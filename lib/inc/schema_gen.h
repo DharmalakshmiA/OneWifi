@@ -1693,8 +1693,8 @@
         PJS_OVS_STRING(ignite_name, 128 + 1) \
         PJS_OVS_REAL(min_chanutil_threshold) \
         PJS_OVS_REAL(max_chanutil_threshold) \
-        PJS_OVS_REAL(SNR_threshold) \
-        PJS_OVS_REAL(SNR_difference) \
+        PJS_OVS_REAL(snr_threshold) \
+        PJS_OVS_REAL(snr_difference) \
     )
 
 #define PJS_GEN_TABLE \
@@ -3373,8 +3373,8 @@
     COLUMN(ignite_name) \
     COLUMN(min_chanutil_threshold) \
     COLUMN(max_chanutil_threshold) \
-    COLUMN(SNR_threshold) \
-    COLUMN(SNR_difference) \
+    COLUMN(snr_threshold) \
+    COLUMN(snr_difference) \
 
 #define SCHEMA__AWLAN_Node__id "id"
 #define SCHEMA__AWLAN_Node__model "model"
@@ -4646,5 +4646,5 @@
 #define SCHEMA__Wifi_Ignite_Config__ignite_name "ignite_name"
 #define SCHEMA__Wifi_Ignite_Config__min_chanutil_threshold "min_chanutil_threshold"
 #define SCHEMA__Wifi_Ignite_Config__max_chanutil_threshold "max_chanutil_threshold"
-#define SCHEMA__Wifi_Ignite_Config__SNR_threshold "SNR_threshold"
-#define SCHEMA__Wifi_Ignite_Config__SNR_difference "SNR_difference"
+#define SCHEMA__Wifi_Ignite_Config__snr_threshold "snr_threshold"
+#define SCHEMA__Wifi_Ignite_Config__snr_difference "snr_difference"

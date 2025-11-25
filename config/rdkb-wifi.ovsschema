@@ -2576,7 +2576,7 @@
             "max": 1
           }
         },
-        "SNR_threshold": {
+        "snr_threshold": {
           "type": {
             "key": {
               "type": "real"
@@ -2585,7 +2585,7 @@
             "max": 1
           }
         },
-        "SNR_difference": {
+        "snr_difference": {
           "type": {
             "key": {
               "type": "real"
