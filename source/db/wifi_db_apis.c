@@ -3271,7 +3271,7 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
                  sizeof(cfg.snr_difference),
                  ignite_cfg->SNR_difference);
 
-    wifi_util_debug_print(WIFI_CTRL,
+    wifi_util_error_print(WIFI_CTRL,
          "%s:%d UPDATE → [%s %s %s %s %s]\n", __func__, __LINE__,
          cfg.ignite_name,
          cfg.min_chanutil_threshold,
