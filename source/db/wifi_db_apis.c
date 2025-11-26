@@ -3210,7 +3210,7 @@ int wifidb_update_table_entry(char *key, char *key_name,ovsdb_col_t key_type, ov
 static void float_to_str(char *dst, size_t size, float val)
 {
     if (dst == NULL || size == 0) return;
-    snprintf(dst, size, "%.2f", val);     // Keep 2 decimal accuracy
+    snprintf(dst, size, "%.0f", val);     // Keep 2 decimal accuracy
 }
 
 int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
@@ -3243,6 +3243,7 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
                                             &table_Wifi_Ignite_Config,
                                             where, &count);
 
+    wifi_util_dbg_print(WIFI_CTRL, "count : %d update : %d\n", count, update);
     if (pcfg && count > 0) {
         memcpy(&cfg, pcfg, sizeof(cfg));
         update = true;
@@ -3285,18 +3286,22 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
                                                &table_Wifi_Ignite_Config,
                                                where, &cfg);
 
-        if (ret < 0) {
+        if (ret <= 0) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d Update failed\n",
                                   __func__, __LINE__);
             return RETURN_ERR;
-        }
+        } else {
+	    wifi_util_error_print(WIFI_CTRL, "%s:%d Row updated successfully\n", __func__, __LINE__);
+	}
     } else {
         if (!onewifi_ovsdb_table_insert(g_wifidb->wifidb_sock_path,
                                         &table_Wifi_Ignite_Config, &cfg)) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d Insert failed\n",
                                   __func__, __LINE__);
             return RETURN_ERR;
-        }
+        } else {
+	    wifi_util_error_print(WIFI_CTRL, "%s:%d Row inserted successfully\n", __func__, __LINE__);
+	}
     }
 
     return 0;
