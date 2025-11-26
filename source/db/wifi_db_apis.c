@@ -4847,7 +4847,6 @@ static void wifidb_upgrade_wifi_ignite_config(int r_index)
      if (g_wifidb->db_version < ONEWIFI_DB_VERSION_IGNITE_FLAG) {
          wifi_util_dbg_print(WIFI_CTRL, "%s:%d upgrade ignite config, old db version %d \n", __func__,
             __LINE__, g_wifidb->db_version);
-     }
 
          wifi_util_dbg_print(WIFI_CTRL, "%s:%d index : %u\n", __func__, __LINE__, r_index);
           switch (r_index) {
@@ -4868,6 +4867,7 @@ static void wifidb_upgrade_wifi_ignite_config(int r_index)
         g_wifidb->ignite_config[r_index].SNR_threshold = IGNITE_SNR_THRESHOLD;
 	g_wifidb->ignite_config[r_index].SNR_difference = IGNITE_SNR_DIFFERENCE;
 	wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s] Ch-util-threshold [%f %f] SNR [%f %f]\n", __func__, __LINE__, g_wifidb->ignite_config[r_index].ignite_name, g_wifidb->ignite_config[r_index].min_chanutil_threshold, g_wifidb->ignite_config[r_index].max_chanutil_threshold, g_wifidb->ignite_config[r_index].SNR_threshold, g_wifidb->ignite_config[r_index].SNR_difference);
+	 }
      return;
 }
 
