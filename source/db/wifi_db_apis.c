@@ -3243,6 +3243,8 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
                                             &table_Wifi_Ignite_Config,
                                             where, &count);
 
+    if (where) { json_decref(where); where = NULL; }
+
     wifi_util_dbg_print(WIFI_CTRL, "count : %d update : %d\n", count, update);
     if (pcfg && count > 0) {
         memcpy(&cfg, pcfg, sizeof(cfg));
@@ -3273,7 +3275,7 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
                  ignite_cfg->SNR_difference);
 
     wifi_util_error_print(WIFI_CTRL,
-         "%s:%d UPDATE → [%s %s %s %s %s]\n", __func__, __LINE__,
+         "%s:%d Ignite data → [%s %s %s %s %s]\n", __func__, __LINE__,
          cfg.ignite_name,
          cfg.min_chanutil_threshold,
          cfg.max_chanutil_threshold,
@@ -3281,10 +3283,26 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
          cfg.snr_difference
     );
 
+    /* set presence flags */
+    cfg.ignite_name_exists = true;
+    cfg.min_chanutil_threshold_exists = true;
+    cfg.max_chanutil_threshold_exists = true;
+    cfg.snr_threshold_exists = true;
+    cfg.snr_difference_exists = true;
+
+    /* clear uuid/version for insert */
+    cfg._uuid_exists = false;
+    cfg._version_exists = false;
+
     if (update) {
+	/* recreate where for update */
+	wifi_util_dbg_print(WIFI_CTRL, "%s:%d ignite-name : %s\n", __func__, __LINE__, ignite_cfg->ignite_name);
+        where = onewifi_ovsdb_tran_cond(OCLM_STR, "ignite_name",
+                                    OFUNC_EQ, ignite_cfg->ignite_name);
         ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path,
                                                &table_Wifi_Ignite_Config,
                                                where, &cfg);
+	 if (where) { json_decref(where); where = NULL; }
 
         if (ret <= 0) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d Update failed\n",
