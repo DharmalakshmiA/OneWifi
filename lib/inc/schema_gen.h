@@ -1691,10 +1691,10 @@
         PJS_OVS_UUID_Q(_uuid) \
         PJS_OVS_UUID_Q(_version) \
         PJS_OVS_STRING(ignite_name, 32 + 1) \
-        PJS_OVS_STRING(min_chanutil_threshold, 16 + 1) \
-        PJS_OVS_STRING(max_chanutil_threshold, 16 + 1) \
-        PJS_OVS_STRING(snr_threshold, 16 + 1) \
-        PJS_OVS_STRING(snr_difference, 16 + 1) \
+        PJS_OVS_INT(min_chanutil_threshold) \
+        PJS_OVS_INT(max_chanutil_threshold) \
+        PJS_OVS_INT(snr_threshold) \
+        PJS_OVS_INT(snr_difference) \
     )
 
 #define PJS_GEN_TABLE \

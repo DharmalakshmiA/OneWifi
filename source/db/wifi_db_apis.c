@@ -3207,12 +3207,6 @@ int wifidb_update_table_entry(char *key, char *key_name,ovsdb_col_t key_type, ov
     return ret;
 }
 
-static void float_to_str(char *dst, size_t size, float val)
-{
-    if (dst == NULL || size == 0) return;
-    snprintf(dst, size, "%.0f", val);     // Keep 2 decimal accuracy
-}
-
 int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
 {
     if (ignite_cfg == NULL) {
@@ -3257,25 +3251,15 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
             sizeof(cfg.ignite_name) - 1);
     cfg.ignite_name[sizeof(cfg.ignite_name) - 1] = '\0';
 
-    // Convert float → string (critical fix!)
-    float_to_str(cfg.min_chanutil_threshold,
-                 sizeof(cfg.min_chanutil_threshold),
-                 ignite_cfg->min_chanutil_threshold);
+    // Convert float → integer
+    cfg.min_chanutil_threshold = (int)ignite_cfg->min_chanutil_threshold;
+    cfg.max_chanutil_threshold = (int)ignite_cfg->max_chanutil_threshold;
+    cfg.snr_threshold = (int)ignite_cfg->SNR_threshold;
+    cfg.snr_difference = (int)ignite_cfg->SNR_difference;
 
-    float_to_str(cfg.max_chanutil_threshold,
-                 sizeof(cfg.max_chanutil_threshold),
-                 ignite_cfg->max_chanutil_threshold);
-
-    float_to_str(cfg.snr_threshold,
-                 sizeof(cfg.snr_threshold),
-                 ignite_cfg->SNR_threshold);
-
-    float_to_str(cfg.snr_difference,
-                 sizeof(cfg.snr_difference),
-                 ignite_cfg->SNR_difference);
 
     wifi_util_error_print(WIFI_CTRL,
-         "%s:%d Ignite data → [%s %s %s %s %s]\n", __func__, __LINE__,
+         "%s:%d Ignite data → [%s %d %d %d %d]\n", __func__, __LINE__,
          cfg.ignite_name,
          cfg.min_chanutil_threshold,
          cfg.max_chanutil_threshold,
@@ -3484,7 +3468,7 @@ int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
     }
 
     wifi_util_error_print(WIFI_CTRL,
-        "[%s %d] Ignite raw strings [%s %s %s %s %s]\n",
+        "[%s %d] Ignite raw strings [%s %d %d %d %d]\n",
         __func__, __LINE__,
         pcfg->ignite_name,
         pcfg->min_chanutil_threshold,
@@ -3494,11 +3478,11 @@ int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
 
     strncpy(ignite_cfg->ignite_name, pcfg->ignite_name, MAX_NAME_LEN);
 
-    ignite_cfg->min_chanutil_threshold = safe_atof(pcfg->min_chanutil_threshold);
-    ignite_cfg->max_chanutil_threshold = safe_atof(pcfg->max_chanutil_threshold);
-    ignite_cfg->SNR_threshold          = safe_atof(pcfg->snr_threshold);
-    ignite_cfg->SNR_difference         = safe_atof(pcfg->snr_difference);
-
+    ignite_cfg->min_chanutil_threshold = (float)pcfg->min_chanutil_threshold;
+    ignite_cfg->max_chanutil_threshold = (float)pcfg->max_chanutil_threshold;
+    ignite_cfg->SNR_threshold          = (float)pcfg->snr_threshold;
+    ignite_cfg->SNR_difference         = (float)pcfg->snr_difference;
+    
     wifi_util_error_print(WIFI_CTRL,
         "[%s %d] Converted values name=%s chanutil=[%f %f] snr=[%f %f]\n",
         __func__, __LINE__,
