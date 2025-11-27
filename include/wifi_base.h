@@ -292,9 +292,9 @@ typedef struct {
     ignite_config_t config[MAX_NUM_RADIOS];
     bool is_dirty;
     pthread_mutex_t lock;
-} pending_ignite_config_t;
+} apply_ignite_config_t;
 
-extern pending_ignite_config_t g_pending_ignite_config;
+extern apply_ignite_config_t g_apply_ignite_config;
 
 typedef struct {
     int type;  //Device.WiFi.X_RDKCENTRAL-COM_vAPStatsEnable= 0, Device.WiFi.AccessPoint.<vAP>.X_RDKCENTRAL-COM_StatsEnable = 1

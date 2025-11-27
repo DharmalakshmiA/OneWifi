@@ -34,7 +34,7 @@
 #define MAX_STATUS_LEN 5
 #define MAX_VAL_LEN 16
 
-pending_ignite_config_t g_pending_ignite_config;
+apply_ignite_config_t g_apply_ignite_config;
 
 static int get_subdoc_type(wifi_provider_response_t *response, webconfig_subdoc_type_t *subdoc,
     char *eventName)
@@ -2125,31 +2125,31 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
         return bus_error_invalid_operation;
     }
     
-    pthread_mutex_lock(&g_pending_ignite_config.lock);
+    pthread_mutex_lock(&g_apply_ignite_config.lock);
     
     // Set ignite_name based on index
     switch (index) {
         case 1:
-            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_2g", 
-                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
+            strncpy(g_apply_ignite_config.config[index-1].ignite_name, "ignite_2g", 
+                    sizeof(g_apply_ignite_config.config[index-1].ignite_name) - 1);
             break;
         case 2:
-            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_5g", 
-                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
+            strncpy(g_apply_ignite_config.config[index-1].ignite_name, "ignite_5g", 
+                    sizeof(g_apply_ignite_config.config[index-1].ignite_name) - 1);
             break;
         case 3:
-            strncpy(g_pending_ignite_config.config[index-1].ignite_name, "ignite_6g", 
-                    sizeof(g_pending_ignite_config.config[index-1].ignite_name) - 1);
+            strncpy(g_apply_ignite_config.config[index-1].ignite_name, "ignite_6g", 
+                    sizeof(g_apply_ignite_config.config[index-1].ignite_name) - 1);
             break;
         default:
-            pthread_mutex_unlock(&g_pending_ignite_config.lock);
+            pthread_mutex_unlock(&g_apply_ignite_config.lock);
             wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported index [%u]\n", 
                                  __func__, __LINE__, index);
             return bus_error_invalid_operation;
     }
     
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite name [%s]\n", __func__, __LINE__, 
-                         g_pending_ignite_config.config[index-1].ignite_name);
+                         g_apply_ignite_config.config[index-1].ignite_name);
     
     // Update the specific field in global pending config
     strncpy(value, p_data->raw_data.bytes, sizeof(value) - 1);
@@ -2159,51 +2159,55 @@ bus_error_t set_ignite_attributes(char *name, raw_data_t *p_data, bus_user_data_
 	ret = validate_ignite_config(extension, atof(value));
 	if (ret == RETURN_ERR) {
 	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+            pthread_mutex_unlock(&g_apply_ignite_config.lock);
 	    return bus_error_invalid_operation;
 	}
-	g_pending_ignite_config.config[index-1].min_chanutil_threshold = atof(value);
+	g_apply_ignite_config.config[index-1].min_chanutil_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s min_chanutil_threshold : %f\n", 
                              __func__, __LINE__, value, 
-                             g_pending_ignite_config.config[index-1].min_chanutil_threshold);
+                             g_apply_ignite_config.config[index-1].min_chanutil_threshold);
     } else if (strcmp(extension, "MaxChutilThreshold") == 0) {
 	ret = validate_ignite_config(extension, atof(value));
 	if (ret == RETURN_ERR) {
 	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+            pthread_mutex_unlock(&g_apply_ignite_config.lock);
 	    return bus_error_invalid_operation;
 	}
-        g_pending_ignite_config.config[index-1].max_chanutil_threshold = atof(value);
+        g_apply_ignite_config.config[index-1].max_chanutil_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s max_chanutil_threshold: %f\n", 
                              __func__, __LINE__, value, 
-                             g_pending_ignite_config.config[index-1].max_chanutil_threshold);
+                             g_apply_ignite_config.config[index-1].max_chanutil_threshold);
     } else if (strcmp(extension, "SNRThreshold") == 0) {
 	ret = validate_ignite_config(extension, atof(value));
 	if (ret == RETURN_ERR) {
 	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+            pthread_mutex_unlock(&g_apply_ignite_config.lock);
 	    return bus_error_invalid_operation;
 	}
-        g_pending_ignite_config.config[index-1].SNR_threshold = atof(value);
+        g_apply_ignite_config.config[index-1].SNR_threshold = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_threshold : %f\n", 
                              __func__, __LINE__, value, 
-                             g_pending_ignite_config.config[index-1].SNR_threshold);
+                             g_apply_ignite_config.config[index-1].SNR_threshold);
     } else if (strcmp(extension, "SNRDifference") == 0) {
 	ret = validate_ignite_config(extension, atof(value));
 	if (ret == RETURN_ERR) {
 	    wifi_util_error_print(WIFI_CTRL, "%s %d Invalid config for %s\n", __func__, __LINE__, extension);
+            pthread_mutex_unlock(&g_apply_ignite_config.lock);
 	    return bus_error_invalid_operation;
 	}
-        g_pending_ignite_config.config[index-1].SNR_difference = atof(value);
+        g_apply_ignite_config.config[index-1].SNR_difference = atof(value);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Value : %s SNR_difference : %f\n", 
                              __func__, __LINE__, value, 
-                             g_pending_ignite_config.config[index-1].SNR_difference);
+                             g_apply_ignite_config.config[index-1].SNR_difference);
     } else {
-        pthread_mutex_unlock(&g_pending_ignite_config.lock);
+        pthread_mutex_unlock(&g_apply_ignite_config.lock);
         wifi_util_error_print(WIFI_CTRL, "[%s %d] Unsupported Parameter\n", __func__, __LINE__);
         return bus_error_invalid_operation;
     }
     
-    g_pending_ignite_config.is_dirty = true;
+    g_apply_ignite_config.is_dirty = true;
     
-    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+    pthread_mutex_unlock(&g_apply_ignite_config.lock);
     
     return bus_error_success;
 }
@@ -2223,10 +2227,10 @@ bus_error_t apply_ignite_config(char *paramName,
         return bus_error_general;
     }
 
-    pthread_mutex_lock(&g_pending_ignite_config.lock);
+    pthread_mutex_lock(&g_apply_ignite_config.lock);
 
-    if (!g_pending_ignite_config.is_dirty) {
-        pthread_mutex_unlock(&g_pending_ignite_config.lock);
+    if (!g_apply_ignite_config.is_dirty) {
+        pthread_mutex_unlock(&g_apply_ignite_config.lock);
         wifi_util_dbg_print(WIFI_CTRL, "%s:%d No pending changes\n", __func__, __LINE__);
         return bus_error_success;
     }
@@ -2236,13 +2240,13 @@ bus_error_t apply_ignite_config(char *paramName,
     data.u.decoded.num_radios = num_of_radios;
 
     // Copy pending config to data
-    memcpy(&data.u.decoded.ignite_config, &g_pending_ignite_config.config,
+    memcpy(&data.u.decoded.ignite_config, &g_apply_ignite_config.config,
            num_of_radios * sizeof(ignite_config_t));
 
     // Clear dirty flag
-    g_pending_ignite_config.is_dirty = false;
+    g_apply_ignite_config.is_dirty = false;
 
-    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+    pthread_mutex_unlock(&g_apply_ignite_config.lock);
 
     // Encode and push to queue
     if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_ignite)
@@ -2266,25 +2270,25 @@ void init_pending_ignite_config(void)
     wifi_mgr_t *mgr = get_wifimgr_obj();
     unsigned int num_radios = getNumberRadios();
 
-    pthread_mutex_lock(&g_pending_ignite_config.lock);
+    pthread_mutex_lock(&g_apply_ignite_config.lock);
 
     wifi_util_error_print(WIFI_CTRL, "[%s %d] Testing\n", __func__, __LINE__);
     // Initialize with current mgr config
-    memcpy(&g_pending_ignite_config.config, &mgr->ignite_config,
+    memcpy(&g_apply_ignite_config.config, &mgr->ignite_config,
            num_radios * sizeof(ignite_config_t));
 
     for (unsigned int i = 0; i < num_radios; i++) {
-         wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config for radio %u : [%s %f %f %f %f]\n", __func__, __LINE__, i, g_pending_ignite_config.config[i].ignite_name, g_pending_ignite_config.config[i].min_chanutil_threshold, g_pending_ignite_config.config[i].max_chanutil_threshold, g_pending_ignite_config.config[i].SNR_threshold,  g_pending_ignite_config.config[i].SNR_difference);
+         wifi_util_error_print(WIFI_CTRL, "[%s %d] Ignite config for radio %u : [%s %f %f %f %f]\n", __func__, __LINE__, i, g_apply_ignite_config.config[i].ignite_name, g_apply_ignite_config.config[i].min_chanutil_threshold, g_apply_ignite_config.config[i].max_chanutil_threshold, g_apply_ignite_config.config[i].SNR_threshold,  g_apply_ignite_config.config[i].SNR_difference);
     }
-    g_pending_ignite_config.is_dirty = false;
+    g_apply_ignite_config.is_dirty = false;
 
-    pthread_mutex_unlock(&g_pending_ignite_config.lock);
+    pthread_mutex_unlock(&g_apply_ignite_config.lock);
 }
 
 void init_ignite_function(void) {
-    memset(&g_pending_ignite_config, 0, sizeof(g_pending_ignite_config));
-    g_pending_ignite_config.is_dirty = false;
-    pthread_mutex_init(&g_pending_ignite_config.lock, NULL);
+    memset(&g_apply_ignite_config, 0, sizeof(g_apply_ignite_config));
+    g_apply_ignite_config.is_dirty = false;
+    pthread_mutex_init(&g_apply_ignite_config.lock, NULL);
     init_pending_ignite_config();
 }
 
