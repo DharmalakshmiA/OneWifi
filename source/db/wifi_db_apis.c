@@ -332,10 +332,10 @@ void callback_Wifi_Ignite_Config(ovsdb_update_monitor_t *mon,
            wifi_util_dbg_print(WIFI_CTRL, "[%s %d] Ignite config newly added or updated\n", __func__, __LINE__);
            pthread_mutex_lock(&g_wifidb->data_cache_lock);
 	   strcpy(ignite_cfg->ignite_name, new_rec->ignite_name);
-	   ignite_cfg->min_chanutil_threshold = safe_atof(new_rec->min_chanutil_threshold);
-	   ignite_cfg->max_chanutil_threshold = safe_atof(new_rec->max_chanutil_threshold);
-	   ignite_cfg->SNR_threshold = safe_atof(new_rec->snr_threshold);
-	   ignite_cfg->SNR_difference = safe_atof(new_rec->snr_difference);
+	   ignite_cfg->min_chanutil_threshold = (float)new_rec->min_chanutil_threshold;
+	   ignite_cfg->max_chanutil_threshold = (float)new_rec->max_chanutil_threshold;
+	   ignite_cfg->SNR_threshold = (float)new_rec->snr_threshold;
+	   ignite_cfg->SNR_difference = (float)new_rec->snr_difference;
            pthread_mutex_unlock(&g_wifidb->data_cache_lock);
       }
       wifi_util_dbg_print(WIFI_CTRL, "[%s %d] name : %s ch_util_threshold : [%f %f] SNR threshold : [%f %f]\n", __func__, __LINE__, ignite_cfg->ignite_name, ignite_cfg->min_chanutil_threshold, ignite_cfg->max_chanutil_threshold, ignite_cfg->SNR_threshold, ignite_cfg->SNR_difference);
