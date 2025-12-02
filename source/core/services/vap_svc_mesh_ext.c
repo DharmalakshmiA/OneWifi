@@ -140,13 +140,14 @@ void sort_bss_results_by_rssi(bss_candidate_t *bss, int start, int end)
   * @param config Radio-specific ignite configuration
  * @return 0 on success, -1 on error
  */
-int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_config_t *cfg) {
-    if ((scan_list == NULL) || (count <= 0) || (cfg != NULL)) {
+int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_config_t *ignite_config) 
+{
+    if ((scan_list == NULL) || (count <= 0) || (ignite_config == NULL)) {
 	wifi_util_dbg_print(WIFI_CTRL, "%s %d Error in passing the values. Count : %d\n", __func__, __LINE__, count);
         return RETURN_ERR;
     }
     
-    int validCount = 0;
+    int valid_count = 0;
     float max_bucket1_snr = 0.0;
     float chutil_weighting_factor = 0.2;
     float snr_weighting_factor = 0.5;
@@ -154,6 +155,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
     // Allocate temporary scoring array
     bss_score_entry_t *scores = malloc(count * sizeof(bss_score_entry_t));
     if (!scores) {
+	wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure\n", __func__, __LINE__);
         return RETURN_ERR;
     }
 
@@ -163,7 +165,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
 	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
         int rssi = scan_list[i].external_ap.rssi;
         int noise = scan_list[i].external_ap.noise;
-        int snr = scan_list[i].external_ap.snr;
+        float snr = (float)scan_list[i].external_ap.snr;
 
         
         if (chan_util > ignite_config->max_chanutil_threshold) {
@@ -179,7 +181,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
         if (scores[valid_count].bucket == 1 && snr > max_bucket1_snr) {
             max_bucket1_snr = snr;
         }
-	validCount++;
+	valid_count++;
     }
     
     if (valid_count == 0) {
@@ -190,14 +192,15 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
 
     // Step 2: Apply SNR advantage rule for bucket 2
     for (int i = 0; i < valid_count; i++) {
+	float snr_diff = 0.0;
         if (scores[i].bucket == 2) {
-             float snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
+             snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
 	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr-diff : %f\n", __func__, __LINE__, snr_diff);
+	     if (snr_diff > ignite_config->SNR_difference) {
+	         scores[i].score += snr_diff * snr_weighting_factor;
+	     }
 	}
-	if (snr_diff > ignite_config->SNR_difference) {
-	    scores[i].score += snr_diff * snr_weighting_factor;
-	}
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] score : %d\n", __func__, __LINE__, scores[i].score);
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] score : %f\n", __func__, __LINE__, scores[i].score);
     }
 
     // Step 3: Sort by descending score
@@ -1529,6 +1532,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     ssid_t sta_ssid;
+    int ranked_count;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     ctrl = svc->ctrl;
@@ -1609,7 +1613,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d: Ignite Enabled Mode.. Radio Index : %u\n", __func__, __LINE__, results->radio_index);
 	    int r_idx = results->radio_index;
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ext->candidates_list.scan_count, mgr->ignite_config[r_idx].ignite_name, mgr->ignite_config[r_idx].min_chanutil_threshold ,mgr->ignite_config[r_idx].max_chanutil_threshold ,mgr->ignite_config[r_idx].SNR_threshold ,mgr->ignite_config[r_idx].SNR_difference );
-	    int ranked_count = sort_bss_results_by_ranking(
+	    ranked_count = sort_bss_results_by_ranking(
                                    ext->candidates_list.scan_list,
                                    ext->candidates_list.scan_count, &mgr->ignite_config[r_idx]);
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ranked_count);
