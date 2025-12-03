@@ -1540,7 +1540,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     ssid_t sta_ssid;
-    int ranked_count;
+    int ranked_count = 0;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     ctrl = svc->ctrl;
