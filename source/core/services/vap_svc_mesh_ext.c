@@ -134,6 +134,16 @@ void sort_bss_results_by_rssi(bss_candidate_t *bss, int start, int end)
 }
 
 /**
+ * @brief Comparator for qsort - sorts by score (descending)
+ */
+static int compare_bss_scores(const void *a, const void *b) {
+    float scoreA = ((bss_score_entry_t *)a)->score;
+    float scoreB = ((bss_score_entry_t *)b)->score;
+    // Descending order: if scoreA < scoreB, return positive
+    return (scoreA < scoreB) - (scoreA > scoreB);
+}
+
+/**
  * @brief Sort and rank BSS candidates by computed score
  * @param scan_list Array of BSS candidates
  * @param count Number of candidates
@@ -163,8 +173,6 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
 	// Skip entries with CU > 70
 	
 	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
-        int rssi = scan_list[i].external_ap.rssi;
-        int noise = scan_list[i].external_ap.noise;
         float snr = (float)scan_list[i].external_ap.snr;
 
         

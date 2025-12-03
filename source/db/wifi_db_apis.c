@@ -292,13 +292,6 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
     }
 }
 
-static float safe_atof(const char *s)
-{
-    if (s == NULL || *s == '\0')
-        return 0.0f;
-
-    return (float)strtod(s, NULL);
-}
 /************************************************************************************
  ************************************************************************************
   Function    : callback_Wifi_Ignite_Config
