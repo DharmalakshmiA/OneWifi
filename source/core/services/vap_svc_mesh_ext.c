@@ -336,6 +336,7 @@ int process_disconnection_event_timeout(vap_svc_t *svc)
     return 0;
 }
 
+#if 0
 static int process_udhcp_disconnect_event_timeout(vap_svc_t *svc)
 {
     wifi_ctrl_t *ctrl = svc->ctrl;
@@ -377,7 +378,7 @@ static int process_udhcp_disconnect_event_timeout(vap_svc_t *svc)
 
     return 0;
 }
-
+#endif
 static int process_trigger_disconnection_event_timeout(vap_svc_t *svc)
 {
     wifi_ctrl_t *ctrl = svc->ctrl;
@@ -472,6 +473,7 @@ int has_valid_ip(const char *iface) {
 
 int process_udhcp_ip_check(vap_svc_t *svc)
 {
+#if 0
     static int ip_check_count = 0;
     struct sockaddr_in sa;
     char value[128];
@@ -558,6 +560,7 @@ int process_udhcp_ip_check(vap_svc_t *svc)
     }
 
     ip_check_count++;
+#endif
     return 0;
 }
 
@@ -1749,12 +1752,13 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
                 ext->ext_trigger_disconnection_timeout_handler_id = 0;
             }
 
+	#if 0
             if (ctrl->network_mode != rdk_dev_mode_type_em_node) {
                 scheduler_add_timer_task(ctrl->sched, FALSE, &ext->ext_udhcp_ip_check_id,
                     process_udhcp_ip_check, svc, EXT_UDHCP_IP_CHECK_INTERVAL,
                     EXT_UDHCP_IP_CHECK_NUM + 1, FALSE);
             }
-
+	#endif
             /* Make Self Heal Timeout to flase once connected */
             ext->selfheal_status = false;
 

@@ -2241,6 +2241,7 @@ webconfig_error_t decode_mesh_sta_object(const cJSON *vap, wifi_vap_info_t *vap_
         return webconfig_error_decode;
     }
 
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]\n", __func__, __LINE__);
     // Radio Index
     decode_param_integer(vap, "RadioIndex", param);
     vap_info->radio_index = param->valuedouble;
@@ -2283,6 +2284,7 @@ webconfig_error_t decode_mesh_sta_object(const cJSON *vap, wifi_vap_info_t *vap_
     // Ignite status
     decode_param_bool(vap, "Ignite_Enabled", param);
     vap_info->u.sta_info.ignite_enabled = (param->type & cJSON_True) ? true:false;
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]..Ignite : %d\n", __func__, __LINE__, vap_info->u.sta_info.ignite_enabled);
 
     // ConnectStatus
     decode_param_bool(vap, "ConnectStatus", param);
@@ -2304,12 +2306,14 @@ webconfig_error_t decode_mesh_sta_object(const cJSON *vap, wifi_vap_info_t *vap_
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Security objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]\n", __func__, __LINE__);
 
     decode_param_object(vap, "ScanParameters", scan);
     if (decode_scan_params_object(scan, &vap_info->u.sta_info.scan_params) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Scan parameters objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]\n", __func__, __LINE__);
 
     return webconfig_error_none;
 }

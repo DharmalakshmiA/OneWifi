@@ -1637,6 +1637,7 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     
     // Ignite Status
     cJSON_AddBoolToObject(vap_obj, "Ignite_Enabled", vap_info->u.sta_info.ignite_enabled);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA].. Ignite-enable : %d\n", __func__, __LINE__, vap_info->u.sta_info.ignite_enabled);
 
     //ConnectStatus
     if (vap_info->u.sta_info.conn_status == wifi_connection_status_connected) {
@@ -1646,6 +1647,7 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
         cJSON_AddBoolToObject(vap_obj, "ConnectStatus", false);
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d conn_status:%d false\n",__FUNCTION__, __LINE__, vap_info->u.sta_info.conn_status);
     }
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]\n", __func__, __LINE__);
 
     bool is_6g = strstr(vap_info->vap_name, "6g")?true:false;
     // Security
@@ -1655,6 +1657,7 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Security object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
     }
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DHARMA]\n", __func__, __LINE__);
 
     // Scan Parameters
     obj = cJSON_CreateObject();
