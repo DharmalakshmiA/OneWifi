@@ -3090,18 +3090,28 @@ void start_station_vaps(bool rf_status)
                                        .vaps.vap_map.vap_array[private_vap_array_index]
                                        .u.bss_info.security.u.key.key;
 
+			if (src_ssid == NULL) {
+			    wifi_util_error_print(WIFI_CTRL, "%s:%d src-ssid is NULL\n", __func__, __LINE__);
+				return;
+			}
+
+			if (src_key == NULL) {
+				wifi_util_error_print(WIFI_CTRL, "%s:%d src-KEY is NULL\n", __func__, __LINE__);
+				return;
+			}
+				
             /* Safe print: do not pass runtime strings as format */
             wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s\n",
-                                  __func__, __LINE__, rf_status, SAFE_STR(src_ssid), SAFE_STR(src_key));
+                                  __func__, __LINE__, rf_status, src_ssid, src_key);
 
             /* Safely copy SSID and key using "%s" format and NULL-guard */
             snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,
                      sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),
-                     "%s", SAFE_STR(src_ssid));
+                     "%s", src_ssid);
 
             snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
                      sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
-                     "%s", SAFE_STR(src_key));
+                     "%s", src_key);
 
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index, &band);
             wifi_util_error_print(WIFI_CTRL, "%s:%d band : %d\n", __func__, __LINE__, band);
@@ -3149,7 +3159,7 @@ void start_station_vaps(bool rf_status)
                 /* ensure safe copy */
                 snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
                          sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
-                         "%s", SAFE_STR(password));
+                         "%s", password);
             } else {
                 snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
                          sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
