@@ -2958,9 +2958,10 @@ void start_station_vaps(bool rf_status)
 {
     webconfig_subdoc_data_t *data = NULL;
     int status = RETURN_OK;
-    int vap_index = RETURN_ERR, private_vap_index = RETURN_ERR;
-    int radio_index = -1, band = 0;
-    int vap_array_index = -1, private_vap_array_index = -1;
+    int vap_index = 0, private_vap_index = 0;
+    uint8_t radio_index = 0;
+	int band = 0;
+    uint8_t vap_array_index = 0, private_vap_array_index = 0;
     char *str = NULL;
     char password[128] = {0};
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
@@ -3035,27 +3036,27 @@ void start_station_vaps(bool rf_status)
         /* get indices for arrays; check return status */
         status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop,
                                                            vap_index,
-                                                           (uint8_t *)&radio_index,
-                                                           (uint8_t *)&vap_array_index);
+                                                           &radio_index,
+                                                           &vap_array_index);
         if (status == RETURN_ERR) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d get_vap_and_radio_index_from_vap_instance failed for vap_index=%d\n",
                                   __func__, __LINE__, vap_index);
             continue;
         }
 
-        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..vap-array-idx : %d\n", __func__, __LINE__, vap_array_index);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..vap-array-idx : %u\n", __func__, __LINE__, vap_array_index);
 
         status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop,
                                                            private_vap_index,
-                                                           (uint8_t *)&radio_index,
-                                                           (uint8_t *)&private_vap_array_index);
+                                                           &radio_index,
+                                                           &private_vap_array_index);
         if (status == RETURN_ERR) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d get_vap_and_radio_index_from_vap_instance failed for private_vap_index=%d\n",
                                   __func__, __LINE__, private_vap_index);
             continue;
         }
 
-        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..pvt-vap-array-idx : %d\n", __func__, __LINE__, private_vap_array_index);
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..pvt-vap-array-idx : %u\n", __func__, __LINE__, private_vap_array_index);
 
         /* validate radio_index and array indices before accessing data->u.decoded.radios[...] */
         if (radio_index < 0 || (unsigned)radio_index >= data->u.decoded.num_radios) {
@@ -3069,12 +3070,12 @@ void start_station_vaps(bool rf_status)
                                  sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[0]);
 
         if (vap_array_index < 0 || (unsigned)vap_array_index >= vap_array_count) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d vap_array_index out of range: %d (max=%zu)\n",
+            wifi_util_error_print(WIFI_CTRL, "%s:%d vap_array_index out of range: %u (max=%zu)\n",
                                   __func__, __LINE__, vap_array_index, vap_array_count);
             continue;
         }
         if (private_vap_array_index < 0 || (unsigned)private_vap_array_index >= vap_array_count) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d private_vap_array_index out of range: %d (max=%zu)\n",
+            wifi_util_error_print(WIFI_CTRL, "%s:%d private_vap_array_index out of range: %u (max=%zu)\n",
                                   __func__, __LINE__, private_vap_array_index, vap_array_count);
             continue;
         }
