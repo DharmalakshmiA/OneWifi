@@ -2951,6 +2951,234 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
     return ((ret == RETURN_OK) ? webconfig_error_none:webconfig_error_apply);
 }
 
+/* safe replacement for start_station_vaps() */
+#define SAFE_STR(s) ((s) ? (s) : "<null>")
+
+void start_station_vaps(bool rf_status)
+{
+    webconfig_subdoc_data_t *data = NULL;
+    int status = RETURN_OK;
+    int vap_index = RETURN_ERR, private_vap_index = RETURN_ERR;
+    int radio_index = -1, band = 0;
+    int vap_array_index = -1, private_vap_array_index = -1;
+    char *str = NULL;
+    char password[128] = {0};
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+
+    /* local arrays sized by MAX_NUM_RADIOS (same as original) */
+    wifi_vap_name_t vap_names[MAX_NUM_RADIOS] = {0};
+    wifi_vap_name_t private_vap_names[MAX_NUM_RADIOS] = {0};
+
+    data = (webconfig_subdoc_data_t *) malloc(sizeof(webconfig_subdoc_data_t));
+    if (data == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s: malloc failed to allocate webconfig_subdoc_data_t, size %zu\n",
+                              __func__, sizeof(webconfig_subdoc_data_t));
+        return;
+    }
+
+    /* init and safe copy of underlying mgr structures */
+    webconfig_init_subdoc_data(data);
+
+    /* data->u.decoded.num_radios should be set inside webconfig_init_subdoc_data */
+    if (data->u.decoded.num_radios == 0) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d no radios available\n", __func__, __LINE__);
+        webconfig_data_free(data);
+        return;
+    }
+    wifi_util_error_print(WIFI_CTRL, "%s:%d radios : %d\n", __func__, __LINE__, data->u.decoded.num_radios);
+    unsigned int num_vaps = get_list_of_mesh_sta(&data->u.decoded.hal_cap.wifi_prop,
+                                                 MAX_NUM_RADIOS, &vap_names[0]);
+    unsigned int private_num_vaps = get_list_of_private_ssid(&data->u.decoded.hal_cap.wifi_prop,
+                                                             MAX_NUM_RADIOS, &private_vap_names[0]);
+
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA - num-vaps : %u private-vaps : %u\n",
+                          __func__, __LINE__, num_vaps, private_num_vaps);
+
+    /* iterate safely:
+       - iterate up to the larger of the two counts, but never beyond MAX_NUM_RADIOS
+       - check i < num_vaps/ private_num_vaps before using the arrays */
+    size_t max_iter = (num_vaps > private_num_vaps ? num_vaps : private_num_vaps);
+    if (max_iter > MAX_NUM_RADIOS) max_iter = MAX_NUM_RADIOS;
+
+    for (size_t i = 0; i < max_iter; i++) {
+        /* only use vap_names[i] if i < num_vaps */
+        if (i < num_vaps) {
+            vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[i]);
+            if (vap_index == RETURN_ERR) {
+                wifi_util_error_print(WIFI_CTRL, "[%s %d] skip vap (invalid) at i=%zu\n", __func__, __LINE__, i);
+                /* continue - may still want to process private_vap_names[i] */
+            } else {
+                wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA.. vap-idx : %d\n", __func__, __LINE__, vap_index);
+            }
+        } else {
+            vap_index = RETURN_ERR;
+        }
+
+        /* only use private_vap_names[i] if i < private_num_vaps */
+        if (i < private_num_vaps) {
+            private_vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, private_vap_names[i]);
+            if (private_vap_index == RETURN_ERR) {
+                wifi_util_error_print(WIFI_CTRL, "[%s %d] skip private vap (invalid) at i=%zu\n", __func__, __LINE__, i);
+                /* nothing else to do for this iteration if private vap invalid */
+            } else {
+                wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA.. pvt-vap-idx : %d\n", __func__, __LINE__, private_vap_index);
+            }
+        } else {
+            private_vap_index = RETURN_ERR;
+        }
+
+        /* If either index is invalid, skip the parts that depend on it */
+        if (vap_index == RETURN_ERR || private_vap_index == RETURN_ERR) {
+            continue;
+        }
+
+        /* get indices for arrays; check return status */
+        status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop,
+                                                           vap_index,
+                                                           (uint8_t *)&radio_index,
+                                                           (uint8_t *)&vap_array_index);
+        if (status == RETURN_ERR) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d get_vap_and_radio_index_from_vap_instance failed for vap_index=%d\n",
+                                  __func__, __LINE__, vap_index);
+            continue;
+        }
+
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..vap-array-idx : %d\n", __func__, __LINE__, vap_array_index);
+
+        status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop,
+                                                           private_vap_index,
+                                                           (uint8_t *)&radio_index,
+                                                           (uint8_t *)&private_vap_array_index);
+        if (status == RETURN_ERR) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d get_vap_and_radio_index_from_vap_instance failed for private_vap_index=%d\n",
+                                  __func__, __LINE__, private_vap_index);
+            continue;
+        }
+
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA..pvt-vap-array-idx : %d\n", __func__, __LINE__, private_vap_array_index);
+
+        /* validate radio_index and array indices before accessing data->u.decoded.radios[...] */
+        if (radio_index < 0 || (unsigned)radio_index >= data->u.decoded.num_radios) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d radio_index out of range: %d (num_radios=%u)\n",
+                                  __func__, __LINE__, radio_index, data->u.decoded.num_radios);
+            continue;
+        }
+
+        /* compute number of elements in vap_array at this radio safely */
+        size_t vap_array_count = sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array) /
+                                 sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[0]);
+
+        if (vap_array_index < 0 || (unsigned)vap_array_index >= vap_array_count) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d vap_array_index out of range: %d (max=%zu)\n",
+                                  __func__, __LINE__, vap_array_index, vap_array_count);
+            continue;
+        }
+        if (private_vap_array_index < 0 || (unsigned)private_vap_array_index >= vap_array_count) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d private_vap_array_index out of range: %d (max=%zu)\n",
+                                  __func__, __LINE__, private_vap_array_index, vap_array_count);
+            continue;
+        }
+
+        wifi_util_error_print(WIFI_CTRL, "%s:%d DHRMA rf_status=%d\n", __func__, __LINE__, rf_status);
+
+        if (rf_status) {
+            /* Read source pointers safely */
+            const char *src_ssid = data->u.decoded.radios[radio_index]
+                                        .vaps.vap_map.vap_array[private_vap_array_index]
+                                        .u.bss_info.ssid;
+            const char *src_key = data->u.decoded.radios[radio_index]
+                                       .vaps.vap_map.vap_array[private_vap_array_index]
+                                       .u.bss_info.security.u.key.key;
+
+            /* Safe print: do not pass runtime strings as format */
+            wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s\n",
+                                  __func__, __LINE__, rf_status, SAFE_STR(src_ssid), SAFE_STR(src_key));
+
+            /* Safely copy SSID and key using "%s" format and NULL-guard */
+            snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,
+                     sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),
+                     "%s", SAFE_STR(src_ssid));
+
+            snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
+                     sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
+                     "%s", SAFE_STR(src_key));
+
+            convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index, &band);
+            wifi_util_error_print(WIFI_CTRL, "%s:%d band : %d\n", __func__, __LINE__, band);
+
+            if ((band == WIFI_FREQUENCY_6_BAND) || (band == WIFI_FREQUENCY_60_BAND)) {
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.mode = wifi_security_mode_wpa3_personal;
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.enabled = false;
+            } else if (band == WIFI_FREQUENCY_2_4_BAND) {
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.enabled = false;
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.mode = wifi_security_mode_wpa2_personal;
+            } else {
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.enabled = true;
+                data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.mode = wifi_security_mode_wpa2_personal;
+            }
+
+            wifi_util_error_print(WIFI_CTRL,
+                                 "[%s %d] DHARMA.. Mesh sta vap details : [%d %d %s %s %x %d]\n",
+                                 __func__, __LINE__,
+                                 radio_index, vap_array_index,
+                                 SAFE_STR(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),
+                                 SAFE_STR(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
+                                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.mode,
+                                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.enabled);
+        } else {
+            /* rf_status == false: use defaults safely */
+            wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d \n", __func__, __LINE__, rf_status);
+            snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,
+                     sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),
+                     "%s", "we.connect.yellowstone");
+
+            memset(password, 0, sizeof(password));
+            if (wifi_hal_get_default_keypassphrase(password, vap_index) == 0) {
+                /* ensure safe copy */
+                snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
+                         sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
+                         "%s", SAFE_STR(password));
+            } else {
+                snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
+                         sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
+                         "%s", "12345678");
+            }
+        }
+    } /* end for loop */
+
+    /* preserve rf_status and attempt encode */
+    ctrl->rf_status_down = rf_status;
+
+    if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_mesh_sta) == webconfig_error_none) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d -webconfig_encode success\n", __FUNCTION__, __LINE__);
+        str = data->u.encoded.raw;
+        if (str != NULL) {
+            push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig, wifi_event_webconfig_set_data_dml, NULL);
+        } else {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d encode returned null raw data\n", __func__, __LINE__);
+            webconfig_data_free(data);
+        }
+    } else {
+        webconfig_data_free(data);
+    }
+
+    return;
+}
+
+
+#if 0 
 void start_station_vaps(bool rf_status)
 {
     webconfig_subdoc_data_t *data = NULL;
@@ -3056,7 +3284,6 @@ void start_station_vaps(bool rf_status)
 }
 
 
-#if 0
 void start_station_vaps(bool rf_status)
 {
     webconfig_subdoc_data_t *data = NULL;
