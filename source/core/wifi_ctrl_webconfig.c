@@ -3005,11 +3005,10 @@ void start_station_vaps(bool rf_status)
         wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s\n", __func__, __LINE__,rf_status,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.ssid,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.u.key.key);
         snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.ssid);
         snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.u.key.key);
-                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.mode;
 	    convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                   &band);
 		wifi_util_error_print(WIFI_CTRL, "%s:%d band : %d\n", __func__, __LINE__, band);
-		if (band == WIFI_FREQUENCY_6_BAND) {
+		if ((band == WIFI_FREQUENCY_6_BAND) || (band == WIFI_FREQUENCY_60_BAND)) {
 			data->u.decoded.radios[radio_index]
                     .vaps.vap_map.vap_array[vap_array_index]
                     .u.sta_info.security.mode = wifi_security_mode_wpa3_personal;
