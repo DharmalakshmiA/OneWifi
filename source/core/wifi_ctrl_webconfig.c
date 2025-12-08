@@ -3082,36 +3082,48 @@ void start_station_vaps(bool rf_status)
         wifi_util_error_print(WIFI_CTRL, "%s:%d DHRMA rf_status=%d\n", __func__, __LINE__, rf_status);
 
         if (rf_status) {
-            /* Read source pointers safely */
-            const char *src_ssid = data->u.decoded.radios[radio_index]
-                                        .vaps.vap_map.vap_array[private_vap_array_index]
-                                        .u.bss_info.ssid;
-            const char *src_key = data->u.decoded.radios[radio_index]
-                                       .vaps.vap_map.vap_array[private_vap_array_index]
-                                       .u.bss_info.security.u.key.key;
 
-			if (src_ssid == NULL) {
-			    wifi_util_error_print(WIFI_CTRL, "%s:%d src-ssid is NULL\n", __func__, __LINE__);
-				return;
-			}
+                /* Read source strings */
+    			const char *src_ssid_ptr = data->u.decoded.radios[radio_index]
+                                    .vaps.vap_map.vap_array[private_vap_array_index]
+                                    .u.bss_info.ssid;
+   				 const char *src_key_ptr = data->u.decoded.radios[radio_index]
+                                   .vaps.vap_map.vap_array[private_vap_array_index]
+                                   .u.bss_info.security.u.key.key;
 
-			if (src_key == NULL) {
-				wifi_util_error_print(WIFI_CTRL, "%s:%d src-KEY is NULL\n", __func__, __LINE__);
-				return;
-			}
-				
-            /* Safe print: do not pass runtime strings as format */
-            wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s\n",
-                                  __func__, __LINE__, rf_status, src_ssid, src_key);
+    			if (!src_ssid_ptr || !src_key_ptr) {
+        			wifi_util_error_print(WIFI_CTRL, "%s:%d src pointers NULL\n", __func__, __LINE__);
+        			return;
+   				 }
 
-            /* Safely copy SSID and key using "%s" format and NULL-guard */
-            snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,
-                     sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),
-                     "%s", src_ssid);
+    			/* Copy to temporary buffers to avoid overlap warnings */
+    			char tmp_ssid[sizeof(data->u.decoded.radios[radio_index]
+                             .vaps.vap_map.vap_array[vap_array_index]
+                             .u.sta_info.ssid)];
 
-            snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,
-                     sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),
-                     "%s", src_key);
+    			char tmp_key[sizeof(data->u.decoded.radios[radio_index]
+                            .vaps.vap_map.vap_array[vap_array_index]
+                            .u.sta_info.security.u.key.key)];
+
+    			snprintf(tmp_ssid, sizeof(tmp_ssid), "%s", src_ssid_ptr);
+    			snprintf(tmp_key, sizeof(tmp_key), "%s", src_key_ptr);
+
+    			/* Now safely write to destination */
+    			snprintf(data->u.decoded.radios[radio_index]
+                 .vaps.vap_map.vap_array[vap_array_index]
+                 .u.sta_info.ssid,
+             	sizeof(data->u.decoded.radios[radio_index]
+                      .vaps.vap_map.vap_array[vap_array_index]
+                      .u.sta_info.ssid),
+             	"%s", tmp_ssid);
+
+    		snprintf(data->u.decoded.radios[radio_index]
+                 .vaps.vap_map.vap_array[vap_array_index]
+                 .u.sta_info.security.u.key.key,
+             sizeof(data->u.decoded.radios[radio_index]
+                      .vaps.vap_map.vap_array[vap_array_index]
+                      .u.sta_info.security.u.key.key),
+             "%s", tmp_key);
 
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index, &band);
             wifi_util_error_print(WIFI_CTRL, "%s:%d band : %d\n", __func__, __LINE__, band);
