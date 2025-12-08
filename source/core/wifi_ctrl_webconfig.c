@@ -3002,23 +3002,34 @@ void start_station_vaps(bool rf_status)
             
 	wifi_util_error_print(WIFI_CTRL, "%s:%d DHRMA rf_status=%d\n", __func__, __LINE__,rf_status);
 	if(rf_status) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s security-mode : %x\n", __func__, __LINE__,rf_status,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.ssid,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.u.key.key, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.mode);
+        wifi_util_error_print(WIFI_CTRL, "%s:%d rf_status=%d pvt=%s passphrase = %s\n", __func__, __LINE__,rf_status,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.ssid,data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.u.key.key);
         snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid,sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid),data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.ssid);
         snprintf(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key,sizeof(data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key),data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.u.key.key);
-                data->u.decoded.radios[radio_index]
-                    .vaps.vap_map.vap_array[vap_array_index]
-                    .u.sta_info.security.mode = data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.mode;
+                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[private_vap_array_index].u.bss_info.security.mode;
 	    convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                   &band);
 		wifi_util_error_print(WIFI_CTRL, "%s:%d band : %d\n", __func__, __LINE__, band);
-		if ((band == WIFI_FREQUENCY_6_BAND) || (band == WIFI_FREQUENCY_2_4_BAND)) {
+		if (band == WIFI_FREQUENCY_6_BAND) {
+			data->u.decoded.radios[radio_index]
+                    .vaps.vap_map.vap_array[vap_array_index]
+                    .u.sta_info.security.mode = wifi_security_mode_wpa3_personal;
 		    data->u.decoded.radios[radio_index]
                 .vaps.vap_map.vap_array[vap_array_index]
                 .u.sta_info.enabled = false;
-        } else {
+        } else if (band == WIFI_FREQUENCY_2_4_BAND)
+		    data->u.decoded.radios[radio_index]
+                .vaps.vap_map.vap_array[vap_array_index]
+                .u.sta_info.enabled = false;
+		    data->u.decoded.radios[radio_index]
+                .vaps.vap_map.vap_array[vap_array_index]
+                .u.sta_info.security.mode = wifi_security_mode_wpa2_personal;
+		} else {
             data->u.decoded.radios[radio_index]
                 .vaps.vap_map.vap_array[vap_array_index]
                 .u.sta_info.enabled = true;
+		    data->u.decoded.radios[radio_index]
+                .vaps.vap_map.vap_array[vap_array_index]
+                .u.sta_info.security.mode = wifi_security_mode_wpa2_personal;
 		}
 		wifi_util_error_print(WIFI_CTRL, "[%s %d] DHARMA.. Mesh sta vap details : [%d %d %s %s %x %d]\n", __func__, __LINE__, radio_index, vap_array_index, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ssid, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.key.key, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.mode, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.enabled);
 
