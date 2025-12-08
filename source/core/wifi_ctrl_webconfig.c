@@ -3015,7 +3015,7 @@ void start_station_vaps(bool rf_status)
 		    data->u.decoded.radios[radio_index]
                 .vaps.vap_map.vap_array[vap_array_index]
                 .u.sta_info.enabled = false;
-        } else if (band == WIFI_FREQUENCY_2_4_BAND)
+        } else if (band == WIFI_FREQUENCY_2_4_BAND) {
 		    data->u.decoded.radios[radio_index]
                 .vaps.vap_map.vap_array[vap_array_index]
                 .u.sta_info.enabled = false;
