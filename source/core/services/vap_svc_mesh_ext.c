@@ -1443,7 +1443,7 @@ int process_ext_exec_timeout(vap_svc_t *svc, void *arg)
 int scan_result_wait_timeout(vap_svc_t *svc)
 {
     vap_svc_ext_t *ext = &svc->u.ext;
-
+    wifi_ctrl_t *ctrl = svc->ctrl;
     ext->ext_scan_result_wait_timeout_handler_id = 0;
 
     if (ext->conn_state == connection_state_disconnected_scan_list_in_progress) {
