@@ -367,6 +367,7 @@ void ext_incomplete_scan_list(vap_svc_t *svc)
     vap_svc_ext_t *ext = &svc->u.ext;
 
     ext->wait_scan_result++;
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d wait_scan_res : %u\n", __func__, __LINE__, ext->wait_scan_result);
     if (ext->wait_scan_result > MAX_SCAN_RESULT_WAIT) {
         ext->wait_scan_result = 0;
         ext_set_conn_state(ext, connection_state_disconnected_scan_list_all, __func__, __LINE__);
@@ -1446,11 +1447,18 @@ int scan_result_wait_timeout(vap_svc_t *svc)
     ext->ext_scan_result_wait_timeout_handler_id = 0;
 
     if (ext->conn_state == connection_state_disconnected_scan_list_in_progress) {
-        wifi_util_dbg_print(WIFI_CTRL,"%s:%d - received only %u radio scan results\r\n", __func__,
+         wifi_util_dbg_print(WIFI_CTRL,"%s:%d - received only %u radio scan results\r\n", __func__,
             __LINE__, ext->scanned_radios);
+         wifi_util_dbg_print(WIFI_CTRL,"%s:%d rf-status : %d rank-count : %d\n", __func__, __LINE__, ctrl->rf_status_down, ext->ranked_count);
+	 if ((ctrl->rf_status_down == true) && (ext->ranked_count == 0 )) {
+             wifi_util_info_print(WIFI_CTRL, "%s:%d:Retrigger scan\n", __func__, __LINE__);
+             ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__, __LINE__);
+         } else {
+             wifi_util_info_print(WIFI_CTRL, "%s:%d:Setting connection_state_disconnected_scan_list_all\n", __func__, __LINE__);
 
-        ext_set_conn_state(ext, connection_state_disconnected_scan_list_all, __func__, __LINE__);
-        ext->scanned_radios = 0;
+             ext_set_conn_state(ext, connection_state_disconnected_scan_list_all, __func__, __LINE__);
+	}
+	ext->scanned_radios = 0;
         schedule_connect_sm(svc);
     }
     return 0;
@@ -1540,7 +1548,6 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     ssid_t sta_ssid;
-    int ranked_count = 0;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     ctrl = svc->ctrl;
@@ -1621,10 +1628,10 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d: Ignite Enabled Mode.. Radio Index : %u\n", __func__, __LINE__, results->radio_index);
 	    int r_idx = results->radio_index;
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ext->candidates_list.scan_count, mgr->ignite_config[r_idx].ignite_name, mgr->ignite_config[r_idx].min_chanutil_threshold ,mgr->ignite_config[r_idx].max_chanutil_threshold ,mgr->ignite_config[r_idx].SNR_threshold ,mgr->ignite_config[r_idx].SNR_difference );
-	    ranked_count = sort_bss_results_by_ranking(
+	    ext->ranked_count = sort_bss_results_by_ranking(
                                    ext->candidates_list.scan_list,
                                    ext->candidates_list.scan_count, &mgr->ignite_config[r_idx]);
-	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ranked_count);
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ext->ranked_count);
 	}
     }
 
@@ -1635,7 +1642,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 
     ext->scanned_radios++;
     if (ext->scanned_radios >= getNumberRadios()) {
-        if ((ctrl->rf_status_down == true) && (ranked_count == 0 )) {
+        if ((ctrl->rf_status_down == true) && (ext->ranked_count == 0 )) {
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d:Retrigger scan\n", __func__, __LINE__);
 	    ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__, __LINE__);
 	} else {
