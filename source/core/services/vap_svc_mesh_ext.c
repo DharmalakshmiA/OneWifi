@@ -178,12 +178,12 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
 	wifi_util_dbg_print(WIFI_CTRL, "%s %d Freq Band : %d BSSID : %s\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, to_mac_str(scan_list[i].external_ap.bssid, bssid_str));
         if (convert_freq_band_to_radio_index(scan_list[i].external_ap.oper_freq_band, &radio_index) == RETURN_ERR) {
              wifi_util_error_print(WIFI_CTRL, "%s:%d: Failed to get radio index for band %d\n",
-                 __func__, __LINE__, wifi_band);
+                 __func__, __LINE__, scan_list[i].external_ap.oper_freq_band);
              return RETURN_ERR;
         }
 	wifi_util_dbg_print(WIFI_CTRL, "%s %d Band : %d radio-idx : %d\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, radio_index);
 	wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, count, mgr->ignite_config[radio_index].ignite_name, mgr->ignite_config[radio_index].min_chanutil_threshold ,mgr->ignite_config[radio_index].max_chanutil_threshold ,mgr->ignite_config[radio_index].SNR_threshold ,mgr->ignite_config[radio_index].SNR_difference);
-	ignite_config = mgr->ignite_config[radio_index];
+	ignite_config = &mgr->ignite_config[radio_index];
 
 	wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
 	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
@@ -1568,7 +1568,6 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     ssid_t sta_ssid;
-    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     ctrl = svc->ctrl;
     ext = &svc->u.ext;
