@@ -185,10 +185,9 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
 	wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, count, mgr->ignite_config[radio_index].ignite_name, mgr->ignite_config[radio_index].min_chanutil_threshold ,mgr->ignite_config[radio_index].max_chanutil_threshold ,mgr->ignite_config[radio_index].SNR_threshold ,mgr->ignite_config[radio_index].SNR_difference);
 	ignite_config = &mgr->ignite_config[radio_index];
 
-	wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
+	wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
 	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
         float snr = (float)scan_list[i].external_ap.snr;
-
 
         if (chan_util > ignite_config->max_chanutil_threshold) {
             wifi_util_dbg_print(WIFI_CTRL, "  -> CU %.2f ignored (above %.0f)\n", (float)scan_list[i].external_ap.chan_utilization, ignite_config->max_chanutil_threshold);
