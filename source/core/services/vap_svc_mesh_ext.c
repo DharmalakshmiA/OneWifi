@@ -150,9 +150,9 @@ static int compare_bss_scores(const void *a, const void *b) {
   * @param config Radio-specific ignite configuration
  * @return 0 on success, -1 on error
  */
-int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_config_t *ignite_config)
+int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
 {
-    if ((scan_list == NULL) || (count <= 0) || (ignite_config == NULL)) {
+    if ((scan_list == NULL) || (count <= 0)) {
 	wifi_util_dbg_print(WIFI_CTRL, "%s %d Error in passing the values. Count : %d\n", __func__, __LINE__, count);
         return RETURN_ERR;
     }
@@ -161,6 +161,9 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
     float max_bucket1_snr = 0.0;
     float chutil_weighting_factor = 0.2;
     float snr_weighting_factor = 0.5;
+    mac_addr_str_t bssid_str;
+    ignite_config_t *ignite_config;
+    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     // Allocate temporary scoring array
     bss_score_entry_t *scores = malloc(count * sizeof(bss_score_entry_t));
@@ -171,7 +174,18 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
 
     for (int i = 0; i < count; i++) {
 	// Skip entries with CU > 70
+	int radio_index = 0;
+	wifi_util_dbg_print(WIFI_CTRL, "%s %d Freq Band : %d BSSID : %s\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, to_mac_str(scan_list[i].external_ap.bssid, bssid_str));
+        if (convert_freq_band_to_radio_index(scan_list[i].external_ap.oper_freq_band, &radio_index) == RETURN_ERR) {
+             wifi_util_error_print(WIFI_CTRL, "%s:%d: Failed to get radio index for band %d\n",
+                 __func__, __LINE__, wifi_band);
+             return RETURN_ERR;
+        }
+	wifi_util_dbg_print(WIFI_CTRL, "%s %d Band : %d radio-idx : %d\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, radio_index);
+	wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, count, mgr->ignite_config[radio_index].ignite_name, mgr->ignite_config[radio_index].min_chanutil_threshold ,mgr->ignite_config[radio_index].max_chanutil_threshold ,mgr->ignite_config[radio_index].SNR_threshold ,mgr->ignite_config[radio_index].SNR_difference);
+	ignite_config = mgr->ignite_config[radio_index];
 
+	wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
 	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
         float snr = (float)scan_list[i].external_ap.snr;
 
@@ -185,6 +199,9 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
         scores[valid_count].bucket = (chan_util < ignite_config->min_chanutil_threshold) ? 1 : 2;
         scores[valid_count].score = snr - (chutil_weighting_factor * chan_util);
 
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f chan-util : %.2f bucket : %d score : %f", __func__, __LINE__, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), snr, chan_util, scores[valid_count].bucket,  scores[valid_count].score);
+
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] mac-bucket-snr : %f\n", __func__, __LINE__, max_bucket1_snr);
 	// Track max SNR in bucket 1
         if (scores[valid_count].bucket == 1 && snr > max_bucket1_snr) {
             max_bucket1_snr = snr;
@@ -197,11 +214,13 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
         free(scores);
         return RETURN_OK;  // No valid results
     }
-
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] valid-count : %d\n", __func__, __LINE__, valid_count);
+    
     // Step 2: Apply SNR advantage rule for bucket 2
     for (int i = 0; i < valid_count; i++) {
 	float snr_diff = 0.0;
         if (scores[i].bucket == 2) {
+	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f\n", __func__, __LINE__, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scores[i].candidate->external_ap.snr);
              snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
 	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr-diff : %f\n", __func__, __LINE__, snr_diff);
 	     if (snr_diff > ignite_config->SNR_difference) {
@@ -216,6 +235,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_co
 
     for (int i = 0; i < valid_count; i++) {
         scan_list[i] = *scores[i].candidate;
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] List : %d %s %f\n", __func__, __LINE__, i, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scores[i].score);
     }
 
     free(scores);
@@ -1626,11 +1646,9 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 	    sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
         } else {
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d: Ignite Enabled Mode.. Radio Index : %u\n", __func__, __LINE__, results->radio_index);
-	    int r_idx = results->radio_index;
-	    wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ext->candidates_list.scan_count, mgr->ignite_config[r_idx].ignite_name, mgr->ignite_config[r_idx].min_chanutil_threshold ,mgr->ignite_config[r_idx].max_chanutil_threshold ,mgr->ignite_config[r_idx].SNR_threshold ,mgr->ignite_config[r_idx].SNR_difference );
 	    ext->ranked_count = sort_bss_results_by_ranking(
                                    ext->candidates_list.scan_list,
-                                   ext->candidates_list.scan_count, &mgr->ignite_config[r_idx]);
+                                   ext->candidates_list.scan_count);
 	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ext->ranked_count);
 	}
     }
