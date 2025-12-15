@@ -1638,7 +1638,7 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
         scan_list++;
     }
 
-    if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 1)) {
+    if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 0)) {
 	if (ctrl->rf_status_down == false) {
             wifi_util_info_print(WIFI_CTRL, "%s:%d:Ignite disabled\n", __func__, __LINE__);
 	    sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
