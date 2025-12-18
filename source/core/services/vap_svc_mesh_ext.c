@@ -211,7 +211,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
     if (valid_count == 0) {
 	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] No valid scan count..\n", __func__, __LINE__);
         free(scores);
-        return RETURN_OK;  // No valid results
+        return RETURN_ERR;  // No valid results
     }
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] valid-count : %d\n", __func__, __LINE__, valid_count);
     
@@ -232,6 +232,8 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
     // Step 3: Sort by descending score
     qsort(scores, valid_count, sizeof(bss_score_entry_t), compare_bss_scores);
 
+    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] count : %d\n", __func__, __LINE__, count);
+    memset(scan_list, 0, count * sizeof(bss_candidate_t));
     for (int i = 0; i < valid_count; i++) {
         scan_list[i] = *scores[i].candidate;
 	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] List : %d %s %f\n", __func__, __LINE__, i, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scores[i].score);
