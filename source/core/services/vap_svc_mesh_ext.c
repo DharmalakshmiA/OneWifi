@@ -1686,7 +1686,8 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 	    ext->ranked_count = sort_bss_results_by_ranking(
                                    ext->candidates_list.scan_list,
                                    ext->candidates_list.scan_count);
-	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ext->ranked_count);
+	    ext->candidates_list.scan_count = ext->ranked_count;
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d: rank-count : %d scan-count : %d\n", __func__, __LINE__, ext->ranked_count, ext->candidates_list.scan_count);
 	}
     }
 
