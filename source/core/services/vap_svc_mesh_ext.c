@@ -147,13 +147,13 @@ static int compare_bss_scores(const void *a, const void *b) {
  * @brief Sort and rank BSS candidates by computed score
  * @param scan_list Array of BSS candidates
  * @param count Number of candidates
-  * @param config Radio-specific ignite configuration
- * @return 0 on success, -1 on error
+ * @param config Radio-specific ignite configuration
+ * @return Number of valid results on success, -1 on error
  */
 int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
 {
     if ((scan_list == NULL) || (count <= 0)) {
-	wifi_util_dbg_print(WIFI_CTRL, "%s %d Error in passing the values. Count : %d\n", __func__, __LINE__, count);
+        wifi_util_dbg_print(WIFI_CTRL, "%s %d Error in passing the values. Count : %d\n", __func__, __LINE__, count);
         return RETURN_ERR;
     }
 
@@ -168,25 +168,26 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
     // Allocate temporary scoring array
     bss_score_entry_t *scores = malloc(count * sizeof(bss_score_entry_t));
     if (!scores) {
-	wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure\n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure\n", __func__, __LINE__);
         return RETURN_ERR;
     }
 
     for (int i = 0; i < count; i++) {
-	// Skip entries with CU > 70
-	int radio_index = 0;
-	wifi_util_dbg_print(WIFI_CTRL, "%s %d Freq Band : %d BSSID : %s\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, to_mac_str(scan_list[i].external_ap.bssid, bssid_str));
+        // Skip entries with CU > 70
+        int radio_index = 0;
+        wifi_util_dbg_print(WIFI_CTRL, "%s %d Freq Band : %d BSSID : %s\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, to_mac_str(scan_list[i].external_ap.bssid, bssid_str));
         if (convert_freq_band_to_radio_index(scan_list[i].external_ap.oper_freq_band, &radio_index) == RETURN_ERR) {
              wifi_util_error_print(WIFI_CTRL, "%s:%d: Failed to get radio index for band %d\n",
                  __func__, __LINE__, scan_list[i].external_ap.oper_freq_band);
+             free(scores);
              return RETURN_ERR;
         }
-	wifi_util_dbg_print(WIFI_CTRL, "%s %d Band : %d radio-idx : %d\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, radio_index);
-	wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, count, mgr->ignite_config[radio_index].ignite_name, mgr->ignite_config[radio_index].min_chanutil_threshold ,mgr->ignite_config[radio_index].max_chanutil_threshold ,mgr->ignite_config[radio_index].SNR_threshold ,mgr->ignite_config[radio_index].SNR_difference);
-	ignite_config = &mgr->ignite_config[radio_index];
+        wifi_util_dbg_print(WIFI_CTRL, "%s %d Band : %d radio-idx : %d\n", __func__, __LINE__, scan_list[i].external_ap.oper_freq_band, radio_index);
+        wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, count, mgr->ignite_config[radio_index].ignite_name, mgr->ignite_config[radio_index].min_chanutil_threshold ,mgr->ignite_config[radio_index].max_chanutil_threshold ,mgr->ignite_config[radio_index].SNR_threshold ,mgr->ignite_config[radio_index].SNR_difference);
+        ignite_config = &mgr->ignite_config[radio_index];
 
-	wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
-	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
+        wifi_util_info_print(WIFI_CTRL, "%s:%d [AFETR CP] Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ignite_config->ignite_name, ignite_config->min_chanutil_threshold, ignite_config->max_chanutil_threshold, ignite_config->SNR_threshold, ignite_config->SNR_difference);
+        float chan_util = (float)scan_list[i].external_ap.chan_utilization;
         float snr = (float)scan_list[i].external_ap.snr;
 
         if (chan_util > ignite_config->max_chanutil_threshold) {
@@ -194,67 +195,65 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
             continue;
         }
 
-	scores[valid_count].candidate = &scan_list[i];
+        // Allocate memory for candidate(valid entries) and copy data
+        scores[valid_count].candidate = malloc(sizeof(bss_candidate_t));
+        if (!scores[valid_count].candidate) {
+            wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure for candidate\n", __func__, __LINE__);
+            // Free previously allocated candidates
+            for (int j = 0; j < valid_count; j++) {
+                free(scores[j].candidate);
+            }
+            free(scores);
+            return RETURN_ERR;
+        }
+        *scores[valid_count].candidate = scan_list[i];
         scores[valid_count].bucket = (chan_util < ignite_config->min_chanutil_threshold) ? 1 : 2;
         scores[valid_count].score = snr - (chutil_weighting_factor * chan_util);
 
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f chan-util : %.2f bucket : %d score : %f", __func__, __LINE__, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), snr, chan_util, scores[valid_count].bucket,  scores[valid_count].score);
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f chan-util : %.2f bucket : %d score : %f", __func__, __LINE__, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), snr, chan_util, scores[valid_count].bucket,  scores[valid_count].score);
 
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] mac-bucket-snr : %f\n", __func__, __LINE__, max_bucket1_snr);
-	// Track max SNR in bucket 1
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] mac-bucket-snr : %f\n", __func__, __LINE__, max_bucket1_snr);
+        // Track max SNR in bucket 1
         if (scores[valid_count].bucket == 1 && snr > max_bucket1_snr) {
             max_bucket1_snr = snr;
         }
-	valid_count++;
+        valid_count++;
     }
 
     if (valid_count == 0) {
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] No valid scan count..\n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] No valid scan count..\n", __func__, __LINE__);
         free(scores);
-        return RETURN_ERR;  // No valid results
+        return RETURN_OK;  // No valid results
     }
     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] valid-count : %d\n", __func__, __LINE__, valid_count);
-    
+
     // Step 2: Apply SNR advantage rule for bucket 2
     for (int i = 0; i < valid_count; i++) {
-	float snr_diff = 0.0;
+        float snr_diff = 0.0;
         if (scores[i].bucket == 2) {
-	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f\n", __func__, __LINE__, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scores[i].candidate->external_ap.snr);
+             wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f\n", __func__, __LINE__, to_mac_str(scores[i].candidate->external_ap.bssid, bssid_str), scores[i].candidate->external_ap.snr);
              snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
-	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr-diff : %f\n", __func__, __LINE__, snr_diff);
-	     if (snr_diff > ignite_config->SNR_difference) {
-	         scores[i].score += snr_diff * snr_weighting_factor;
-	     }
-	}
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] score : %f\n", __func__, __LINE__, scores[i].score);
+             wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr-diff : %f\n", __func__, __LINE__, snr_diff);
+             if (snr_diff > ignite_config->SNR_difference) {
+                 scores[i].score += snr_diff * snr_weighting_factor;
+             }
+        }
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] score : %f\n", __func__, __LINE__, scores[i].score);
     }
 
     // Step 3: Sort by descending score
     qsort(scores, valid_count, sizeof(bss_score_entry_t), compare_bss_scores);
 
- // Step 4: Create temporary array to hold sorted results
-    bss_candidate_t *temp_list = malloc(valid_count * sizeof(bss_candidate_t));
-    if (!temp_list) {
-        wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure for temp_list\n", __func__, __LINE__);
-        free(scores);
-        return RETURN_ERR;
-    }
-
-    // Step 5: Copy sorted valid entries to temp array
+    // Step 4: Copy sorted results back to scan_list
     for (int i = 0; i < valid_count; i++) {
-        temp_list[i] = *scores[i].candidate;
-        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] List : %d %s %f\n", __func__, __LINE__, i, to_mac_str(temp_list[i].external_ap.bssid, bssid_str), scores[i].score);
+        scan_list[i] = *scores[i].candidate;
+        wifi_util_dbg_print(WIFI_CTRL, "[%s %d] List : %d %s %f\n", __func__, __LINE__, i, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scores[i].score);
     }
 
-   // Step 6: Clear entire scan_list and copy sorted data back
-    memset(scan_list, 0, count * sizeof(bss_candidate_t));
-    memcpy(scan_list, temp_list, valid_count * sizeof(bss_candidate_t));
-
+    // Free allocated candidate memory
     for (int i = 0; i < valid_count; i++) {
-	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] List : %d %s\n", __func__, __LINE__, i, to_mac_str(scan_list[i].external_ap.bssid, bssid_str));
+        free(scores[i].candidate);
     }
-
-    free(temp_list);
     free(scores);
     return valid_count;
 }
