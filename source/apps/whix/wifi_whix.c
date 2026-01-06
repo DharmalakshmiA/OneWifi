@@ -2171,9 +2171,8 @@ static void config_associated_device_stats(wifi_monitor_data_t *data)
         for (vapArrayIndex = 0; vapArrayIndex < getNumberVAPsPerRadio(radio_index); vapArrayIndex++) {
             data->u.mon_stats_config.args.vap_index = wifi_mgr->radio_config[radio_index].vaps.rdk_vap_array[vapArrayIndex].vap_index;
             data->u.mon_stats_config.args.radio_index = radio_index;
-            if (!isVapSTAMesh(data->u.mon_stats_config.args.vap_index)) {
-                push_event_to_monitor_queue(data, wifi_event_monitor_data_collection_config, &route);
-            }
+            wifi_util_dbg_print(WIFI_MON, "[%s %d]radio-idx : %u vap-idx : %u\n", __func__, __LINE__, data->u.mon_stats_config.args.radio_index, data->u.mon_stats_config.args.vap_index);
+	    push_event_to_monitor_queue(data, wifi_event_monitor_data_collection_config, &route);
         }
     }
 }
