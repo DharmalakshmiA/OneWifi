@@ -4364,7 +4364,7 @@ int coordinator_check_stats_config(wifi_mon_stats_config_t *mon_stats_config)
     wifi_mon_stats_descriptor_t *stat_desc = NULL;
     wifi_monitor_t *mon_data = (wifi_monitor_t *)get_wifi_monitor();
     clctr_subscription_t *clctr_subscription;
-
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
     if (stats_common_args_validation(mon_stats_config) != RETURN_OK) {
         wifi_util_error_print(WIFI_MON, "%s:%d: common args validation failed. stats_type %d  interval_ms %d from app %d\n", __func__,__LINE__,
                                     mon_stats_config->data_type, mon_stats_config->interval_ms, mon_stats_config->inst);
@@ -4376,6 +4376,7 @@ int coordinator_check_stats_config(wifi_mon_stats_config_t *mon_stats_config)
         wifi_util_error_print(WIFI_MON, "%s:%d: Invalid stats_type %d from app %d\n", __func__,__LINE__, mon_stats_config->data_type, mon_stats_config->inst);
         return RETURN_ERR;
     }
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
 
     if (stat_desc->validate_args(&mon_stats_config->args) != RETURN_OK) {
         wifi_util_error_print(WIFI_MON, "%s:%d: args validation failed for stats_type %d from app %d\n", __func__,__LINE__,

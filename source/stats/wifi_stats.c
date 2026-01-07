@@ -103,6 +103,7 @@ int stats_common_args_validation(wifi_mon_stats_config_t *config)
         return RETURN_ERR;
     }
 
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL.. interval : %lu\n", __func__, __LINE__, config->interval_ms);
     if (config->interval_ms == 0) {
         wifi_util_error_print(WIFI_MON, "%s:%d: invalid interval_ms %d\n", __func__,__LINE__, config->interval_ms);
         return RETURN_ERR;
@@ -113,6 +114,7 @@ int stats_common_args_validation(wifi_mon_stats_config_t *config)
         wifi_util_error_print(WIFI_MON, "%s:%d: interval %d is not multiple of monitor interval : %d\n", __func__,__LINE__, config->interval_ms, MONITOR_RUNNING_INTERVAL_IN_MILLISEC);
         return RETURN_ERR;
     }
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
 
     return RETURN_OK;
 }

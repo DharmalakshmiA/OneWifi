@@ -51,7 +51,7 @@ int validate_assoc_client_args(wifi_mon_stats_args_t *args)
 {
     wifi_platform_property_t *wifi_prop = get_wifi_hal_cap_prop();
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-	wifi_util_error_print(WIFI_MON, [%s %d] DL testing\n", __func__, __LINE__);
+	wifi_util_error_print(WIFI_MON, "[%s %d] DL testing\n", __func__, __LINE__);
     if (args == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d input arguments are NULL args : %p\n",__func__,__LINE__, args);
         return RETURN_ERR;
@@ -61,6 +61,7 @@ int validate_assoc_client_args(wifi_mon_stats_args_t *args)
         wifi_util_error_print(WIFI_MON,"RDK_LOG_ERROR, %s Input apIndex = %d not found, Out of range\n", __FUNCTION__, args->vap_index);
         return RETURN_ERR;
     }
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
 #if 0
     if (isVapSTAMesh(args->vap_index)) {
         wifi_util_error_print(WIFI_MON, "%s:%d input vap_index %d is STA mesh interface\n",__func__,__LINE__, args->vap_index);
@@ -121,6 +122,7 @@ int process_assoc_dev_stats(wifi_mon_stats_args_t *args, hash_map_t *sta_map, vo
         *stat_array_size = 0;
         return RETURN_OK;
     }
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL.. sta_count : %u\n", __func__, __LINE__, sta_count);
 
     sta = (sta_data_t *)calloc(sta_count, sizeof(sta_data_t));
     if (sta == NULL) {
@@ -141,6 +143,7 @@ int process_assoc_dev_stats(wifi_mon_stats_args_t *args, hash_map_t *sta_map, vo
         }
         temp_sta = hash_map_get_next(sta_map, temp_sta);
     }
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
     *stats = sta;
     *stat_array_size = count;
 
@@ -226,6 +229,7 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
         return RETURN_OK;
     }
 
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL.. vap-idx : %d sta-count : %u\n", __func__, __LINE__, args->vap_index, num_devs);
     ret = wifi_getApAssociatedDeviceDiagnosticResult3(args->vap_index, &dev_array, &num_devs);
     if (ret != RETURN_OK) {
         wifi_util_error_print(WIFI_MON,
@@ -505,6 +509,7 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                 //wifi_util_info_print(WIFI_CTRL,"Freeing link quailty %s:%d\n",__func__,__LINE__);
                 free(link_data);
             }
+            wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
 
             if (send_disconnect_event == 1) {
                 mac_addr = (unsigned char *)malloc(sizeof(mac_address_t));
@@ -604,6 +609,7 @@ int copy_assoc_client_stats_from_cache(wifi_mon_provider_element_t *p_elem, void
     sta_key_t   sta_key;
     wifi_mon_stats_args_t *args;
 
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
     if ((p_elem == NULL) || (mon_cache == NULL)) {
         wifi_util_error_print(WIFI_MON, "%s:%d Invalid args p_elem : %p mon_cache = %p\n",
                 __func__,__LINE__, p_elem, mon_cache);
@@ -615,6 +621,7 @@ int copy_assoc_client_stats_from_cache(wifi_mon_provider_element_t *p_elem, void
         return RETURN_ERR;
     }
     args = &(p_elem->mon_stats_config->args);
+    wifi_util_error_print(WIFI_MON, "[%s %d] DL\n", __func__, __LINE__);
 
     bss_param = Get_wifi_object_bss_parameter(args->vap_index);
     if (bss_param == NULL) {
