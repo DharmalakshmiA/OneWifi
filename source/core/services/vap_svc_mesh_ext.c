@@ -43,6 +43,15 @@
 #define EXT_DISCONNECTION_DISCONNECT 1
 #define EXT_DISCONNECTION_DISCONNECT_AND_IGNORE_RADIO 2
 
+/**
+ * @brief Temporary structure for sorting with computed scores
+ */
+typedef struct {
+    bss_candidate_t *candidate;
+    float score;
+    int bucket;
+} bss_score_entry_t;
+
 static void swap_bss(bss_candidate_t *a, bss_candidate_t *b)
 {
     bss_candidate_t t = *a;
@@ -122,6 +131,95 @@ void sort_bss_results_by_rssi(bss_candidate_t *bss, int start, int end)
     get_rssi_normalizer_value(PATH_TO_RSSI_NORMALIZER_FILE, &rssi_2_4_normalizer_val);
     wifi_util_dbg_print(WIFI_CTRL, "%s():[%d] RSSI normalizer value [%d]\n", __FUNCTION__, __LINE__, rssi_2_4_normalizer_val);
     start_sorting_by_rssi(bss, start, end, rssi_2_4_normalizer_val);
+}
+
+/**
+ * @brief Comparator for qsort - sorts by score (descending)
+ */
+static int compare_bss_scores(const void *a, const void *b) {
+    float scoreA = ((bss_score_entry_t *)a)->score;
+    float scoreB = ((bss_score_entry_t *)b)->score;
+    // Descending order: if scoreA < scoreB, return positive
+    return (scoreA < scoreB) - (scoreA > scoreB);
+}
+
+/**
+ * @brief Sort and rank BSS candidates by computed score
+ * @param scan_list Array of BSS candidates
+ * @param count Number of candidates
+  * @param config Radio-specific ignite configuration
+ * @return 0 on success, -1 on error
+ */
+int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count, ignite_config_t *ignite_config) 
+{
+    if ((scan_list == NULL) || (count <= 0) || (ignite_config == NULL)) {
+	wifi_util_dbg_print(WIFI_CTRL, "%s %d Error in passing the values. Count : %d\n", __func__, __LINE__, count);
+        return RETURN_ERR;
+    }
+    
+    int valid_count = 0;
+    float max_bucket1_snr = 0.0;
+    float chutil_weighting_factor = 0.2;
+    float snr_weighting_factor = 0.5;
+
+    // Allocate temporary scoring array
+    bss_score_entry_t *scores = malloc(count * sizeof(bss_score_entry_t));
+    if (!scores) {
+	wifi_util_dbg_print(WIFI_CTRL, "%s %d Memory Allocation failure\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    for (int i = 0; i < count; i++) {
+	// Skip entries with CU > 70
+	
+	float chan_util = (float)scan_list[i].external_ap.chan_utilization;
+        float snr = (float)scan_list[i].external_ap.snr;
+
+        
+        if (chan_util > ignite_config->max_chanutil_threshold) {
+            wifi_util_dbg_print(WIFI_CTRL, "  -> CU %.2f ignored (above %.0f)\n", (float)scan_list[i].external_ap.chan_utilization, ignite_config->max_chanutil_threshold);
+            continue;
+        }
+
+	scores[valid_count].candidate = &scan_list[i];
+        scores[valid_count].bucket = (chan_util < ignite_config->min_chanutil_threshold) ? 1 : 2;
+        scores[valid_count].score = snr - (chutil_weighting_factor * chan_util);
+
+	// Track max SNR in bucket 1
+        if (scores[valid_count].bucket == 1 && snr > max_bucket1_snr) {
+            max_bucket1_snr = snr;
+        }
+	valid_count++;
+    }
+    
+    if (valid_count == 0) {
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] No valid scan count..\n", __func__, __LINE__);
+        free(scores);
+        return RETURN_OK;  // No valid results
+    }
+
+    // Step 2: Apply SNR advantage rule for bucket 2
+    for (int i = 0; i < valid_count; i++) {
+	float snr_diff = 0.0;
+        if (scores[i].bucket == 2) {
+             snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
+	     wifi_util_dbg_print(WIFI_CTRL, "[%s %d] snr-diff : %f\n", __func__, __LINE__, snr_diff);
+	     if (snr_diff > ignite_config->SNR_difference) {
+	         scores[i].score += snr_diff * snr_weighting_factor;
+	     }
+	}
+	wifi_util_dbg_print(WIFI_CTRL, "[%s %d] score : %f\n", __func__, __LINE__, scores[i].score);
+    }
+
+    // Step 3: Sort by descending score
+    qsort(scores, valid_count, sizeof(bss_score_entry_t), compare_bss_scores);
+
+    for (int i = 0; i < valid_count; i++) {
+        scan_list[i] = *scores[i].candidate;
+    }
+
+    free(scores);
+    return valid_count;
 }
 
 bool vap_svc_is_mesh_ext(unsigned int vap_index)
@@ -1483,6 +1581,8 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
     vap_svc_ext_t *ext;
     wifi_ctrl_t *ctrl;
     ssid_t sta_ssid;
+    int ranked_count = 0;
+    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     ctrl = svc->ctrl;
     ext = &svc->u.ext;
@@ -1554,8 +1654,20 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
         scan_list++;
     }
 
-    if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 1))
-        sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
+    if (ext->candidates_list.scan_list && (ext->candidates_list.scan_count > 1)) {
+	if (ctrl->rf_status_down == false) {
+            wifi_util_info_print(WIFI_CTRL, "%s:%d:Ignite disabled\n", __func__, __LINE__);
+	    sort_bss_results_by_rssi(ext->candidates_list.scan_list, 0, ext->candidates_list.scan_count - 1);
+        } else {
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d: Ignite Enabled Mode.. Radio Index : %u\n", __func__, __LINE__, results->radio_index);
+	    int r_idx = results->radio_index;
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d Scan-count : %d Ignite Threshold Values [ %s %f %f %f %f]\n", __func__, __LINE__, ext->candidates_list.scan_count, mgr->ignite_config[r_idx].ignite_name, mgr->ignite_config[r_idx].min_chanutil_threshold ,mgr->ignite_config[r_idx].max_chanutil_threshold ,mgr->ignite_config[r_idx].SNR_threshold ,mgr->ignite_config[r_idx].SNR_difference );
+	    ranked_count = sort_bss_results_by_ranking(
+                                   ext->candidates_list.scan_list,
+                                   ext->candidates_list.scan_count, &mgr->ignite_config[r_idx]);
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d: count : %d\n", __func__, __LINE__, ranked_count);
+	}
+    }
 
     if (ext->ext_scan_result_wait_timeout_handler_id != 0) {
         scheduler_cancel_timer_task(ctrl->sched, ext->ext_scan_result_wait_timeout_handler_id);
@@ -1564,9 +1676,13 @@ int process_ext_scan_results(vap_svc_t *svc, void *arg)
 
     ext->scanned_radios++;
     if (ext->scanned_radios >= getNumberRadios()) {
-        ext_set_conn_state(ext, connection_state_disconnected_scan_list_all, __func__, __LINE__);
-        ext->scanned_radios = 0;
-
+	if ((ctrl->rf_status_down == true) && (ranked_count == 0 )) {
+	    wifi_util_info_print(WIFI_CTRL, "%s:%d:Retrigger scan\n", __func__, __LINE__);
+	    ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__, __LINE__);
+	} else {
+            ext_set_conn_state(ext, connection_state_disconnected_scan_list_all, __func__, __LINE__);
+            ext->scanned_radios = 0;
+        }
         schedule_connect_sm(svc);
     } else {
         ext_set_conn_state(ext, connection_state_disconnected_scan_list_in_progress, __func__,
