@@ -103,6 +103,7 @@ ovsdb_table_t table_Wifi_Preassoc_Control_Config;
 ovsdb_table_t table_Wifi_Postassoc_Control_Config;
 ovsdb_table_t table_Wifi_Connection_Control_Config;
 ovsdb_table_t table_Wifi_Rfc_Config;
+ovsdb_table_t table_Wifi_Stats_Config;
 
 static char *ApMFPConfig         = "eRT.com.cisco.spvtg.ccsp.tr181pa.Device.WiFi.AccessPoint.%d.Security.MFPConfig";
 static char *CTSProtection      = "eRT.com.cisco.spvtg.ccsp.tr181pa.Device.WiFi.Radio.%d.CTSProtection";
