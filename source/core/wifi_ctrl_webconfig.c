@@ -38,6 +38,9 @@
 #endif
 #define OW_CONF_BARRIER_TIMEOUT_MSEC (60 * 1000)
 bool is_sta_set = false;
+
+ovsdb_table_t table_Wifi_Stats_Config;
+
 struct ow_conf_vif_config_cb_arg
 {
     rdk_wifi_vap_info_t *rdk_vap_info;
