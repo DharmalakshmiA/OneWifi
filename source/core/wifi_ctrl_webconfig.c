@@ -3083,8 +3083,11 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
 
 void delete_sm_table()
 {
+    wifi_db_t *g_wifidb;
+    g_wifidb = (wifi_db_t*) get_wifidb_obj();
+
     wifi_util_error_print(WIFI_CTRL, "[%s %d]\n", __func__, __LINE__);
-    int rc = ovsdb_table_delete(&table_Wifi_Stats_Config, NULL);
+    int rc = onewifi_ovsdb_table_delete(g_wifidb->wifidb_sock_path, &table_Wifi_Stats_Config, NULL);
     wifi_util_error_print(WIFI_CTRL, "[%s %d] rc : %d\n", __func__, __LINE__, rc);
     return;
 }    
