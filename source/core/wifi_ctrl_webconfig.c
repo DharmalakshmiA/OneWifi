@@ -3083,12 +3083,14 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
 
 void delete_sm_table()
 {
-    wifi_db_t *g_wifidb;
-    g_wifidb = (wifi_db_t*) get_wifidb_obj();
-
+    char cmd[256] =  {0};
     wifi_util_error_print(WIFI_CTRL, "[%s %d]\n", __func__, __LINE__);
-    int rc = onewifi_ovsdb_table_delete(g_wifidb->wifidb_sock_path, &table_Wifi_Stats_Config, NULL);
-    wifi_util_error_print(WIFI_CTRL, "[%s %d] rc : %d\n", __func__, __LINE__, rc);
+    snprintf(cmd, sizeof(cmd), "/usr/opensync/tools/ovsh d Wifi_Stats_Config");
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] cmd : %s\n", __func__, __LINE__, cmd);
+    int ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
+    if (ret == 0) {
+        wifi_util_info_print(WIFI_CTRL, "[%s %d] Stats Config table deleted successfully\n", __func__, __LINE__);
+    }
     return;
 }    
 
@@ -3127,12 +3129,12 @@ void start_station_vaps(bool rf_status)
         } else {
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                 &band);
-            delete_sm_table();
-	    wifi_util_info_print(WIFI_CTRL, "Stats Table deleted\n");
 	    if (rf_status) {
                 wifi_util_info_print(WIFI_CTRL,
                     "IGNITE_RF_DOWN: Docsis disabled. Starting Station Vaps\n");
                 char cm_mac_str[32] = { 0 };
+                delete_sm_table();
+	        wifi_util_info_print(WIFI_CTRL, "Stats Table deleted\n");
                 snprintf(data->u.decoded.radios[radio_index]
                              .vaps.vap_map.vap_array[vap_array_index]
                              .u.sta_info.ssid,
