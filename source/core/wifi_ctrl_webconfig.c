@@ -32,6 +32,7 @@
 #include <trower-base64/base64.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "ovsdb_table.h"
 #ifdef WEBCONFIG_TESTS_OVER_QUEUE
 #include "wifi_webconfig_consumer.h"
 #endif
@@ -3077,6 +3078,14 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
     return ((ret == RETURN_OK) ? webconfig_error_none:webconfig_error_apply);
 }
 
+void delete_sm_table()
+{
+    wifi_util_error_print(WIFI_CTRL, "[%s %d]\n", __func__, __LINE__);
+    int rc = ovsdb_table_delete(&table_Wifi_Stats_Config, NULL);
+    wifi_util_error_print(WIFI_CTRL, "[%s %d] rc : %d\n", __func__, __LINE__, rc);
+    return;
+}    
+
 void start_station_vaps(bool rf_status)
 {
     webconfig_subdoc_data_t *data = NULL;
@@ -3112,7 +3121,9 @@ void start_station_vaps(bool rf_status)
         } else {
             convert_radio_index_to_freq_band(&data->u.decoded.hal_cap.wifi_prop, radio_index,
                 &band);
-            if (rf_status) {
+            delete_sm_table();
+	    wifi_util_info_print(WIFI_CTRL, "Stats Table deleted\n");
+	    if (rf_status) {
                 wifi_util_info_print(WIFI_CTRL,
                     "IGNITE_RF_DOWN: Docsis disabled. Starting Station Vaps\n");
                 char cm_mac_str[32] = { 0 };
