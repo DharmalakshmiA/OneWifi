@@ -85,9 +85,37 @@ void publish_qmgr_subdoc(const report_batch_t* report)
     return;
 }
 
-void publish_station_score(const char *str, double score)
+#define MAX_STR_LEN     32
+
+void publish_station_score(const char *str, double score, unsigned int threshold)
 {
-    wifi_util_info_print(WIFI_APPS, "%s:%d score =%f\n", __func__, __LINE__,score);
+    bus_error_t status;
+    raw_data_t rdata;
+    char str[MAX_STR_LEN] = {'\0'};
+    wifi_util_info_print(WIFI_APPS, "%s:%d str =%s score =%f threshold =%u\n", __func__, __LINE__, str, score, threshold);
+    memset(&rdata, 0, sizeof(raw_data_t));
+    rdata.data_type = bus_data_type_string;
+    if (score < threshold) {
+	snprintf(str, MAX_STR_LEN, "Non-Serviceable");
+	data.raw_data.bytes = (void *)str;
+	rdata.raw_data_len = (strlen(str) + 1);
+    } else if (score > threshold) {
+	snprintf(str, MAX_STR_LEN, "Serviceable");
+	data.raw_data.bytes = (void *)str;
+	rdata.raw_data_len = (strlen(str) + 1);
+    }
+
+    wifi_app = get_app_by_inst(&ctrl->apps_mgr, wifi_app_inst_link_quality);
+    if (wifi_app == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d NULL Pointer \n", __func__, __LINE__);
+        return;
+    }
+    status = get_bus_descriptor()->bus_event_publish_fn(&wifi_app->ctrl->handle, WIFI_IGNITE_STATUS, &rdata);
+    if (status != bus_error_success) {
+	wifi_util_error_print(WIFI_CTRL, "%s:%d: bus: bus_event_publish_fn Event failed %d\n",  __func__, __LINE__, status);    
+    }
+
+
     return;
 }
 
@@ -100,7 +128,7 @@ int link_quality_register_station(wifi_app_t *apps, wifi_event_t *arg)
     }
 
     char *str = (char *)arg;
-
+    wifi_util_error_print(WIFI_CTRL, "%s:%d str %s\n", __func__, __LINE__, str);
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     if ( ctrl->rf_status_down) {
         register_station_mac(str);

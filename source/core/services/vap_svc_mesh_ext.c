@@ -1807,6 +1807,8 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
                 } else {
                     wifi_util_info_print(WIFI_CTRL,"IGNITE_RF_DOWN: Connect status sent successfully to the WM\n");
                 }
+		wifi_util_dbg_print(WIFI_CTRL, "[DL] %s %d Mac-str : %s\n", __func__, __LINE__, mac_str);
+		apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_register_station, mac_str);
             }
 	    /* Self heal to check if the connected interface received valid ip after a timeout if not trigger a reconnection */
 

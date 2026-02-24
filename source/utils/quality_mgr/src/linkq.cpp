@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include "wifi_util.h"
 
-extern "C" void qmgr_invoke_score(const char *str, double score);
+extern "C" void qmgr_invoke_score(const char *str, double score, unsigned int threshold);
 linkq_params_t linkq_t::m_linkq_params[MAX_LINKQ_PARAMS] = {{"DOWNLINK_SNR", true}, {"DOWNLINK_PER", false}, {"DOWNLINK_PHY", true},{"UPLINK_SNR", true}, {"UPLINK_PER", false}, {"UPLINK_PHY", true}};
 mac_addr_str_t linkq_t::ignite_station_mac = "";
 linkq_params_t linkq_t::m_score_params[] = {
@@ -281,15 +281,15 @@ vector_t linkq_t::run_algorithm(linkq_data_t data,
     // Alarm logic
     // -------------------------------------------------
     m_sampled++;
-    wifi_util_dbg_print(WIFI_APPS,"%s:%d aggscore = %f,downlink score=%f uplinkscore=%f\n",__func__,__LINE__,v.m_val[11].m_re,v.m_val[9].m_re,v.m_val[10].m_re);
+    wifi_util_dbg_print(WIFI_APPS,"%s:%d aggscore = %f,downlink score=%f uplinkscore=%f threshold=%u\n",__func__,__LINE__,v.m_val[11].m_re,v.m_val[9].m_re,v.m_val[10].m_re, m_threshold);
     
     if ( (m_quality_flag.aggregate)) {
         m_data_sample.score = v.m_val[11].m_re;
         if (v.m_val[11].m_re < m_threshold) {
             m_threshold_cross_counter++;
             if (is_ignite_station && qmgr_is_score_registered) {
-                wifi_util_info_print(WIFI_APPS,"%s:%d score=%f Invoking the score callback for ignite\n",__func__,__LINE__,v.m_val[11].m_re);   
-                qmgr_invoke_score(mac,v.m_val[11].m_re);
+                wifi_util_info_print(WIFI_APPS,"%s:%d score=%f threshold=%u Invoking the score callback for ignite\n",__func__,__LINE__,v.m_val[11].m_re, m_threshold);   
+                qmgr_invoke_score(mac,v.m_val[11].m_re, m_threshold);
             }
         }
     } else if ((m_quality_flag.downlink_snr || m_quality_flag.downlink_per || m_quality_flag.downlink_phy)
@@ -300,9 +300,9 @@ vector_t linkq_t::run_algorithm(linkq_data_t data,
             if (is_ignite_station && qmgr_is_score_registered) {
                 wifi_util_info_print(WIFI_APPS,"%s:%d score=%f Invoking the score callback for ignite\n",__func__,__LINE__,v.m_val[9].m_re,v.m_val[10].m_re);   
                 if (v.m_val[9].m_re < m_threshold)
-                    qmgr_invoke_score(mac,v.m_val[9].m_re);
+                    qmgr_invoke_score(mac,v.m_val[9].m_re, m_threshold);
                 else if (v.m_val[10].m_re < m_threshold)
-                    qmgr_invoke_score(mac,v.m_val[10].m_re);
+                    qmgr_invoke_score(mac,v.m_val[10].m_re, m_threshold);
 	    }
         }
     } else if (m_quality_flag.downlink_snr || m_quality_flag.downlink_per || m_quality_flag.downlink_phy) {
@@ -311,7 +311,7 @@ vector_t linkq_t::run_algorithm(linkq_data_t data,
             m_threshold_cross_counter++;
             if ( is_ignite_station && qmgr_is_score_registered) {
                 wifi_util_info_print(WIFI_APPS,"%s:%d score=%f Invoking the score callback for ignite\n",__func__,__LINE__,v.m_val[9].m_re);   
-                qmgr_invoke_score(mac,v.m_val[9].m_re);
+                qmgr_invoke_score(mac,v.m_val[9].m_re, m_threshold);
 	    }
     } else if (m_quality_flag.uplink_snr || m_quality_flag.uplink_per || m_quality_flag.uplink_phy) {
         m_data_sample.score = v.m_val[10].m_re;
@@ -319,7 +319,7 @@ vector_t linkq_t::run_algorithm(linkq_data_t data,
             m_threshold_cross_counter++;
             if (is_ignite_station && qmgr_is_score_registered) {
                 wifi_util_info_print(WIFI_APPS,"%s:%d score=%f Invoking the score callback for ignite\n",__func__,__LINE__,v.m_val[10].m_re);   
-                qmgr_invoke_score(mac,v.m_val[10].m_re);
+                qmgr_invoke_score(mac,v.m_val[10].m_re,m_threshold);
 	    }
     }
     m_window_samples.push_back(m_data_sample);

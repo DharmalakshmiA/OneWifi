@@ -237,7 +237,8 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
         }
         return RETURN_ERR;
     }
-    if (num_devs && rfc_param->link_quality_rfc) {
+    wifi_util_dbg_print(WIFI_MON, "[%s %d] link-quality-rfc : %d Ignite-rfc: %d vap-idx : %d isvapstamesh : %d\n", __func__, __LINE__, rfc_param->link_quality_rfc, ctrl->rf_status_down, args->vap_index, (isVapSTAMesh(args->vap_index)));
+    if (num_devs && ((rfc_param->link_quality_rfc) || ((ctrl->rf_status_down == true) && (isVapSTAMesh(args->vap_index))))) {
         link_data =(linkquality_data_t *) malloc (num_devs * sizeof(linkquality_data_t));
     }
     if (link_data == NULL) {
@@ -275,7 +276,8 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             dev_array[i].cli_MultipleRetryCount, dev_array[i].cli_MaxDownlinkRate,
             dev_array[i].cli_MaxUplinkRate, dev_array[i].cli_activeNumSpatialStreams,
             dev_array[i].cli_TxFrames, dev_array[i].cli_RxRetries, dev_array[i].cli_RxErrors);
-            if (link_data && rfc_param->link_quality_rfc) {
+	wifi_util_dbg_print(WIFI_MON, "[%s %d] link-quality-rfc : %d Ignite-rfc: %d vap-idx : %d isvapstamesh : %d\n", __func__, __LINE__, rfc_param->link_quality_rfc, ctrl->rf_status_down, args->vap_index, (isVapSTAMesh(args->vap_index)));
+            if (link_data && ((rfc_param->link_quality_rfc) || ((ctrl->rf_status_down == true) && (isVapSTAMesh(args->vap_index))))) {
                 memset(&link_data[i], 0, sizeof(linkquality_data_t));
                 link_data[i].size = num_devs;
                 to_sta_key(dev_array[i].cli_MACAddress, link_data[i].stats.mac_str);
@@ -283,10 +285,10 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                 link_data[i].stats.vap_index = args->vap_index ;
                 wifi_util_dbg_print(WIFI_MON,"cli_SNR: %d,cli_PacketsSent: %lu,cli_ErrorsSent: %lu,cli_LastDataDownlinkRate: %d  cli_MaxDownlinkRate=%d vap_index=%d\n",
                     dev_array[i].cli_SNR,dev_array[i].cli_PacketsSent,dev_array[i].cli_ErrorsSent,dev_array[i].cli_LastDataDownlinkRate,dev_array[i].cli_MaxDownlinkRate,link_data[i].stats.vap_index);
-            }
-
-    } 
-    if(link_data && num_devs != 0 && rfc_param->link_quality_rfc) {
+	    }
+    }
+   wifi_util_dbg_print(WIFI_MON, "[%s %d] link-quality-rfc : %d Ignite-rfc: %d vap-idx : %d isvapstamesh : %d\n", __func__, __LINE__, rfc_param->link_quality_rfc, ctrl->rf_status_down, args->vap_index, (isVapSTAMesh(args->vap_index)));
+    if(link_data && num_devs != 0 && ((rfc_param->link_quality_rfc) || ((ctrl->rf_status_down == true) && (isVapSTAMesh(args->vap_index))))) {
         apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_timeout, link_data, num_devs);
     }
     events_update_clientdiagdata(num_devs, args->vap_index, dev_array);
@@ -474,7 +476,8 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                     __func__, __LINE__, to_sta_key(sta->sta_mac, sta_key), args->vap_index,
                     disconnected_time, sta->dev_stats.cli_Active);
 		//Rapid disconnect event to linkstats
-	        if (rfc_param->link_quality_rfc && !sta->rapid_disconnect_flag && !is_zero_mac(sta->dev_stats.cli_MACAddress)) {
+		wifi_util_dbg_print(WIFI_MON, "[%s %d] link-quality-rfc : %d Ignite-rfc: %d vap-idx : %d isvapstamesh : %d\n", __func__, __LINE__, rfc_param->link_quality_rfc, ctrl->rf_status_down, args->vap_index, (isVapSTAMesh(args->vap_index)));
+	        if ((rfc_param->link_quality_rfc || ((ctrl->rf_status_down == true) && (isVapSTAMesh(args->vap_index))))&& !sta->rapid_disconnect_flag && !is_zero_mac(sta->dev_stats.cli_MACAddress)) {
                     link_data =(linkquality_data_t *) malloc (sizeof(linkquality_data_t));
 		    sta->rapid_disconnect_flag = true;
                     if (link_data != NULL) {
