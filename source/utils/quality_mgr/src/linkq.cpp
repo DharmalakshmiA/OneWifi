@@ -605,16 +605,17 @@ void linkq_t::register_station_mac(const char* str)
     if (str) {
         snprintf(ignite_station_mac, sizeof(ignite_station_mac), "%s", str);
     }
+    wifi_util_error_print(WIFI_APPS,"%s:%d ignite mac=%s\n", __func__,__LINE__, ignite_station_mac);
     return;
 }
 void linkq_t::unregister_station_mac(const char* str)
 {
-    wifi_util_error_print(WIFI_APPS,"%s:%d str=%s\n",__func__,__LINE__,str);
+    wifi_util_error_print(WIFI_APPS,"%s:%d str=%s ignite-mac=%s\n",__func__,__LINE__,str, ignite_station_mac);
     if (!str)
         return;
     if(strncmp(ignite_station_mac, str, sizeof(ignite_station_mac)) == 0) 
     {
-        ignite_station_mac[0] = '\0';
+        memset(ignite_station_mac, '\0', sizeof(ignite_station_mac));
     }
     return;
 }

@@ -1702,6 +1702,7 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
     bus_error_t rc;
     wifi_sta_conn_info_t sta_conn_info;
     char name[64] = {'\0'};
+    char mac_str[32] = {'\0'};
     char *bridge_name = "brww0";
     int ret = 0;
 
@@ -1778,7 +1779,6 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
             // change the state
             ext_set_conn_state(ext, connection_state_connected, __func__, __LINE__);
             if (ctrl->rf_status_down == true) { 
-                char mac_str[32] = {'\0'};
                 uint8_mac_to_string_mac(temp_vap_info->u.sta_info.mac, mac_str);
                 wifi_util_dbg_print(WIFI_CTRL,
                     "%s:%d Bridge:%s  Using MAC-Str:%s MAC : %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -1808,7 +1808,10 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
                     wifi_util_info_print(WIFI_CTRL,"IGNITE_RF_DOWN: Connect status sent successfully to the WM\n");
                 }
 		wifi_util_dbg_print(WIFI_CTRL, "[DL] %s %d Mac-str : %s\n", __func__, __LINE__, mac_str);
-		apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_register_station, mac_str);
+		memset(mac_str, '\0', sizeof(mac_str));
+		uint8_mac_to_string_mac(temp_vap_info->u.sta_info.bssid, mac_str);
+		wifi_util_dbg_print(WIFI_CTRL, "[DL] %s %d Mac-str : %s\n", __func__, __LINE__, mac_str);
+		apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_register_station, mac_str, 0);
             }
 	    /* Self heal to check if the connected interface received valid ip after a timeout if not trigger a reconnection */
 
@@ -1879,6 +1882,10 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
     } else if (sta_data->stats.connect_status == wifi_connection_status_ap_not_found || sta_data->stats.connect_status == wifi_connection_status_disconnected) {
     	    
         apply_pending_channel_change(svc, sta_data->stats.vap_index);
+        memset(mac_str, '\0', sizeof(mac_str));
+	uint8_mac_to_string_mac(temp_vap_info->u.sta_info.bssid, mac_str);
+	wifi_util_dbg_print(WIFI_CTRL, "[DL] %s %d Mac-str : %s\n", __func__, __LINE__, mac_str);
+	apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_unregister_station, mac_str, 0);
 
         if (ext->conn_state == connection_state_connected &&
             ext->connected_vap_index != sta_data->stats.vap_index) {

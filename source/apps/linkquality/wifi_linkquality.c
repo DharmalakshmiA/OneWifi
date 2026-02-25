@@ -85,13 +85,17 @@ void publish_qmgr_subdoc(const report_batch_t* report)
     return;
 }
 
-#define MAX_STR_LEN     32
+#define MAX_STR_LEN     128
+#define MAX_BUFF_LEN    1048
 
 void publish_station_score(const char *str, double score, unsigned int threshold)
 {
+    char buff[MAX_BUFF_LEN] = {'\0'};
+    char str[MAX_STR_LEN] = {'\0'};
+    char tmp[MAX_STR_LEN] = {'\0'};
+    char *wifi_health_log = "/rdklogs/logs/wifihealth.txt";
     bus_error_t status;
     raw_data_t rdata;
-    char str[MAX_STR_LEN] = {'\0'};
     wifi_util_info_print(WIFI_APPS, "%s:%d str =%s score =%f threshold =%u\n", __func__, __LINE__, str, score, threshold);
     memset(&rdata, 0, sizeof(raw_data_t));
     rdata.data_type = bus_data_type_string;
@@ -115,7 +119,10 @@ void publish_station_score(const char *str, double score, unsigned int threshold
 	wifi_util_error_print(WIFI_CTRL, "%s:%d: bus: bus_event_publish_fn Event failed %d\n",  __func__, __LINE__, status);    
     }
 
-
+    get_formatted_time(tmp);
+    snprintf(buff, MAX_BUFF_LEN, "%s IGNITE_CONNECTION_SCORE:%f", tmp, score);
+    wifi_util_error_print(WIFI_CTRL, "%s:%d: Buff updated as %s\n", __func__, __LINE__, buff);
+    write_to_file(wifi_health_log, buff);
     return;
 }
 
