@@ -64,10 +64,10 @@ extern "C" void qmgr_invoke_batch(const report_batch_t *batch)
 }
 
 
-extern "C" void qmgr_invoke_score(const char *str, double score)
+extern "C" void qmgr_invoke_score(const char *str, double score, double threshold)
 {
     if (qmgr_score_cb)
-        qmgr_score_cb(str, score);
+        qmgr_score_cb(str, score, threshold);
     wifi_util_dbg_print(WIFI_CTRL,"%s:%d \n",__func__,__LINE__); 
 }
 
