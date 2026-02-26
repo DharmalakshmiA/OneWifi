@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include "wifi_util.h"
 
-extern "C" void qmgr_invoke_score(const char *str, double score, unsigned int threshold);
+extern "C" void qmgr_invoke_score(const char *str, double score, double threshold);
 linkq_params_t linkq_t::m_linkq_params[MAX_LINKQ_PARAMS] = {{"DOWNLINK_SNR", true}, {"DOWNLINK_PER", false}, {"DOWNLINK_PHY", true},{"UPLINK_SNR", true}, {"UPLINK_PER", false}, {"UPLINK_PHY", true}};
 mac_addr_str_t linkq_t::ignite_station_mac = "";
 linkq_params_t linkq_t::m_score_params[] = {

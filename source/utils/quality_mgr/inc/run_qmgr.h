@@ -75,7 +75,7 @@ bool qmgr_is_score_registered(void);
 
 void reset_qmgr_score_cb(void);
 void qmgr_invoke_batch(const report_batch_t *batch);
-void qmgr_invoke_score(const char *str, double score);
+void qmgr_invoke_score(const char *str, double score, double threshold);
 
 int add_stats_metrics(stats_arg_t *stats);
 int remove_link_stats(stats_arg_t *stats);
