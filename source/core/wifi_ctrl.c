@@ -1884,6 +1884,9 @@ int start_wifi_ctrl(wifi_ctrl_t *ctrl)
     ctrl->exit_ctrl = false;
     ctrl->ctrl_initialized = true;
     register_endpoint_components(ctrl);
+    //Testing purpose
+     wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
+    publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
     // To handle onewifi restart case
     if(busEvent_IsSubscriptionExist(&ctrl->handle, "Device.WiFi.EndPoint.1.Status", NULL)) {
 	wifi_util_error_print(WIFI_CTRL, "%s:%d EndPoint subscription exist\n", __func__, __LINE__);

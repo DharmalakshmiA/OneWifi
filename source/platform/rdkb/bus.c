@@ -1390,7 +1390,8 @@ bool busEvent_IsSubscriptionExist(bus_handle_t *handle, char const* eventName, r
         wifi_util_dbg_print(WIFI_BUS, "%s:%d Failed to check subscription\n", __func__, __LINE__);
         return ret;
     }
-    ret = rbusEvent_IsSubscriptionExist(handle, eventName, subscription);
+    rbusHandle_t p_rbus_handle = handle->u.rbus_handle;
+    ret = rbusEvent_IsSubscriptionExist(p_rbus_handle, eventName, subscription);
     if (ret == true) {
 	wifi_util_dbg_print(WIFI_BUS, "%s:%d Subscription exist\n", __func__, __LINE__);
     } else {
