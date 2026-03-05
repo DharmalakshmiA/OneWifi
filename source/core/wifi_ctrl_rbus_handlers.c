@@ -821,6 +821,14 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
     return bus_error_success;
 }
 
+bus_error_t ignite_event_subhandler(char *eventName, bus_event_sub_action_t action, int32_t interval, bool *autoPublish)
+{
+    wifi_util_dbg_print(WIFI_CTRL,
+        "%s:%d [DL] eventSubHandler called: action=%s\n eventName=%s autoPublish:%d interval:%d\n",
+        __func__, __LINE__, action == bus_event_action_subscribe ? "subscribe" : "unsubscribe",
+        eventName, *autoPublish, interval);
+}
+
 bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
@@ -3341,7 +3349,7 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
     int num_elements;
     bus_data_element_t data_elements[] = {
                          { WIFI_ENDPOINT_CONNECT_STATUS, bus_element_type_method,
-                                    { get_endpoint_status,NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+                                    { get_endpoint_status,NULL, ignite_event_subhandler, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, true, 0, 0, 0, NULL } },
 
                          { WIFI_ENDPOINT_ENABLE_CHECK, bus_element_type_method,
@@ -3354,7 +3362,7 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
         wifi_util_error_print(WIFI_CTRL, "%s %dbus: bus_regDataElements failed\n", __FUNCTION__, __LINE__);
         return;
      }
-     wifi_util_dbg_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
+     wifi_util_dbg_print(WIFI_CTRL, "%s %d[DL] bus: Ignite bus_regDataElements done\n", __FUNCTION__, __LINE__);
      return;
 }
 
