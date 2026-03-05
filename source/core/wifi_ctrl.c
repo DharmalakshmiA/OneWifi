@@ -1832,6 +1832,8 @@ int validate_and_sync_private_vap_credentials()
     return RETURN_OK;
 }
 
+#define STA_STATUS_DISCONNECTED 1
+
 int start_wifi_ctrl(wifi_ctrl_t *ctrl)
 {
     int monitor_ret = 0;
@@ -1882,6 +1884,8 @@ int start_wifi_ctrl(wifi_ctrl_t *ctrl)
     ctrl->exit_ctrl = false;
     ctrl->ctrl_initialized = true;
     register_endpoint_components(ctrl);
+    // To handle onewifi restart case
+    publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
     ctrl_queue_loop(ctrl);
 
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT
