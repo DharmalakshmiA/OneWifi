@@ -1885,7 +1885,12 @@ int start_wifi_ctrl(wifi_ctrl_t *ctrl)
     ctrl->ctrl_initialized = true;
     register_endpoint_components(ctrl);
     // To handle onewifi restart case
-    publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+    if(busEvent_IsSubscriptionExist(&ctrl->handle, "Device.WiFi.EndPoint.1.Status", NULL)) {
+	wifi_util_error_print(WIFI_CTRL, "%s:%d EndPoint subscription exist\n", __func__, __LINE__);
+        publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+    } else {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Endpoint status not subscribed by any component\n", __func__, __LINE__);
+    } 
     ctrl_queue_loop(ctrl);
 
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT

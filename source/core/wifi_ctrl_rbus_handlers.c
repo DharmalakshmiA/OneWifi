@@ -988,7 +988,7 @@ int publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
     char name[MAX_STR_LEN] = { '\0' };
     bus_error_t rc = bus_error_success;
     wifi_util_info_print(WIFI_CTRL, "%s:%d Connection status updated as %d\n", __func__, __LINE__, connection_status);
-    if (ctrl->rf_status_down == true) {
+   // if (ctrl->rf_status_down == true) {
         raw_data_t data;
         snprintf(name, MAX_STR_LEN,WIFI_ENDPOINT_CONNECT_STATUS);
         memset(&data, 0, sizeof(raw_data_t));
@@ -1010,10 +1010,10 @@ int publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
             free(data.raw_data.bytes);
             data.raw_data.bytes = NULL;
         }
-    } else {
+  /*  } else {
         wifi_util_info_print(WIFI_CTRL, "%s:%d Endpoint not enabled\n", __func__, __LINE__);
         return RETURN_OK;
-    }
+    }*/
     return RETURN_OK;
 }
 int publish_endpoint_enable(void)

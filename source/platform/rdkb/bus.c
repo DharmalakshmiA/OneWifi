@@ -1383,6 +1383,22 @@ bus_error_t bus_unreg_data_elements(bus_handle_t *handle, uint32_t num_of_elemen
     return bus_error_success;
 }
 
+bool busEvent_IsSubscriptionExist(bus_handle_t *handle, char const* eventName, rbusEventSubscription_t* subscription)
+{
+    int ret = 0;
+    if (handle == NULL || (subscription == NULL && eventName == NULL)) {
+        wifi_util_dbg_print(WIFI_BUS, "%s:%d Failed to check subscription\n", __func__, __LINE__);
+        return ret;
+    }
+    ret = rbusEvent_IsSubscriptionExist(handle, eventName, subscription);
+    if (ret == true) {
+	wifi_util_dbg_print(WIFI_BUS, "%s:%d Subscription exist\n", __func__, __LINE__);
+    } else {
+	wifi_util_dbg_print(WIFI_BUS, "%s:%d Subscription doesn't exist\n", __func__, __LINE__);
+    }
+    return ret;
+}
+
 bus_error_t bus_reg_data_elements(bus_handle_t *handle, bus_data_element_t *data_element,
     uint32_t num_of_element)
 {
