@@ -934,6 +934,7 @@ bus_error_t ignite_event_subhandler(char *eventName, bus_event_sub_action_t acti
         "%s:%d [DL] eventSubHandler called: action=%s\n eventName=%s autoPublish:%d interval:%d\n",
         __func__, __LINE__, action == bus_event_action_subscribe ? "subscribe" : "unsubscribe",
         eventName, *autoPublish, interval);
+    return bus_error_success;
 }
 
 bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
@@ -3456,7 +3457,7 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
     int num_elements;
     bus_data_element_t data_elements[] = {
                          { WIFI_ENDPOINT_CONNECT_STATUS, bus_element_type_method,
-                                    { get_endpoint_status,NULL, ignite_event_subhandler, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+                                    { get_endpoint_status,NULL, NULL, NULL, ignite_event_subhandler, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, true, 0, 0, 0, NULL } },
 
                          { WIFI_ENDPOINT_ENABLE_CHECK, bus_element_type_method,
