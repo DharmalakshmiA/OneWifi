@@ -865,9 +865,9 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
                 sizeof(default_vap_info->u.sta_info.ssid) - 1);
             strncpy(default_vap_info->u.sta_info.repurposed_ssid, vap_info->u.sta_info.repurposed_ssid,
                 sizeof(ssid_t)-1);
-	    strncpy(default_vap_info->repurposed_bridge_name, vap_info->repurposed_bridge_name, 
-	        sizeof(default_vap_info->repurposed_bridge_name)-1);
-	    memset(default_vap_info->u.sta_info.bssid, 0,
+	        strncpy(default_vap_info->repurposed_bridge_name, vap_info->repurposed_bridge_name, 
+	            sizeof(default_vap_info->repurposed_bridge_name)-1);
+	        memset(default_vap_info->u.sta_info.bssid, 0,
                 sizeof(default_vap_info->u.sta_info.bssid));
             default_vap_info->u.sta_info.enabled = true;
             default_vap_info->u.sta_info.conn_status = 0;
