@@ -882,7 +882,7 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
                 default_vap_info->u.sta_info.security.encr = wifi_encryption_aes;
                 default_vap_info->u.sta_info.security.mfp = wifi_mfp_cfg_required;
             }
-			continue;
+		    continue;
         }
 
         // set ap parameters
