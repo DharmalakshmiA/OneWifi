@@ -882,8 +882,7 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
                 default_vap_info->u.sta_info.security.encr = wifi_encryption_aes;
                 default_vap_info->u.sta_info.security.mfp = wifi_mfp_cfg_required;
             }
-	    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: [Ignite]ssid:%s bridge-name:%s Mode:%d eap-type: %d phase: %d\n", __func__, __LINE__, default_vap_info->u.sta_info.repurposed_ssid, default_vap_info->repurposed_bridge_name, default_vap_info->u.sta_info.security.repurposed_mode, default_vap_info->u.sta_info.security.repurposed_radius.eap_type, default_vap_info->u.sta_info.security.repurposed_radius.phase2);
-            continue;
+			continue;
         }
 
         // set ap parameters
