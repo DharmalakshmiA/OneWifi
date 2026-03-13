@@ -3654,6 +3654,7 @@ bus_error_t set_force_vap_apply(char *name, raw_data_t *p_data, bus_user_data_t 
     return bus_error_invalid_input;
 }
 
+#define STA_STATUS_DISCONNECTED 1
 void register_endpoint_components(wifi_ctrl_t *ctrl)
 {
     int rc = bus_error_success;
@@ -3673,6 +3674,11 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
         wifi_util_error_print(WIFI_CTRL, "%s %dbus: bus_regDataElements failed\n", __FUNCTION__, __LINE__);
         return;
      }
+     wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
+     publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+     sleep(5);
+     wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
+     publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
      wifi_util_dbg_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
      return;
 }
