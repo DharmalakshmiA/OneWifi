@@ -797,18 +797,18 @@ bus_error_t webconfig_init_data_get_subdoc(char *event_name, raw_data_t *p_data,
         memset(data, 0, sizeof(webconfig_subdoc_data_t));
         memcpy((unsigned char *)&data->u.decoded.radios, (unsigned char *)&mgr->radio_config,
             num_of_radios * sizeof(rdk_wifi_radio_t));
-	    memcpy((unsigned char *)&data->u.decoded.config, (unsigned char *)&mgr->global_config,
-			sizeof(wifi_global_config_t));
+        memcpy((unsigned char *)&data->u.decoded.config, (unsigned char *)&mgr->global_config,
+            sizeof(wifi_global_config_t));
         memcpy((unsigned char *)&data->u.decoded.hal_cap, (unsigned char *)&mgr->hal_cap,
             sizeof(wifi_hal_capability_t));
         data->u.decoded.num_radios = num_of_radios;
         // tell webconfig to encode
-	    if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_dml) != webconfig_error_none) {
-	        wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
-	        free(data);
-	        data = NULL;
-	        return bus_error_general;
-	    }
+        if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_dml) != webconfig_error_none) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
+            free(data);
+            data = NULL;
+            return bus_error_general;
+        }
 
         uint32_t str_size = (strlen(data->u.encoded.raw) + 1);
         p_data->data_type = bus_data_type_string;
@@ -838,23 +838,23 @@ bus_error_t webconfig_init_data_get_subdoc(char *event_name, raw_data_t *p_data,
             sizeof(wifi_hal_capability_t));
         data->u.decoded.num_radios = num_of_radios;
         // tell webconfig to encode
-	if (ctrl->dev_type != dev_subtype_pod) {
-		memcpy((unsigned char *)&data->u.decoded.config, (unsigned char *)&mgr->global_config,
-				sizeof(wifi_global_config_t));
-		if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_dml) != webconfig_error_none) {
-			wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
-			free(data);
-			data = NULL;
-			return bus_error_general;
-		}
-	} else {
-		if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_mesh_sta) != webconfig_error_none) {
-			wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
-			free(data);
-			data = NULL;
-			return bus_error_general;
-		}
-	}
+    if (ctrl->dev_type != dev_subtype_pod) {
+        memcpy((unsigned char *)&data->u.decoded.config, (unsigned char *)&mgr->global_config,
+                sizeof(wifi_global_config_t));
+        if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_dml) != webconfig_error_none) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
+            free(data);
+            data = NULL;
+            return bus_error_general;
+        }
+    } else {
+        if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_mesh_sta) != webconfig_error_none) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d webconfig encode failed\n", __func__, __LINE__);
+            free(data);
+            data = NULL;
+            return bus_error_general;
+        }
+    }
 
         uint32_t str_size = (strlen(data->u.encoded.raw) + 1);
         p_data->data_type = bus_data_type_string;
@@ -1030,33 +1030,35 @@ bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_d
 
     return bus_error_success;
 }
-int publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
+
+bus_error_t publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
 {
     char name[MAX_STR_LEN] = { '\0' };
     bus_error_t rc = bus_error_success;
     wifi_util_info_print(WIFI_CTRL, "%s:%d Connection status updated as %d\n", __func__, __LINE__, connection_status);
-        raw_data_t data;
-        snprintf(name, MAX_STR_LEN,WIFI_ENDPOINT_CONNECT_STATUS);
-        memset(&data, 0, sizeof(raw_data_t));
-        data.data_type = bus_data_type_string;
-        data.raw_data.bytes = malloc(MAX_STATUS_LEN);
-        data.raw_data_len = MAX_STATUS_LEN;
-        memset(data.raw_data.bytes, '\0', MAX_STATUS_LEN);
-        if (connection_status == 2) { // connected state
-            strncpy((char *)data.raw_data.bytes, "Up", MAX_STATUS_LEN);
-        } else if ((connection_status == 1) || (connection_status == 3)) { // disconnected  or AP not found state
-            strncpy((char *)data.raw_data.bytes, "Down", MAX_STATUS_LEN);
-        }
-        rc = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, name, &data);
-        if (rc != bus_error_success) {
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d: bus_event_publish_fn(): Event failed\n", __func__, __LINE__);
-            return RETURN_ERR;
-        }
-        if (data.raw_data.bytes) {
-            free(data.raw_data.bytes);
-            data.raw_data.bytes = NULL;
-        }
-    return RETURN_OK;
+    raw_data_t data;
+    snprintf(name, MAX_STR_LEN,WIFI_ENDPOINT_CONNECT_STATUS);
+    memset(&data, 0, sizeof(raw_data_t));
+    data.data_type = bus_data_type_string;
+    data.raw_data.bytes = malloc(MAX_STATUS_LEN);
+    data.raw_data_len = MAX_STATUS_LEN;
+    memset(data.raw_data.bytes, '\0', MAX_STATUS_LEN);
+    if (connection_status == 2) { // connected state
+        strncpy((char *)data.raw_data.bytes, "Up", MAX_STATUS_LEN);
+    } else if ((connection_status == 1) || (connection_status == 3)) { // disconnected  or AP not found state
+        strncpy((char *)data.raw_data.bytes, "Down", MAX_STATUS_LEN);
+    }
+    rc = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, name, &data);
+    if (rc != bus_error_success) {
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d: bus_event_publish_fn(): Event failed with rc:%d\n", __func__, __LINE__, rc);
+        return rc;
+    }
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d Endpoint status published successfully with rc:%d\n", __func__, __LINE__, rc);
+    if (data.raw_data.bytes) {
+        free(data.raw_data.bytes);
+        data.raw_data.bytes = NULL;
+    }
+    return rc;
 }
 int publish_endpoint_enable(void)
 {
@@ -3930,10 +3932,24 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
         return;
      }
      wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
-     publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
-     sleep(5);
-     wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
-     publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+     rc = 0;
+     rc = publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+     if (rc == 0) {
+         wifi_util_error_print(WIFI_CTRL, "%s:%d Endpoint status published successfully. Hence enabling the endpoint\n", __func__, __LINE__);
+	 bool ep_enable_after_restart = true;
+	 raw_data_t data;
+	 memset(&data, 0, sizeof(raw_data_t));
+	 data.data_type = bus_data_type_boolean;
+	 data.raw_data.b = ep_enable_after_restart;
+
+	 rc = get_bus_descriptor()->bus_set_fn(&ctrl->handle, WIFI_ENDPOINT_ENABLE_CHECK, &data);
+	 if (rc != bus_error_success) {
+		 wifi_util_error_print(WIFI_CTRL,
+				 "bus: bus_set_fn with error rc:%d\n", rc);
+	 }
+     } else {
+         wifi_util_error_print(WIFI_CTRL, "%s:%d EndPoint status not subscribed by WAN manager\n", __func__, __LINE__);
+     }
      wifi_util_dbg_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
      return;
 }
@@ -3983,7 +3999,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_STA_NAMESPACE, bus_element_type_table,
                                     { NULL, NULL, events_STAtable_addrowhandler, events_STAtable_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } }, 
-			        { WIFI_STA_CONNECT_STATUS, bus_element_type_property,
+                    { WIFI_STA_CONNECT_STATUS, bus_element_type_property,
                                     { get_sta_attribs, set_sta_attribs, NULL, NULL, eventSubHandler, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_bytes, true, 0, 0, 0, NULL } },
                                 { WIFI_STA_INTERFACE_NAME, bus_element_type_property,
