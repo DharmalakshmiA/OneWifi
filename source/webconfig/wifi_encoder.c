@@ -1709,6 +1709,20 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     cJSON *obj, *ignite_obj;
     char mac_str[32];
 
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
+    "max_auth_attempts=%u blacklist_table_timeout=%u "
+    "identity_req_retry_interval=%u server_retries=%u\n",
+    __func__, __LINE__,
+    vap_info->u.sta_info.security.radius.phase2,
+    vap_info->u.sta_info.security.radius.eap_type,
+    vap_info->u.sta_info.security.radius.max_auth_attempts,
+    vap_info->u.sta_info.security.radius.blacklist_table_timeout,
+    vap_info->u.sta_info.security.radius.identity_req_retry_interval,
+    vap_info->u.sta_info.security.radius.server_retries);
+
+
+
     //VAP Name
     cJSON_AddStringToObject(vap_obj, "VapName", vap_info->vap_name);
 
