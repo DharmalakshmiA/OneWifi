@@ -1132,7 +1132,8 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
                 rdk_vap_info);
 
             if (isVapSTAMesh(tgt_vap_index)) {
-                if (memcmp(&mgr_vap_info->u.sta_info.security, &vap_info->u.sta_info.security, sizeof(wifi_vap_security_t))) {
+               wifi_util_info_print(WIFI_CTRL, "%s:%d: [OLD]  
+               if (memcmp(&mgr_vap_info->u.sta_info.security, &vap_info->u.sta_info.security, sizeof(wifi_vap_security_t))) {
                     print_wifi_hal_vap_security_param(WIFI_WEBCONFIG, "Old", tgt_vap_index, &mgr_vap_info->u.sta_info.security);
                     print_wifi_hal_vap_security_param(WIFI_WEBCONFIG, "New", tgt_vap_index, &vap_info->u.sta_info.security);
                 }
