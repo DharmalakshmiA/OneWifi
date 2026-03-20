@@ -1656,9 +1656,9 @@ webconfig_error_t encode_ignite_security_object(const wifi_vap_security_t *secur
     cJSON *obj;
 
    wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d
+    max_auth_attempts=%u blacklist_table_timeout=%u 
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     security_info->u.radius.phase2,
     security_info->u.radius.eap_type,
@@ -1720,9 +1720,9 @@ webconfig_error_t encode_ignite_security_object(const wifi_vap_security_t *secur
     }
 
    wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d 
+    max_auth_attempts=%u blacklist_table_timeout=%u 
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     security_info->u.radius.phase2,
     security_info->u.radius.eap_type,  
@@ -1743,9 +1743,9 @@ webconfig_error_t encode_ignite_mesh_sta_object(const wifi_vap_info_t *vap_info,
     cJSON *obj;
 
     wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d 
+    max_auth_attempts=%u blacklist_table_timeout=%u 
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.u.radius.phase2,
     vap_info->u.sta_info.security.u.radius.eap_type,
@@ -1771,9 +1771,9 @@ webconfig_error_t encode_ignite_mesh_sta_object(const wifi_vap_info_t *vap_info,
     bool is_6g = strstr(vap_info->vap_name, "6g")?true:false;
 
     wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d
+    max_auth_attempts=%u blacklist_table_timeout=%u
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.u.radius.phase2,
     vap_info->u.sta_info.security.u.radius.eap_type,
@@ -1792,9 +1792,9 @@ webconfig_error_t encode_ignite_mesh_sta_object(const wifi_vap_info_t *vap_info,
     }    
     
 wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d 
+    max_auth_attempts=%u blacklist_table_timeout=%u 
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.u.radius.phase2,
     vap_info->u.sta_info.security.u.radius.eap_type,
@@ -1816,9 +1816,9 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     char mac_str[32];
 
     wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d
+    max_auth_attempts=%u blacklist_table_timeout=%u
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.radius.phase2,
     vap_info->u.sta_info.security.radius.eap_type,
@@ -1883,9 +1883,9 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     }
    
     wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d
+    max_auth_attempts=%u blacklist_table_timeout=%u 
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.radius.phase2,
     vap_info->u.sta_info.security.radius.eap_type,
@@ -1906,9 +1906,9 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
     }
 
     wifi_util_dbg_print(WIFI_WEBCONFIG,
-    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d "
-    "max_auth_attempts=%u blacklist_table_timeout=%u "
-    "identity_req_retry_interval=%u server_retries=%u\n",
+    "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d
+    max_auth_attempts=%u blacklist_table_timeout=%u
+    identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
     vap_info->u.sta_info.security.radius.phase2,
     vap_info->u.sta_info.security.radius.eap_type,
