@@ -904,13 +904,15 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
     webconfig_subdoc_data_t *data = NULL;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    int vap_index;
     wifi_back_haul_sta_t *sta_info;
     wifi_platform_property_t *wifi_prop = &((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop;
     mac_address_t zero_mac;
     char ifname[100] = {0};
     int ret = 0;
     mac_addr_str_t mac_str;
+    int vap_index, radio_index = 0, vap_array_index = 0;
+    int status = RETURN_OK;
+    wifi_vap_name_t vap_names[MAX_NUM_RADIOS] = { 0 };
 
     memset(zero_mac, 0, sizeof(mac_address_t));
     /*
@@ -977,6 +979,51 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
     memcpy((unsigned char *)&data->u.decoded.hal_cap, (unsigned char *)&mgr->hal_cap,
         sizeof(wifi_hal_capability_t));
     data->u.decoded.num_radios = getNumberRadios();
+
+    // Added for debugging purpose
+    for (UINT index = 0; index < getTotalNumberVAPs(); index++)
+    {
+	vap_index = VAP_INDEX(mgr->hal_cap, index);
+        wifi_vap_info_t *vapInfo = getVapInfo(vap_index);
+        if (vapInfo == NULL) {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d: VAP info for VAP index %d not found\n", __func__, __LINE__, vap_index);
+            continue;
+        }
+	wifi_util_dbg_print(WIFI_DB,"%s:%d: vap-idx : %d\n", __func__, __LINE__, vap_index);
+	if (isVapSTAMesh(vap_index) == TRUE) {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.u.radius.eap_type, vapInfo->u.sta_info.security.u.radius.phase2, vapInfo->u.sta_info.security.u.radius.max_auth_attempts, vapInfo->u.sta_info.security.u.radius.blacklist_table_timeout, vapInfo->u.sta_info.security.u.radius.identity_req_retry_interval, vapInfo->u.sta_info.security.u.radius.server_retries);
+	   wifi_util_dbg_print(WIFI_DB,"%s:%d:[DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.repurposed_radius.identity, vapInfo->u.sta_info.security.repurposed_radius.key, vapInfo->u.sta_info.security.repurposed_radius.eap_type, vapInfo->u.sta_info.security.repurposed_radius.phase2); 
+	}
+    }
+   
+    unsigned int num_vaps = get_list_of_mesh_sta(&data->u.decoded.hal_cap.wifi_prop, MAX_NUM_RADIOS,
+            &vap_names[0]);
+
+    wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] num-vaps updated as %u\n", __func__, __LINE__,  num-vaps);
+    for (size_t i = 0; i < num_vaps; i++) {
+        vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[i]);
+        if (vap_index == RETURN_ERR) {
+            continue;
+        }
+        status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop,
+                vap_index, (uint8_t *)&radio_index, (uint8_t *)&vap_array_index);
+        if (status == RETURN_ERR) {
+            break;
+        }
+
+        wifi_util_error_print(WIFI_CTRL, "[%s %d] vap-idx : %d radio-idx : %d vap-array-idx : %d\n", __func__, __LINE__, vap_index,
+                radio_index, vap_array_index);
+
+	wifi_util_error_print(WIFI_CTRL, "[%s %d] SSID: %s vap-enable : %d ignite-enable : %d eap-type : %d phase : %d bridge : %s\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.repurposed_ssid, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.enabled,
+                data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ignite_enabled,
+                data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.repurposed_radius.eap_type,
+                data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.repurposed_radius.phase2,
+                data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].repurposed_bridge_name);
+    
+	wifi_util_error_print(WIFI_CTRL, "[%s %d] [DL] Radius configs eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.eap_type, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.phase2, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.max_auth_attempts, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.blacklist_table_timeout, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.identity_req_retry_interval,
+			data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.server_retries);
+    }
+
     // tell webconfig to encode
     if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_dml) !=
         webconfig_error_none) {
