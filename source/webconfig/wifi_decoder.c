@@ -1356,8 +1356,8 @@ webconfig_error_t decode_ignite_security_object(const cJSON *security, wifi_vap_
         return webconfig_error_decode;
     }
 
-    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius Settings eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, security_info->u.radius.eap_type, security_info->u.radius.phase
-2, security_info->u.radius.max_auth_attempts, security_info->u.radius.blacklist_table_timeout, security_info->u.radius.identity_req_retry_interval, security_info->u.radius.server_retries);
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius Settings eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, security_info->u.radius.eap_type, 
+		    security_info->u.radius.phase2, security_info->u.radius.max_auth_attempts, security_info->u.radius.blacklist_table_timeout, security_info->u.radius.identity_req_retry_interval, security_info->u.radius.server_retries);
 
     wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, security_info->repurposed_radius.identity, security_info->repurposed_radius.key, security_info->repurposed_radius.eap_type, security_info->repurposed_radius.phase2);
 
@@ -1370,10 +1370,11 @@ webconfig_error_t decode_ignite_security_object(const cJSON *security, wifi_vap_
             return webconfig_error_decode;
         }
     }
-    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius Settings eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, security_info->u.radius.eap_type, security_info->u.radius.phase
-2, security_info->u.radius.max_auth_attempts, security_info->u.radius.blacklist_table_timeout, security_info->u.radius.identity_req_retry_interval, security_info->u.radius.server_retries);
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius Settings eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, security_info->u.radius.eap_type, security_info->u.radius.phase2, security_info->u.radius.max_auth_attempts, security_info->u.radius.blacklist_table_timeout, 
+		    security_info->u.radius.identity_req_retry_interval, security_info->u.radius.server_retries);
 
-    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, security_info->repurposed_radius.identity, security_info->repurposed_radius.key, security_info->repurposed_radius.eap_type, security_info->repurposed_radius.phase2);
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, security_info->repurposed_radius.identity, security_info->repurposed_radius.key, security_info->repurposed_radius.eap_type, 
+		    security_info->repurposed_radius.phase2);
 
     return webconfig_error_none;
 }
@@ -1382,9 +1383,14 @@ webconfig_error_t decode_ignite_mesh_sta_object(const cJSON *ignite, wifi_vap_in
 {
     const cJSON *param, *security;
 
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius info eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vap_info->u.sta_info.security.u.radius.eap_type, vap_info->u.sta_info.security.u.radius.phase2, vap_info->u.sta_info.security.u.radius.max_auth_attempts, vap_info->u.sta_info.security.u.radius.blacklist_table_timeout, vap_info->u.sta_info.security.u.radius.identity_req_retry_interval, vap_info->u.sta_info.security.u.radius.server_retries);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius info eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vap_info->u.sta_info.security.u.radius.eap_type, 
+		    vap_info->u.sta_info.security.u.radius.phase2, vap_info->u.sta_info.security.u.radius.max_auth_attempts, 
+		    vap_info->u.sta_info.security.u.radius.blacklist_table_timeout, 
+		    vap_info->u.sta_info.security.u.radius.identity_req_retry_interval, 
+		    vap_info->u.sta_info.security.u.radius.server_retries);
 
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity, vap_info->u.sta_info.security.repurposed_radius.key, vap_info->u.sta_info.security.repurposed_radius.eap_type, vap_info->u.sta_info.security.repurposed_radius.phase2);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n",
+		    __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity, vap_info->u.sta_info.security.repurposed_radius.key, vap_info->u.sta_info.security.repurposed_radius.eap_type, vap_info->u.sta_info.security.repurposed_radius.phase2);
 
     decode_param_string(ignite, "IgniteSSID", param);
     strncpy(vap_info->u.sta_info.repurposed_ssid, param->valuestring, sizeof(vap_info->u.sta_info.repurposed_ssid)-1);
@@ -1397,7 +1403,8 @@ webconfig_error_t decode_ignite_mesh_sta_object(const cJSON *ignite, wifi_vap_in
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d:Ignite Security objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius info eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vap_info->u.sta_info.security.u.radius.eap_type, vap_info->u.sta_info.security.u.radius.phase2, vap_info->u.sta_info.security.u.radius.max_auth_attempts, vap_info->u.sta_info.security.u.radius.blacklist_table_timeout, vap_info->u.sta_info.security.u.radius.identity_req_retry_interval, vap_info->u.sta_info.security.u.radius.server_retries);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Radius info eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vap_info->u.sta_info.security.u.radius.eap_type, 
+		    vap_info->u.sta_info.security.u.radius.phase2, vap_info->u.sta_info.security.u.radius.max_auth_attempts, vap_info->u.sta_info.security.u.radius.blacklist_table_timeout, vap_info->u.sta_info.security.u.radius.identity_req_retry_interval, vap_info->u.sta_info.security.u.radius.server_retries);
 
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: [DL] Repurposed radius Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity, vap_info->u.sta_info.security.repurposed_radius.key, vap_info->u.sta_info.security.repurposed_radius.eap_type, vap_info->u.sta_info.security.repurposed_radius.phase2);
 
