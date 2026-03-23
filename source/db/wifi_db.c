@@ -606,6 +606,18 @@ static int init_vap_config_default(int vap_index, wifi_vap_info_t *config,
 
     pthread_mutex_lock(&g_wifidb->data_cache_lock);
     memcpy(config,&cfg,sizeof(cfg));
+    
+    for (vap_array_index = 0; vap_array_index < getTotalNumberVAPs(); vap_array_index++)
+    {
+        if (wifi_hal_cap_obj->wifi_prop.interface_map[vap_array_index].index == (unsigned int)vap_index) {
+            if (isVapSTAMesh(vap_index)) {
+	         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Source cfg Radius config eap=%d\n phase2=%d\n max_auth_attempts=%d\nblacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, cfg.u.sta_info.security.u.radius.eap_type, cfg.u.sta_info.security.u.radius.phase2, cfg.u.sta_info.security.u.radius.max_auth_attempts, cfg.u.sta_info.security.u.radius.blacklist_table_timeout,cfg.u.sta_info.security.u.radius.identity_req_retry_interval, cfg.u.sta_info.security.u.radius.server_retries);
+
+		wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: [DL] Dest config Radius config eap=%d\n phase2=%d\n max_auth_attempts=%d\nblacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, config->u.sta_info.security.u.radius.eap_type, config->u.sta_info.security.u.radius.phase2, config->u.sta_info.security.u.radius.max_auth_attempts, config->u.sta_info.security.u.radius.blacklist_table_timeout, config->u.sta_info.security.u.radius.identity_req_retry_interval, config->u.sta_info.security.u.radius.server_retries); 
+	    }
+            
+        }
+    }
     if(exists == false) {
         wifi_util_error_print(WIFI_DB,"%s:%d VAP_EXISTS_FALSE for vap_index=%d, setting to TRUE. \n",__FUNCTION__,__LINE__,vap_index);
         exists = true;
