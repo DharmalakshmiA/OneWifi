@@ -393,7 +393,7 @@ static int init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         memset(&cfg.u.sta_info.security.repurposed_radius.ip, '\0', sizeof(cfg.u.sta_info.security.repurposed_radius.ip));
         memset(&cfg.u.sta_info.security.repurposed_radius.s_ip, '\0', sizeof(cfg.u.sta_info.security.repurposed_radius.s_ip));
         wifi_util_dbg_print(WIFI_CTRL, "Ignite-ssid: %s mode: %d eap-type: %d phase: %d\n", cfg.u.sta_info.repurposed_ssid, cfg.u.sta_info.security.repurposed_mode, cfg.u.sta_info.security.repurposed_radius.eap_type, cfg.u.sta_info.security.repurposed_radius.phase2);
-
+        wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d [DL] Radius config eap=%d\n phase2=%d\n max_auth_attempts=%d\nblacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", cfg.u.sta_info.security.u.radius.eap_type, cfg.u.sta_info.security.u.radius.phase2, cfg.u.sta_info.security.u.radius.max_auth_attempts, cfg.u.sta_info.security.u.radius.blacklist_table_timeout,cfg.u.sta_info.security.u.radius.identity_req_retry_interval, cfg.u.sta_info.security.u.radius.server_retries);
     } else {
         cfg.u.bss_info.wmm_enabled = true;
         cfg.u.bss_info.mbo_enabled = true;
