@@ -999,7 +999,7 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
     unsigned int num_vaps = get_list_of_mesh_sta(&data->u.decoded.hal_cap.wifi_prop, MAX_NUM_RADIOS,
             &vap_names[0]);
 
-    wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] num-vaps updated as %u\n", __func__, __LINE__,  num-vaps);
+    wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] num-vaps updated as %u\n", __func__, __LINE__,  num_vaps);
     for (size_t i = 0; i < num_vaps; i++) {
         vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[i]);
         if (vap_index == RETURN_ERR) {
