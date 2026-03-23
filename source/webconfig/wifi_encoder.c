@@ -1685,8 +1685,7 @@ webconfig_error_t encode_ignite_security_object(const wifi_vap_security_t *secur
     security_info->u.radius.identity_req_retry_interval,
     security_info->u.radius.server_retries);
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s %d Repurposed values:
-        Identity:%s key:%s\n", __func__, __LINE__, security_info->repurposed_radius.identity,
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s %d Repurposed values: Identity:%s key:%s\n", __func__, __LINE__, security_info->repurposed_radius.identity,
         security_info->repurposed_radius.key);
 
     if ((security_info->repurposed_mode == wifi_security_mode_wpa2_enterprise) || (security_info->repurposed_mode == wifi_security_mode_wpa3_enterprise)) {
@@ -1778,12 +1777,12 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
 
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d max_auth_attempts=%u blacklist_table_timeout=%u identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
-    vap_info->u.sta_info.security.radius.phase2,
-    vap_info->u.sta_info.security.radius.eap_type,
-    vap_info->u.sta_info.security.radius.max_auth_attempts,
-    vap_info->u.sta_info.security.radius.blacklist_table_timeout,
-    vap_info->u.sta_info.security.radius.identity_req_retry_interval,
-    vap_info->u.sta_info.security.radius.server_retries);
+    vap_info->u.sta_info.security.u.radius.phase2,
+    vap_info->u.sta_info.security.u.radius.eap_type,
+    vap_info->u.sta_info.security.u.radius.max_auth_attempts,
+    vap_info->u.sta_info.security.u.radius.blacklist_table_timeout,
+    vap_info->u.sta_info.security.u.radius.identity_req_retry_interval,
+    vap_info->u.sta_info.security.u.radius.server_retries);
 
 
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s %d Repurposed values: Identity:%s key:%s\n", __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity,
@@ -1841,12 +1840,12 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
    
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d max_auth_attempts=%u blacklist_table_timeout=%u identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
-    vap_info->u.sta_info.security.radius.phase2,
-    vap_info->u.sta_info.security.radius.eap_type,
-    vap_info->u.sta_info.security.radius.max_auth_attempts,
-    vap_info->u.sta_info.security.radius.blacklist_table_timeout,
-    vap_info->u.sta_info.security.radius.identity_req_retry_interval,
-    vap_info->u.sta_info.security.radius.server_retries);
+    vap_info->u.sta_info.security.u.radius.phase2,
+    vap_info->u.sta_info.security.u.radius.eap_type,
+    vap_info->u.sta_info.security.u.radius.max_auth_attempts,
+    vap_info->u.sta_info.security.u.radius.blacklist_table_timeout,
+    vap_info->u.sta_info.security.u.radius.identity_req_retry_interval,
+    vap_info->u.sta_info.security.u.radius.server_retries);
 
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s %d Repurposed values: Identity:%s key:%s\n", __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity,
         vap_info->u.sta_info.security.repurposed_radius.key);
@@ -1860,12 +1859,12 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
 
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s:%d Radius Phase2 Params: phase2=%d eap_type=%d max_auth_attempts=%u blacklist_table_timeout=%u identity_req_retry_interval=%u server_retries=%u\n",
     __func__, __LINE__,
-    vap_info->u.sta_info.security.radius.phase2,
-    vap_info->u.sta_info.security.radius.eap_type,
-    vap_info->u.sta_info.security.radius.max_auth_attempts,
-    vap_info->u.sta_info.security.radius.blacklist_table_timeout,
-    vap_info->u.sta_info.security.radius.identity_req_retry_interval,
-    vap_info->u.sta_info.security.radius.server_retries);
+    vap_info->u.sta_info.security.u.radius.phase2,
+    vap_info->u.sta_info.security.u.radius.eap_type,
+    vap_info->u.sta_info.security.u.radius.max_auth_attempts,
+    vap_info->u.sta_info.security.u.radius.blacklist_table_timeout,
+    vap_info->u.sta_info.security.u.radius.identity_req_retry_interval,
+    vap_info->u.sta_info.security.u.radius.server_retries);
 
     wifi_util_dbg_print(WIFI_WEBCONFIG, "[DL] %s %d Repurposed values:Identity:%s key:%s\n", __func__, __LINE__, vap_info->u.sta_info.security.repurposed_radius.identity,
         vap_info->u.sta_info.security.repurposed_radius.key);
