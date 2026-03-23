@@ -986,20 +986,20 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
 	vap_index = VAP_INDEX(mgr->hal_cap, index);
         wifi_vap_info_t *vapInfo = getVapInfo(vap_index);
         if (vapInfo == NULL) {
-            wifi_util_dbg_print(WIFI_DB,"%s:%d: VAP info for VAP index %d not found\n", __func__, __LINE__, vap_index);
+            wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d:[DL] VAP info for VAP index %d not found\n", __func__, __LINE__, vap_index);
             continue;
         }
-	wifi_util_dbg_print(WIFI_DB,"%s:%d: vap-idx : %d\n", __func__, __LINE__, vap_index);
+	wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: [DL] vap-idx : %d\n", __func__, __LINE__, vap_index);
 	if (isVapSTAMesh(vap_index) == TRUE) {
-            wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.u.radius.eap_type, vapInfo->u.sta_info.security.u.radius.phase2, vapInfo->u.sta_info.security.u.radius.max_auth_attempts, vapInfo->u.sta_info.security.u.radius.blacklist_table_timeout, vapInfo->u.sta_info.security.u.radius.identity_req_retry_interval, vapInfo->u.sta_info.security.u.radius.server_retries);
-	   wifi_util_dbg_print(WIFI_DB,"%s:%d:[DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.repurposed_radius.identity, vapInfo->u.sta_info.security.repurposed_radius.key, vapInfo->u.sta_info.security.repurposed_radius.eap_type, vapInfo->u.sta_info.security.repurposed_radius.phase2); 
+            wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: [DL] eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.u.radius.eap_type, vapInfo->u.sta_info.security.u.radius.phase2, vapInfo->u.sta_info.security.u.radius.max_auth_attempts, vapInfo->u.sta_info.security.u.radius.blacklist_table_timeout, vapInfo->u.sta_info.security.u.radius.identity_req_retry_interval, vapInfo->u.sta_info.security.u.radius.server_retries);
+	    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d:[DL] Repurposed radius Identity:%s key:%s eap-type:%d phase2:%d\n", __func__, __LINE__, vapInfo->u.sta_info.security.repurposed_radius.identity, vapInfo->u.sta_info.security.repurposed_radius.key, vapInfo->u.sta_info.security.repurposed_radius.eap_type, vapInfo->u.sta_info.security.repurposed_radius.phase2); 
 	}
     }
    
     unsigned int num_vaps = get_list_of_mesh_sta(&data->u.decoded.hal_cap.wifi_prop, MAX_NUM_RADIOS,
             &vap_names[0]);
 
-    wifi_util_dbg_print(WIFI_DB,"%s:%d: [DL] num-vaps updated as %u\n", __func__, __LINE__,  num_vaps);
+    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: [DL] num-vaps updated as %u\n", __func__, __LINE__,  num_vaps);
     for (size_t i = 0; i < num_vaps; i++) {
         vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[i]);
         if (vap_index == RETURN_ERR) {
@@ -1011,16 +1011,16 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
             break;
         }
 
-        wifi_util_error_print(WIFI_CTRL, "[%s %d] vap-idx : %d radio-idx : %d vap-array-idx : %d\n", __func__, __LINE__, vap_index,
+        wifi_util_error_print(WIFI_WEBCONFIG, "[%s %d] [DL] vap-idx : %d radio-idx : %d vap-array-idx : %d\n", __func__, __LINE__, vap_index,
                 radio_index, vap_array_index);
 
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] SSID: %s vap-enable : %d ignite-enable : %d eap-type : %d phase : %d bridge : %s\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.repurposed_ssid, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.enabled,
+	wifi_util_error_print(WIFI_WEBCONFIG, "[%s %d] [DL] SSID: %s vap-enable : %d ignite-enable : %d eap-type : %d phase : %d bridge : %s\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.repurposed_ssid, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.enabled,
                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.ignite_enabled,
                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.repurposed_radius.eap_type,
                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.repurposed_radius.phase2,
                 data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].repurposed_bridge_name);
     
-	wifi_util_error_print(WIFI_CTRL, "[%s %d] [DL] Radius configs eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.eap_type, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.phase2, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.max_auth_attempts, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.blacklist_table_timeout, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.identity_req_retry_interval,
+	wifi_util_error_print(WIFI_WEBCONFIG, "[%s %d] [DL] Radius configs eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.eap_type, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.phase2, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.max_auth_attempts, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.blacklist_table_timeout, data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.identity_req_retry_interval,
 			data->u.decoded.radios[radio_index].vaps.vap_map.vap_array[vap_array_index].u.sta_info.security.u.radius.server_retries);
     }
 

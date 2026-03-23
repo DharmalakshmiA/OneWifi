@@ -108,8 +108,8 @@ void print_wifi_hal_vap_security_param(wifi_dbg_type_t log_file_type, char *pref
     }
 
     if (isVapSTAMesh(vap_index)) {
-        wifi_util_info_print(log_file_type,"%s:%d: [%s] Ignite_Wifi_Security_Config eap=%d\n phase2=%d\n Mode=%d\r\n", __func__, __LINE__, prefix, l_security->repurposed_radius.eap_type, l_security->repurposed_radius.phase2, l_security->repurposed_mode);
-        wifi_util_info_print(log_file_type,"%s:%d: [%s] Wifi_Security_Config eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, prefix, l_security->u.radius.eap_type, l_security->u.radius.phase2, l_security->u.radius.max_auth_attempts, l_security->u.radius.blacklist_table_timeout, l_security->u.radius.identity_req_retry_interval, l_security->u.radius.server_retries);
+        wifi_util_info_print(log_file_type,"%s:%d: [DL] [%s] Ignite_Wifi_Security_Config eap=%d\n phase2=%d\n Mode=%d\r\n", __func__, __LINE__, prefix, l_security->repurposed_radius.eap_type, l_security->repurposed_radius.phase2, l_security->repurposed_mode);
+        wifi_util_info_print(log_file_type,"%s:%d: [DL] [%s] Wifi_Security_Config eap=%d\n phase2=%d\n max_auth_attempts=%d\n blacklist_table_timeout =%d\n .identity_req_retry_interval=%d\n server_retries=%d\n", __func__, __LINE__, prefix, l_security->u.radius.eap_type, l_security->u.radius.phase2, l_security->u.radius.max_auth_attempts, l_security->u.radius.blacklist_table_timeout, l_security->u.radius.identity_req_retry_interval, l_security->u.radius.server_retries);
     }
 }
 
