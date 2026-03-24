@@ -238,6 +238,7 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
     // Step 2: Apply SNR advantage rule for bucket 2
     for (int i = 0; i < valid_count; i++) {
         float snr_diff = 0.0;
+		int snr_bucket2 = 0;
         if (scores[i].bucket == 2) {
             int radio_index = 0;
             if (convert_freq_band_to_radio_index(scan_list[i].external_ap.oper_freq_band,
@@ -255,10 +256,11 @@ int sort_bss_results_by_ranking(bss_candidate_t *scan_list, int count)
                 mgr->ignite_config[radio_index].SNR_threshold,
                 mgr->ignite_config[radio_index].SNR_difference);
             ignite_config_t *cfg = &mgr->ignite_config[radio_index];
-            snr_diff = scores[i].candidate->external_ap.snr - max_bucket1_snr;
+			snr_bucket2 = scores[i].candidate->external_ap.snr;
+            snr_diff = (float)snr_bucket2 - max_bucket1_snr;
             wifi_util_dbg_print(WIFI_CTRL, "[%s %d] BSSID : %s SNR : %f snr_diff : %f\n", __func__,
                 __LINE__, to_mac_str(scores[i].candidate->external_ap.bssid, bssid_str),
-                scores[i].candidate->external_ap.snr, snr_diff);
+                (float)snr_bucket2, snr_diff);
             if (snr_diff > cfg->SNR_difference) {
                 scores[i].score += snr_diff * snr_weighting_factor;
             }
