@@ -214,6 +214,95 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
 
 }
 
+bus_error_t get_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bus_error_t rc = bus_error_success;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    if (ctrl == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+    p_data->data_type = bus_data_type_uint8;
+    p_data->raw_data.u32 = ctrl->rogue_ap_freq;
+    p_data->raw_data_len = sizeof(ctrl->rogue_ap_freq);
+    wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue AP Frequency %u\n", __func__, __LINE__, ctrl->rogue_ap_freq);
+    return rc;
+}
+
+bus_error_t set_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bus_error_t rc = bus_error_success;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    if (ctrl == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+
+    if (p_data->data_type != bus_data_type_uint8) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Invalid data input\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+
+    if (ctrl->rogue_ap_freq == p_data->raw_data.u8) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Configured Frequency is same\n", __func__, __LINE__);
+	return bus_error_general;
+    }
+
+    rogue_freq = p_data->raw_data.u8;
+    if ((rogue_freq != 15) || (rogue_freq != 30) || (rogue_freq != 60)) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue freq must be 15 or 30 or 60\n", __func__, __LINE__);
+    }
+    update_scheduler_frequency(ctrl->rogue_ap_freq);
+    wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue AP Frequency %u\n", __func__, __LINE__, ctrl->rogue_ap_freq);
+    return rc;
+}
+
+
+bus_error_t get_rogueap_status(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bus_error_t rc = bus_error_success;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    if (ctrl == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+    p_data->data_type = bus_data_type_boolean;
+    p_data->raw_data.b = ctrl->rogue_ap_enable;
+    wifi_util_error_print(WIFI_CTRL, "%s:%d rogue AP status %d\n", __func__, __LINE__, ctrl->rogue_ap_enable); 
+    return rc;
+}
+
+bus_error_t set_rogueap_status(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bus_error_t rc = bus_error_success;
+    bool rf_status = false;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    if (ctrl == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+
+    if (p_data->data_type != bus_data_type_boolean) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Invalid data input\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+    rf_status = p_data->raw_data.b;
+    if (ctrl->rogue_ap_enable == rf_status) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d Rogue AP status : %d and value to set are same\n", __func__, __LINE__, ctrl->rogue_ap_enable);
+        return rc;
+    }
+    ctrl->rogue_ap_enable = rf_status;
+    wifi_util_info_print(WIFI_CTRL, "%s:%d Rogue AP Status : %d\n", __func__, __LINE__, ctrl->rogue_ap_enable);
+    start_rogueap_detection(rf_status);
+
+    return rc;
+
+}
+
 int stats_bus_publish(wifi_ctrl_t *ctrl, void *stats_data)
 {
     webconfig_subdoc_data_t *data;
@@ -4149,7 +4238,17 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_LINK_QUALITY_FLAGS, bus_element_type_method,
                                     { wifi_get_link_quality_flags, wifi_set_link_quality_flags, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     {bus_data_type_uint32, false, 0, 0, 0, NULL } },
-                                { WIFI_IGNITE_STATUS, bus_element_type_event,
+                                
+				{ WIFI_ROGUEAP_MON_FREQ, bus_element_type_method,
+                                    { get_rogueap_freq, set_rogueap_freq, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+                                    { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+
+                         { WIFI_ROGUEAP_ENABLE_CHECK, bus_element_type_method,
+                                    { get_rogueap_status, set_rogueap_status, NULL, NULL, NULL,NULL }, slow_speed, ZERO_TABLE,
+                                    { bus_data_type_boolean, true, 0, 0, 0, NULL } },
+				
+				
+				{ WIFI_IGNITE_STATUS, bus_element_type_event,
                                     { NULL, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
     };

@@ -51,6 +51,7 @@ static int bus_check_and_subscribe_events(void* arg);
 static int sta_connectivity_selfheal(void* arg);
 static int run_greylist_event(void *arg);
 static int run_analytics_event(void* arg);
+static int rogueap_timer_handler(void* arg)
 
 static int switch_dfs_channel(void *arg);
 void start_wifi_sched_timer(unsigned int, struct wifi_ctrl *ctrl, wifi_scheduler_type_t type);
@@ -2313,8 +2314,8 @@ static int sta_connectivity_selfheal(void* arg)
         wifi_util_dbg_print(WIFI_CTRL,"%s %d Selfheal disabled during ignite mode\n", __func__, __LINE__);
         return TIMER_TASK_COMPLETE;
     }
-    vap_svc_t *ext_svc;
-    ext_svc = get_svc_by_type(ctrl, vap_svc_type_mesh_ext);
+        vap_svc_t *ext_svc;
+        ext_svc = get_svc_by_type(ctrl, vap_svc_type_mesh_ext);
     if (is_sta_enabled()) {
         // check sta connectivity selfheal
         sta_selfheal_handing(ctrl, ext_svc);
@@ -2331,6 +2332,91 @@ static int run_greylist_event(void *arg)
         wifi_util_dbg_print(WIFI_CTRL,"greylist_mac present\n");
         remove_xfinity_acl_entries(false,false);
     }
+    return TIMER_TASK_COMPLETE;
+}
+
+int process_scan_results(void *arg)
+{
+    wifi_bss_info_t *bss;
+    wifi_bss_info_t *tmp_bss;
+    unsigned int i, num = 0;
+    scan_results_t *results;
+    bss_candidate_t *scan_list;
+    unsigned int band = 0;
+    mac_addr_str_t bssid_str;
+    wifi_ctrl_t *ctrl;
+    ssid_t sta_ssid;
+
+    results = (scan_results_t *)arg;
+    bss = results->bss;
+    num = results->num;
+    tmp_bss = bss;
+
+    ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+
+    convert_radio_index_to_freq_band(ctrl->wifi_prop, results->radio_index, (int *)&band);
+
+    wifi_util_info_print(WIFI_CTRL, "%s:%d radio:%u, num of scan results:%d\n",
+        __FUNCTION__, __LINE__, results->radio_index, num);
+
+    scan_list = (bss_candidate_t *)malloc(num * sizeof(bss_candidate_t));
+    if (!scan_list) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to allocate scan_list\n", __FUNCTION__, __LINE__);
+        return 0;
+    }
+
+    for (i = 0; i < num; i++) {
+        memcpy(&scan_list[i].external_ap, &tmp_bss[i], sizeof(wifi_bss_info_t));
+        scan_list[i].conn_attempt = connection_attempt_wait;
+        scan_list[i].conn_retry_attempt = 0;
+        scan_list[i].radio_freq_band = band;
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, freq:%d\n",
+            __func__, __LINE__, tmp_bss[i].ssid, to_mac_str(tmp_bss[i].bssid, bssid_str), tmp_bss[i].rssi, tmp_bss[i].freq);
+        wifi_util_info_print(WIFI_CTRL, "%s:%d: AP with ssid:%s, bssid:%s, rssi:%d, freq:%d\n",
+            __func__, __LINE__, scan_list[i].external_ap.ssid, to_mac_str(scan_list[i].external_ap.bssid, bssid_str), scan_list[i].external_ap.rssi, scan_list[i].external_ap.freq);
+    }
+
+    free(scan_list);
+    return 0;
+}
+
+
+
+static int start_rogueap_scan()
+{
+    unsigned int radio_index;
+    ssid_t ssid;
+    wifi_channels_list_t channels;
+    wifi_radio_operationParam_t *radio_oper_param;
+    wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
+    INT num_channels;
+    INT channels_list[MAX_CHANNELS];
+    INT mode = WIFI_RADIO_SCAN_MODE_OFFCHAN;
+    int dwell_time = get_dwell_time();
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d dwell time:%d\n", __func__, __LINE__, dwell_time);
+    for (radio_index = 0; radio_index < getNumberRadios(); radio_index++) {
+        radio_oper_param = get_wifidb_radio_map(radio_index);
+        if (get_allowed_channels(radio_oper_param->band, &mgr->hal_cap.wifi_prop.radiocap[radio_index],
+                channels_list, &num_channels,
+                radio_oper_param->DfsEnabled) != RETURN_OK) {
+            continue;
+        }
+        (void)memcpy(channels.channels_list, channels_list,
+               sizeof(*channels_list) * num_channels);
+        channels.num_channels = num_channels;
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d start Scan on radio index %u\n", __func__, __LINE__,
+            radio_index);
+        wifi_hal_startScan(radio_index, mode, dwell_time, channels.num_channels,
+            channels.channels_list);
+    }
+}
+
+static int rogueap_timer_handler(void *arg)
+{
+    wifi_ctrl_t *ctrl = NULL;
+    ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    start_rogueap_scan();
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d Scan completed\n", __func__, __LINE__);
     return TIMER_TASK_COMPLETE;
 }
 
@@ -2385,6 +2471,9 @@ static void ctrl_queue_timeout_scheduler_tasks(wifi_ctrl_t *ctrl)
 #if defined (FEATURE_SUPPORT_ACL_SELFHEAL)
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, sync_wifi_hal_hotspot_vap_mac_entry, NULL, (HOTSPOT_VAP_MAC_FILTER_ENTRY_SYNC * 1000), 0, FALSE);
 #endif
+    if (ctrl->rogue_ap_status) {
+        scheduler_add_timer_task(ctrl->sched, FALSE, NULL, rogueap_timer_handler, NULL, (ctrl->rogue_ap_freq * 1000), 0, FALSE);
+    }
     wifi_util_dbg_print(WIFI_CTRL, "%s():%d Ctrl queue timeout tasks scheduled\n", __FUNCTION__, __LINE__);
 }
 

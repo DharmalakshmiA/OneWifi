@@ -1376,7 +1376,8 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
         } else {
             g_wifidb->global_config.global_parameters.ignite_link_quality_threshold = 0.0;
         }
-
+        g_wifidb->global_config.global_parameters.rogue_ap_enable = new_rec->rogue_ap_enable;
+        g_wifidb->global_config.global_parameters.rogue_ap_freq = new_rec->rogue_ap_freq;
         wifi_util_dbg_print(WIFI_DB,
             "%s:%d notify_wifi_changes %d prefer_private %d prefer_private_configure %d "
             "factory_reset %d tx_overflow_selfheal %d inst_wifi_client_enabled %d "
@@ -1393,7 +1394,7 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
             "normalized_rssi_list %s snr_list %s cli_stat_list %s txrx_rate_list %s "
             "mgt_frame_rate_limit_enable %d mgt_frame_rate_limit %d mgt_frame_window_size %d"
             "mgt_frame_cooldown_time %d rss_check_interval %d rss_threshold %d rss_maxlimit %d "
-            "heapwalk_duration %d heapwalk_interval %d ignite_link_quality_threshold %s\n",
+            "heapwalk_duration %d heapwalk_interval %d ignite_link_quality_threshold %s rogue_ap [%d %u]\n",
             __func__, __LINE__, new_rec->notify_wifi_changes, new_rec->prefer_private,
             new_rec->prefer_private_configure, new_rec->factory_reset,
             new_rec->tx_overflow_selfheal, new_rec->inst_wifi_client_enabled,
@@ -1414,7 +1415,7 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
             new_rec->mgt_frame_rate_limit_window_size, new_rec->mgt_frame_rate_limit_cooldown_time,
             new_rec->rss_check_interval, new_rec->rss_threshold, new_rec->rss_maxlimit,
             new_rec->heapwalk_duration, new_rec->heapwalk_interval,
-            new_rec->ignite_link_quality_threshold);
+            new_rec->ignite_link_quality_threshold, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq);
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     } else {
         wifi_util_dbg_print(WIFI_DB, "%s:%d:Unknown\n", __func__, __LINE__);
@@ -3382,6 +3383,8 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     cfg.diagnostic_enable = config->diagnostic_enable;
     cfg.validate_ssid = config->validate_ssid;
     cfg.device_network_mode = config->device_network_mode;
+    cfg.rogue_ap_enable = config->rogue_ap_enable;
+    cfg.rogue_ap_freq = config->rogue_ap_freq;
 
     strncpy(cfg.normalized_rssi_list,config->normalized_rssi_list,sizeof(cfg.normalized_rssi_list)-1);
     cfg.normalized_rssi_list[sizeof(cfg.normalized_rssi_list)-1] = '\0';
@@ -3425,7 +3428,7 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
         "mgt_frame_rate_limit_window_size %d mgt_frame_rate_limit_cooldown_time %d "
         "rss_check_interval %d rss_threshold %d rss_maxlimit %d "
         "heapwalk_duration %d heapwalk_interval %d "
-        "ignite_link_quality_threshold %f\n",
+        "ignite_link_quality_threshold %f Rogue AP enable %d  freq %u\n",
         __func__, __LINE__, config->notify_wifi_changes, config->prefer_private,
         config->prefer_private_configure, config->factory_reset, config->tx_overflow_selfheal,
         config->inst_wifi_client_enabled, config->inst_wifi_client_reporting_period,
@@ -3444,7 +3447,8 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
         config->mgt_frame_rate_limit_window_size, config->mgt_frame_rate_limit_cooldown_time,
         config->memwraptool.rss_check_interval, config->memwraptool.rss_threshold,
         config->memwraptool.rss_maxlimit, config->memwraptool.heapwalk_duration,
-        config->memwraptool.heapwalk_interval, config->ignite_link_quality_threshold);
+        config->memwraptool.heapwalk_interval, config->ignite_link_quality_threshold, 
+        config->rogue_ap_enable, config->rogue_ap_freq);
 
     if (wifidb_update_table_entry(NULL,NULL,OCLM_UUID,&table_Wifi_Global_Config,&cfg,filter_global) <= 0)
     {
@@ -7845,6 +7849,8 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.diagnostic_enable = false;
     cfg.validate_ssid = true;
     cfg.factory_reset = 0;
+    cfg.rogue_ap_enable = 0;
+    cfg.rogue_ap_freq = 30;
     strncpy(cfg.wps_pin, DEFAULT_WPS_PIN, sizeof(cfg.wps_pin)-1);
     memset(temp, '\0', sizeof(temp));
     memset(tempBuf, '\0', MAX_BUF_SIZE);
