@@ -2343,8 +2343,8 @@ int process_scan_results(void *arg)
     unsigned int band = 0;
     mac_addr_str_t bssid_str;
     wifi_ctrl_t *ctrl;
-    ssid_t sta_ssid;
 
+    wifi_mgr_t *g_wifidb = get_wifimgr_obj();
     results = (scan_results_t *)arg;
     bss = results->bss;
     num = results->num;
@@ -2352,7 +2352,7 @@ int process_scan_results(void *arg)
 
     ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
 
-    convert_radio_index_to_freq_band(ctrl->wifi_prop, results->radio_index, (int *)&band);
+    convert_radio_index_to_freq_band(&g_wifidb->hal_cap.wifi_prop, results->radio_index, (int *)&band);
 
     wifi_util_info_print(WIFI_CTRL, "%s:%d radio:%u, num of scan results:%d\n",
         __FUNCTION__, __LINE__, results->radio_index, num);
@@ -2380,10 +2380,9 @@ int process_scan_results(void *arg)
 
 
 
-static int start_rogueap_scan()
+static void start_rogueap_scan()
 {
     unsigned int radio_index;
-    ssid_t ssid;
     wifi_channels_list_t channels;
     wifi_radio_operationParam_t *radio_oper_param;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
