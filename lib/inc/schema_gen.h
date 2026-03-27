@@ -1653,6 +1653,8 @@
         PJS_OVS_INT(mgt_frame_rate_limit_window_size) \
         PJS_OVS_INT(mgt_frame_rate_limit_cooldown_time) \
         PJS_OVS_STRING(ignite_link_quality_threshold, 64 + 1) \
+        PJS_OVS_BOOL(rogue_ap_enable) \
+        PJS_OVS_INT(rogue_ap_freq) \
     )
 
 #define PJS_SCHEMA_Wifi_Preassoc_Control_Config \
@@ -3353,6 +3355,8 @@
     COLUMN(mgt_frame_rate_limit) \
     COLUMN(mgt_frame_rate_limit_window_size) \
     COLUMN(mgt_frame_rate_limit_cooldown_time) \
+    COLUMN(rogue_ap_enable) \
+    COLUMN(rogue_ap_freq) \
     COLUMN(ignite_link_quality_threshold) \
 
 #define SCHEMA__Wifi_Preassoc_Control_Config "Wifi_Preassoc_Control_Config"
@@ -4643,6 +4647,8 @@
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit "mgt_frame_rate_limit"
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit_window_size "mgt_frame_rate_limit_window_size"
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit_cooldown_time "mgt_frame_rate_limit_cooldown_time"
+#define SCHEMA__Wifi_Global_Config__rogue_ap_enable "rogue_ap_enable"
+#define SCHEMA__Wifi_Global_Config__rogue_ap_freq "rogue_ap_freq"
 #define SCHEMA__Wifi_Global_Config__ignite_link_quality_threshold "ignite_link_quality_threshold"
 
 #define SCHEMA__Wifi_Preassoc_Control_Config__rssi_up_threshold "rssi_up_threshold"

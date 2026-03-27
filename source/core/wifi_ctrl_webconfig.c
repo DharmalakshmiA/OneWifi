@@ -1238,6 +1238,9 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     mgr_param = mgr_global_config->global_parameters;
     data_param = data_config->global_parameters;
 
+    wifi_util_dbg_print(WIFI_CTRL,"%s:%d:Rogue config changes [Old] Rogue AP Enable:%d Freq:%u\n [New] Rogue AP Enable:%d Freq:%u\n", __func__, __LINE__, mgr_global_config->global_parameters.rogue_ap_enable, mgr_global_config->global_parameters.rogue_ap_freq, 
+		    data_param.rogue_ap_enable, data_param.rogue_ap_freq);
+
     if (memcmp(&mgr_param,&data_param, sizeof(wifi_global_param_t)) != 0) {
         wifi_util_dbg_print(WIFI_CTRL,"Global param changed\n");
         return true;
@@ -1703,6 +1706,7 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     global_param_changed = isglobalParamChanged(data_global_config);
     gas_config_changed = isgasConfigChanged(data_global_config);
 
+    wifi_util_info_print(WIFI_CTRL, "%s:%d: global_config_change:%d gas_config_change:%d\n", __func__, __LINE__, global_param_changed, gas_config_changed);
    /* If neither GasConfig nor Global params are modified */
     if(!global_param_changed && !gas_config_changed) {
         wifi_util_dbg_print(WIFI_CTRL,"Neither Gasconfig nor globalparams are modified");

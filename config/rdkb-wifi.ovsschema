@@ -2399,6 +2399,24 @@
             "max": 1
           }
         },
+        "rogue_ap_enable": {
+          "type": {
+            "key": {
+              "type": "boolean"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
+        "rogue_ap_freq": {
+          "type": {
+            "key": {
+              "type": "integer"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
         "ignite_link_quality_threshold": {
           "type": {
             "key": {
@@ -2409,6 +2427,7 @@
           }
         }
      },
+     
      "isRoot": true
     },
     "Wifi_Preassoc_Control_Config": {

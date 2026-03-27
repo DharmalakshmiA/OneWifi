@@ -844,7 +844,11 @@ webconfig_error_t encode_wifi_global_config(const wifi_global_param_t *global_in
 
     cJSON_AddNumberToObject(global_obj, "IgniteLinkQualityThreshold",
         global_info->ignite_link_quality_threshold);
+    
+    cJSON_AddBoolToObject(global_obj, "RogueAPEnable", global_info->rogue_ap_enable);
 
+    cJSON_AddNumberToObject(global_obj, "RogueAPFrequency", global_info->rogue_ap_freq);
+    
     return webconfig_error_none;
 }
 

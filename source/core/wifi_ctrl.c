@@ -2456,6 +2456,8 @@ static int pending_states_webconfig_analyzer(void *arg)
 
 static void ctrl_queue_timeout_scheduler_tasks(wifi_ctrl_t *ctrl)
 {
+    wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
+    wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue-AP-Enable:%d Rogue-AP-freq:%d\n", __func__, __LINE__, g_wifi_mgr->global_config.global_parameters.rogue_ap_enable, g_wifi_mgr->global_config.global_parameters.rogue_ap_freq); 
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, run_analytics_event, NULL, (ANAYLYTICS_PERIOD * 1000), 0, FALSE);
 #endif
@@ -2471,8 +2473,8 @@ static void ctrl_queue_timeout_scheduler_tasks(wifi_ctrl_t *ctrl)
 #if defined (FEATURE_SUPPORT_ACL_SELFHEAL)
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, sync_wifi_hal_hotspot_vap_mac_entry, NULL, (HOTSPOT_VAP_MAC_FILTER_ENTRY_SYNC * 1000), 0, FALSE);
 #endif
-    if (ctrl->rogue_ap_status) {
-        scheduler_add_timer_task(ctrl->sched, FALSE, NULL, rogueap_timer_handler, NULL, (ctrl->rogue_ap_freq * 1000), 0, FALSE);
+    if (g_wifi_mgr->global_config.global_parameters.rogue_ap_enable) {
+        scheduler_add_timer_task(ctrl->sched, FALSE, NULL, rogueap_timer_handler, NULL, (g_wifi_mgr->global_config.global_parameters.rogue_ap_enable * 1000), 0, FALSE);
     }
     wifi_util_dbg_print(WIFI_CTRL, "%s():%d Ctrl queue timeout tasks scheduled\n", __FUNCTION__, __LINE__);
 }

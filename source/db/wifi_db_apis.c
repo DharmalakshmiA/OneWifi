@@ -3601,6 +3601,8 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
         } else {
             config->ignite_link_quality_threshold = 0.0;
         }
+	config->rogue_ap_enable = pcfg->rogue_ap_enable;
+	config->rogue_ap_freq = pcfg->rogue_ap_freq;
 
         wifi_util_dbg_print(WIFI_DB,
             "%s:%d notify_wifi_changes %d prefer_private %d prefer_private_configure %d "
@@ -3619,7 +3621,7 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             "snr list %s txrx_rate_list %s cli_stat_list %s mgt_frame_rate_limit_enable %d"
             "mgt_frame_rate_limit %d mgt_frame_rate_limit_window_size %d "
             "mgt_frame_rate_limit_cooldown_time %d rss_check_interval %d rss_threshold %d "
-            "rss_maxlimit %d heapwalk_duration %d heapwalk_interval %d "
+            "rss_maxlimit %d heapwalk_duration %d heapwalk_interval %d Rogue AP enable:%d Freq:%u"
             "ignite_link_quality_threshold %f\n",
             __func__, __LINE__, config->notify_wifi_changes, config->prefer_private,
             config->prefer_private_configure, config->factory_reset, config->tx_overflow_selfheal,
@@ -3640,7 +3642,8 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             config->mgt_frame_rate_limit_window_size, config->mgt_frame_rate_limit_cooldown_time,
             config->memwraptool.rss_check_interval, config->memwraptool.rss_threshold,
             config->memwraptool.rss_maxlimit, config->memwraptool.heapwalk_duration,
-            config->memwraptool.heapwalk_interval, config->ignite_link_quality_threshold);
+            config->memwraptool.heapwalk_interval, config->rogue_ap_enable,
+	    config->rogue_ap_freq, config->ignite_link_quality_threshold);
     }
     free(pcfg);
     return 0;

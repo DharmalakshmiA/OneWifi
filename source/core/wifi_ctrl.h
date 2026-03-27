@@ -185,6 +185,7 @@ typedef struct {
     int  wifi_radio_sched_handler_id[MAX_NUM_RADIOS];
     int  wifi_vap_sched_handler_id[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];
     int  wifi_acs_sched_handler_id[MAX_NUM_RADIOS];
+    int  wifi_rogue_ap_sched_handler_id;
 } wifi_scheduler_id_t;
 
 typedef enum {
