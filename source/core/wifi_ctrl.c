@@ -51,8 +51,6 @@ static int bus_check_and_subscribe_events(void* arg);
 static int sta_connectivity_selfheal(void* arg);
 static int run_greylist_event(void *arg);
 static int run_analytics_event(void* arg);
-static int rogueap_timer_handler(void* arg)
-
 static int switch_dfs_channel(void *arg);
 void start_wifi_sched_timer(unsigned int, struct wifi_ctrl *ctrl, wifi_scheduler_type_t type);
 void deinit_wifi_ctrl(wifi_ctrl_t *ctrl)
@@ -2411,7 +2409,7 @@ static int start_rogueap_scan()
     }
 }
 
-static int rogueap_timer_handler(void *arg)
+int rogueap_timer_handler(void *arg)
 {
     wifi_ctrl_t *ctrl = NULL;
     ctrl = (wifi_ctrl_t *)get_wifictrl_obj();

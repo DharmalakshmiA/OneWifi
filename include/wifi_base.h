@@ -91,6 +91,8 @@ extern "C" {
 #define WIFI_LINK_QUALITY_DATA      "Device.WiFi.LinkQualityData"
 #define WIFI_LINK_QUALITY_FLAGS     "Device.WiFi.LinkQualityFlags"
 #define WIFI_IGNITE_STATUS "Device.WiFi.EndPoint.1.LinkQualityStatus"
+#define WIFI_ROGUEAP_ENABLE_CHECK "Device.WiFi.RogueAP.Enable"
+#define WIFI_ROGUEAP_MON_FREQ "Device.WiFi.RogueAP.MonitoringFrequency"
 
 #ifndef MAX_NUM_MLD_LINKS
 #define MAX_NUM_MLD_LINKS 15
