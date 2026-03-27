@@ -2342,15 +2342,12 @@ int process_scan_results(void *arg)
     bss_candidate_t *scan_list;
     unsigned int band = 0;
     mac_addr_str_t bssid_str;
-    wifi_ctrl_t *ctrl;
 
     wifi_mgr_t *g_wifidb = get_wifimgr_obj();
     results = (scan_results_t *)arg;
     bss = results->bss;
     num = results->num;
     tmp_bss = bss;
-
-    ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
 
     convert_radio_index_to_freq_band(&g_wifidb->hal_cap.wifi_prop, results->radio_index, (int *)&band);
 
@@ -2410,8 +2407,6 @@ static void start_rogueap_scan()
 
 int rogueap_timer_handler(void *arg)
 {
-    wifi_ctrl_t *ctrl = NULL;
-    ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     start_rogueap_scan();
     wifi_util_dbg_print(WIFI_CTRL, "%s:%d Scan completed\n", __func__, __LINE__);
     return TIMER_TASK_COMPLETE;
