@@ -2613,7 +2613,7 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     decode_param_bool(global_cfg, "RogueAPEnable", param);
     global_info->rogue_ap_enable = (param->type & cJSON_True) ? true:false;
 
-    decode_param_integer(global_cfg, “RogueAPFrequency”, param);
+    decode_param_integer(global_cfg, "RogueAPFrequency", param);
     global_info->rogue_ap_freq = param->valuedouble;
 
     param = cJSON_GetObjectItem(global_cfg, "IgniteLinkQualityThreshold");
