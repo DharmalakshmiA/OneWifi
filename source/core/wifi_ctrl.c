@@ -2466,7 +2466,7 @@ static void ctrl_queue_timeout_scheduler_tasks(wifi_ctrl_t *ctrl)
     scheduler_add_timer_task(ctrl->sched, FALSE, NULL, sync_wifi_hal_hotspot_vap_mac_entry, NULL, (HOTSPOT_VAP_MAC_FILTER_ENTRY_SYNC * 1000), 0, FALSE);
 #endif
     if (g_wifi_mgr->global_config.global_parameters.rogue_ap_enable) {
-        scheduler_add_timer_task(ctrl->sched, FALSE, NULL, rogueap_timer_handler, NULL, (g_wifi_mgr->global_config.global_parameters.rogue_ap_enable * 1000), 0, FALSE);
+        scheduler_add_timer_task(ctrl->sched, FALSE, NULL, rogueap_timer_handler, NULL, (g_wifi_mgr->global_config.global_parameters.rogue_ap_freq * 1000), 0, FALSE);        wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue-scheduler-id:%d\n", __func__, __LINE__, ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id);
     }
     wifi_util_dbg_print(WIFI_CTRL, "%s():%d Ctrl queue timeout tasks scheduled\n", __FUNCTION__, __LINE__);
 }
