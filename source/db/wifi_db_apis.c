@@ -90,6 +90,7 @@
 #define ONEWIFI_DB_VERSION_WPA3_T_DISABLE_FLAG 100043
 #define ONEWIFI_DB_VERSION_UPDATE_MULTI_MLD_UNIT_FLAG 100044
 #define ONEWIFI_DB_VERSION_IGNITE_FLAG 100045
+#define ONEWIFI_DB_VERSION_ROGUE_AP_FLAG 100046
 
 #define IGNITE_MIN_CHUTIL_THRESHOLD  50
 #define IGNITE_MAX_CHUTIL_THRESHOLD 100
@@ -4961,6 +4962,14 @@ static void wifidb_global_config_upgrade()
         g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval =
             DEFAULT_HEAPWALK_INTERVAL;
         g_wifidb->global_config.global_parameters.memwraptool.enable = true;
+    }
+
+    if (g_wifidb->db_version < ONEWIFI_DB_VERSION_ROGUE_AP_FLAG) {
+        wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__,
+            __LINE__, g_wifidb->db_version);
+	g_wifidb->global_config.global_parameters.rogue_ap_enable = 0;
+	g_wifidb->global_config.global_parameters.rogue_ap_freq = 30;
+    
     }
 }
 
