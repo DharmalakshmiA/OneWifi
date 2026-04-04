@@ -1230,6 +1230,21 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
     return RETURN_OK;
 }
 
+bool isrogueconfigchanged(wifi_global_config_t *data_config)
+{
+    wifi_global_config_t  *mgr_global_config;
+    mgr_global_config = get_wifidb_wifi_global_config();
+    wifi_RogueConfig_t mgr_rogueConfig, data_rogueConfig;
+    mgr_rogueConfig = mgr_global_config->rogue_config;
+    data_rogueconfig = data_config->rogue_config;
+    wifi_util_dbg_print(WIFI_CTRL, "[OLD] Rogue-data:%d %u [NEW] Rogue-data:%d %u\n", mgr_rogueConfig.rogue_ap_enable, mgr_rogueConfig.rogue_ap_freq, data_rogueconfig.rogue_ap_enable, data_rogueconfig.rogue_ap_freq); 
+    if (memcmp(&mgr_rogueconfig,&data_rogueconfig,sizeof(wifi_RogueConfig_t)) != 0) {
+        wifi_util_dbg_print(WIFI_CTRL,"Rogue Config param changed\n");
+        return true;
+    }
+    return false;
+}
+
 bool isgasConfigChanged(wifi_global_config_t *data_config)
 {
     wifi_global_config_t  *mgr_global_config;
@@ -1252,9 +1267,6 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     wifi_global_param_t mgr_param, data_param;
     mgr_param = mgr_global_config->global_parameters;
     data_param = data_config->global_parameters;
-
-    wifi_util_dbg_print(WIFI_CTRL,"%s:%d:Rogue config changes [Old] Rogue AP Enable:%d Freq:%u\n [New] Rogue AP Enable:%d Freq:%u\n", __func__, __LINE__, mgr_global_config->global_parameters.rogue_ap_enable, mgr_global_config->global_parameters.rogue_ap_freq, 
-		    data_param.rogue_ap_enable, data_param.rogue_ap_freq);
 
     if (memcmp(&mgr_param,&data_param, sizeof(wifi_global_param_t)) != 0) {
         wifi_util_dbg_print(WIFI_CTRL,"Global param changed\n");
@@ -1718,12 +1730,14 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     data_global_config = &data->config;
     bool global_param_changed = false;
     bool gas_config_changed = false;
+    bool rogue_config_changed = false;
     global_param_changed = isglobalParamChanged(data_global_config);
     gas_config_changed = isgasConfigChanged(data_global_config);
+    rogue_config_changed = isrogueconfigchanged(data_global_config);
 
     wifi_util_info_print(WIFI_CTRL, "%s:%d: global_config_change:%d gas_config_change:%d\n", __func__, __LINE__, global_param_changed, gas_config_changed);
    /* If neither GasConfig nor Global params are modified */
-    if(!global_param_changed && !gas_config_changed) {
+    if(!global_param_changed && !gas_config_changed && !rogue_config_changed) {
         wifi_util_dbg_print(WIFI_CTRL,"Neither Gasconfig nor globalparams are modified");
         return RETURN_ERR;
     }
@@ -1770,6 +1784,14 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
             wifi_util_dbg_print(WIFI_CTRL,"Gas config value is not updated in DB\n");
             return RETURN_ERR;
         }
+    }
+
+    if (rogue_config_changed) {
+        wifi_util_dbg_print(WIFI_CTRL,"Rogue config changed\n");
+	if(update_wifi_rogue_config(data_global_config->rogue_config) == -1) {
+	    wifi_util_dbg_print(WIFI_CTRL,"Failed to update rogue config\n");
+	    return RETURN_ERR;
+	}
     }
     return RETURN_OK;
 }

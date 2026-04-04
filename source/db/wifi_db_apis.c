@@ -1378,8 +1378,8 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
         } else {
             g_wifidb->global_config.global_parameters.ignite_link_quality_threshold = 0.0;
         }
-        g_wifidb->global_config.global_parameters.rogue_ap_enable = new_rec->rogue_ap_enable;
-        g_wifidb->global_config.global_parameters.rogue_ap_freq = new_rec->rogue_ap_freq;
+        g_wifidb->global_config.rogue_config.rogue_ap_enable = new_rec->rogue_ap_enable;
+        g_wifidb->global_config.rogue_config.rogue_ap_freq = new_rec->rogue_ap_freq;
         wifi_util_dbg_print(WIFI_DB,
             "%s:%d notify_wifi_changes %d prefer_private %d prefer_private_configure %d "
             "factory_reset %d tx_overflow_selfheal %d inst_wifi_client_enabled %d "
@@ -3333,6 +3333,23 @@ int wifidb_update_ignite_config(ignite_config_t *ignite_cfg)
     return 0;
 }
 
+int wifidb_update_wifi_rogue_config(wifi_RogueConfig_t *config)
+{
+    struct schema_Wifi_Global_Config cfg;
+    char *filter_global[] = {"-",SCHEMA_COLUMN(Wifi_Global_Config,gas_config),NULL};
+    char str[BUFFER_LENGTH_WIFIDB] = {0};
+    memset(&cfg,0,sizeof(cfg));
+    if(config == NULL)
+    {
+        wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Global Config table \n",__func__, __LINE__);
+        return -1;
+    }
+    cfg.rogue_ap_enable = config->rogue_ap_enable;
+    cfg.rogue_ap_freq = config->rogue_ap_freq;
+    wifi_util_error_print(WIFI_CTRL, "%s:%d RogueAP [%d %u]\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq);
+    return 0;
+}
+
 /************************************************************************************
  ************************************************************************************
   Function    : wifidb_update_wifi_global_config
@@ -3509,7 +3526,24 @@ int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
     return 0;
 }
 
+int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
+{
+    struct schema_Wifi_Global_Config *pcfg = NULL;
 
+    pcfg = (struct schema_Wifi_Global_Config  *) wifidb_get_table_entry(NULL, NULL,&table_Wifi_Global_Config,OCLM_UUID);
+    if (pcfg == NULL)
+    {
+        wifidb_print("%s:%d Table table_Wifi_Global_Config not found \n",__func__, __LINE__);
+        return -1;
+    }
+    else
+    {
+	   config->rogue_ap_enable = pcfg->rogue_ap_enable;
+	   config->rogue_ap_freq = pcfg->rogue_ap_freq;
+    }
+    wifi_util_dbg_print(WIFI_DB, "Rogue AP enable:%d Freq:%u\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq);
+    return 0;
+}
 /************************************************************************************
  ************************************************************************************
   Function    : wifidb_get_wifi_global_config
@@ -3610,8 +3644,6 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
         } else {
             config->ignite_link_quality_threshold = 0.0;
         }
-	config->rogue_ap_enable = pcfg->rogue_ap_enable;
-	config->rogue_ap_freq = pcfg->rogue_ap_freq;
 
         wifi_util_dbg_print(WIFI_DB,
             "%s:%d notify_wifi_changes %d prefer_private %d prefer_private_configure %d "
@@ -3630,7 +3662,7 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             "snr list %s txrx_rate_list %s cli_stat_list %s mgt_frame_rate_limit_enable %d"
             "mgt_frame_rate_limit %d mgt_frame_rate_limit_window_size %d "
             "mgt_frame_rate_limit_cooldown_time %d rss_check_interval %d rss_threshold %d "
-            "rss_maxlimit %d heapwalk_duration %d heapwalk_interval %d Rogue AP enable:%d Freq:%u"
+            "rss_maxlimit %d heapwalk_duration %d heapwalk_interval %d "
             "ignite_link_quality_threshold %f\n",
             __func__, __LINE__, config->notify_wifi_changes, config->prefer_private,
             config->prefer_private_configure, config->factory_reset, config->tx_overflow_selfheal,
@@ -3651,8 +3683,7 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             config->mgt_frame_rate_limit_window_size, config->mgt_frame_rate_limit_cooldown_time,
             config->memwraptool.rss_check_interval, config->memwraptool.rss_threshold,
             config->memwraptool.rss_maxlimit, config->memwraptool.heapwalk_duration,
-            config->memwraptool.heapwalk_interval, config->rogue_ap_enable,
-	    config->rogue_ap_freq, config->ignite_link_quality_threshold);
+            config->memwraptool.heapwalk_interval, config->ignite_link_quality_threshold);
     }
     free(pcfg);
     return 0;
@@ -4772,6 +4803,20 @@ int wifidb_init_postassoc_conn_ctrl_config_default(int vapIndex, wifi_postassoc_
 
     return 0;
 }
+void wifidb_init_rogue_config_default(wifi_RogueConfig_t *config)
+{
+      wifi_RogueConfig_t rogue_config;
+      wifi_mgr_t *g_wifidb;
+      g_wifidb = get_wifimgr_obj();
+
+      rogue_config.rogue_ap_enable = 0;
+      rogue_config.rogue_ap_freq = 30;
+
+      wifi_util_dbg_print(WIFI_DB, "[%s %d] Rogue AP Details : %d %u\n", __func__, __LINE__, rogue_config.rogue_ap_enable, rogue_config.rogue_ap_freq);
+      pthread_mutex_lock(&g_wifidb->data_cache_lock);
+      memcpy(config, &rogue_config, sizeof(wifi_RogueConfig_t));
+      pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+}
 
 /************************************************************************************
  ************************************************************************************
@@ -4975,8 +5020,8 @@ static void wifidb_global_config_upgrade()
     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_ROGUE_AP_FLAG) {
         wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__,
             __LINE__, g_wifidb->db_version);
-	g_wifidb->global_config.global_parameters.rogue_ap_enable = 0;
-	g_wifidb->global_config.global_parameters.rogue_ap_freq = 30;
+	g_wifidb->global_config.rogue_config.rogue_ap_enable = 0;
+	g_wifidb->global_config.rogue_config.rogue_ap_freq = 30;
     
     }
 }
@@ -7071,6 +7116,26 @@ int update_wifi_global_config(wifi_global_param_t *config)
     return -1;
 }
 
+int update_wifi_rogue_config(wifi_RogueConfig_t *config)
+{
+    int ret = 0;
+
+    if(config == NULL)
+    {
+        wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Rogue Config - Null pointer \n",__func__, __LINE__);
+        return -1;
+    }
+    ret = wifidb_update_wifi_rogue_config(config);
+    if(ret == 0)
+    {
+        wifidb_print("%s:%d Updated WIFI DB. Rogue Config table updated successful. \n",__func__, __LINE__);
+        return 0;
+    }
+    wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Rogue Config\n",__func__, __LINE__);
+    return -1;
+}
+
+
 /************************************************************************************
  ************************************************************************************
   Function    : update_wifi_vap_info
@@ -7969,8 +8034,6 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.diagnostic_enable = false;
     cfg.validate_ssid = true;
     cfg.factory_reset = 0;
-    cfg.rogue_ap_enable = 0;
-    cfg.rogue_ap_freq = 30;
     strncpy(cfg.wps_pin, DEFAULT_WPS_PIN, sizeof(cfg.wps_pin)-1);
     memset(temp, '\0', sizeof(temp));
     memset(tempBuf, '\0', MAX_BUF_SIZE);
@@ -8151,6 +8214,7 @@ void wifidb_init_default_value()
     wifidb_init_global_config_default(&g_wifidb->global_config.global_parameters);
     wifidb_reset_macfilter_hashmap();
     wifidb_init_gas_config_default(&g_wifidb->global_config.gas_config);
+    wifidb_init_rogue_config_default(&g_wifidb->global_config.rogue_config);
     wifidb_init_rfc_config_default(&g_wifidb->rfc_dml_parameters);
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi db update completed\n",__func__, __LINE__);
 
@@ -8358,7 +8422,8 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
-        pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+        wifidb_update_rogue_config(&g_wifidb->global_config.rogue_config);
+	pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
         create_onewifi_fr_wifidb_reset_done_flag();
         wifi_util_info_print(WIFI_DB,"%s:%d FactoryReset done. wifidb updated with default values.\n",__func__, __LINE__);
@@ -8469,7 +8534,8 @@ void init_wifidb_data()
         wifidb_get_wifi_macfilter_config();
         wifidb_get_wifi_global_config(&g_wifidb->global_config.global_parameters);
         wifidb_get_gas_config(g_wifidb->global_config.gas_config.AdvertisementID,&g_wifidb->global_config.gas_config);
-        if (country_code[0] != 0) {
+        wifidb_get_rogue_config(g_wifidb->global_config.rogue_config);
+	if (country_code[0] != 0) {
             if (strcmp(country_code, g_wifidb->global_config.global_parameters.wifi_region_code) != 0) {
                 strncpy(g_wifidb->global_config.global_parameters.wifi_region_code, country_code, sizeof(g_wifidb->global_config.global_parameters.wifi_region_code));
             }
@@ -8480,6 +8546,12 @@ void init_wifidb_data()
             pthread_mutex_unlock(&g_wifidb->data_cache_lock);
             return;
         }
+
+	if (wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config) != RETURN_OK) {
+	    wifi_util_error_print(WIFI_DB,"%s:%d error in updating rogue config\n", __func__,__LINE__);
+	    pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+	    return;
+	}
 #if defined(CONFIG_IEEE80211BE) && !defined(CONFIG_GENERIC_MLO)
         wifidb_vap_config_update_mld_mac();
 #endif // CONFIG_IEEE80211BE && !CONFIG_GENERIC_MLO

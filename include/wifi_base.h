@@ -613,8 +613,6 @@ typedef struct {
     int mgt_frame_rate_limit_window_size;
     int mgt_frame_rate_limit_cooldown_time;
     double ignite_link_quality_threshold;
-    bool rogue_ap_enable;
-    uint32_t rogue_ap_freq;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {
@@ -724,6 +722,7 @@ typedef struct {
 
 typedef struct {
     wifi_GASConfiguration_t gas_config;
+    wifi_RogueConfig_t rogue_config;
     wifi_global_param_t global_parameters;
 } __attribute__((packed)) wifi_global_config_t;
 
