@@ -8428,7 +8428,7 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
-        wifidb_update_rogue_config(&g_wifidb->global_config.rogue_config);
+        wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config);
 	pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
         create_onewifi_fr_wifidb_reset_done_flag();
