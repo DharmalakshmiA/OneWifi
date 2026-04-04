@@ -226,9 +226,9 @@ bus_error_t get_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *us
         wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
         return bus_error_general;
     }
-    p_data->data_type = bus_data_type_uint8;
-    p_data->raw_data.u8 = g_wifi_mgr->global_config.global_parameters.rogue_ap_freq;
-    p_data->raw_data_len = sizeof(uint8_t);
+    p_data->data_type = bus_data_type_uint32;
+    p_data->raw_data.u32 = g_wifi_mgr->global_config.global_parameters.rogue_ap_freq;
+    p_data->raw_data_len = sizeof(uint32_t);
     wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue AP Frequency %u\n", __func__, __LINE__, g_wifi_mgr->global_config.global_parameters.rogue_ap_freq);
     return rc;
 }
@@ -237,7 +237,7 @@ bus_error_t set_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *us
 {
     (void)user_data;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    uint8_t rogue_freq = 0;
+    uint32_t rogue_freq = 0;
     webconfig_subdoc_data_t *data = NULL;
 
     /*wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
@@ -251,7 +251,9 @@ bus_error_t set_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *us
         wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue freq must be 15 or 30 or 60\n", __func__, __LINE__);
     }*/
     
-    rogue_freq = p_data->raw_data.u8;
+    rogue_freq = p_data->raw_data.u32;
+    wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue AP frequency:%u\n", __func__, __LINE__, rogue_freq);
+
     data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
     if (data == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d malloc failed\n", __func__, __LINE__);
@@ -273,7 +275,7 @@ bus_error_t set_rogueap_freq(char *name, raw_data_t *p_data, bus_user_data_t *us
         wifi_event_type_webconfig, wifi_event_webconfig_set_data_webconfig, NULL);
     
     if (ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id != 0) {
-    	scheduler_update_timer_task_interval(ctrl->sched, ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id, rogue_freq*1000); 
+    	scheduler_update_timer_task_interval(ctrl->sched, ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id, rogue_freq*60*1000); 
     }
     wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue AP Frequency %u\n", __func__, __LINE__, rogue_freq);
 
@@ -305,7 +307,7 @@ void start_rogueap_detection(bool rogue_ap_status) {
 	if (rogue_ap_status) {
 		wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue-scheduler-id:%d\n", __func__, __LINE__, ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id);
 		if (ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id == 0) { 
-			scheduler_add_timer_task(ctrl->sched, FALSE, &ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id, rogueap_timer_handler, NULL, (g_wifi_mgr->global_config.global_parameters.rogue_ap_freq * 1000), 0, FALSE);
+			scheduler_add_timer_task(ctrl->sched, FALSE, &ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id, rogueap_timer_handler, NULL, (g_wifi_mgr->global_config.global_parameters.rogue_ap_freq * 60 * 1000), 0, FALSE);
 			wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue-scheduler-id:%d\n", __func__, __LINE__, ctrl->wifi_sched_id.wifi_rogue_ap_sched_handler_id);
 		}
 	} else {
