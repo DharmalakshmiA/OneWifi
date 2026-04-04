@@ -845,11 +845,15 @@ webconfig_error_t encode_wifi_global_config(const wifi_global_param_t *global_in
     cJSON_AddNumberToObject(global_obj, "IgniteLinkQualityThreshold",
         global_info->ignite_link_quality_threshold);
     
-    cJSON_AddBoolToObject(global_obj, "RogueAPEnable", global_info->rogue_ap_enable);
-
-    cJSON_AddNumberToObject(global_obj, "RogueAPFrequency", global_info->rogue_ap_freq);
-    
     return webconfig_error_none;
+}
+webconfig_error_t encode_rogue_config(const wifi_RogueConfig_t *rogue_info,  cJSON *rogue_obj) 
+{
+
+    cJSON_AddBoolToObject(rogue_obj, "RogueAPEnable", rogue_info->rogue_ap_enable);
+
+    cJSON_AddNumberToObject(rogue_obj, "RogueAPFrequency", rogue_info->rogue_ap_freq);
+    return webconfig_error_none;    
 }
 
 webconfig_error_t encode_config_object(const wifi_global_config_t *config_info, cJSON *config_obj)
@@ -867,6 +871,11 @@ webconfig_error_t encode_config_object(const wifi_global_config_t *config_info, 
 
     if (encode_wifi_global_config(&config_info->global_parameters, config_obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode wifi global config\n", __func__, __LINE__);
+        return webconfig_error_encode;
+    }
+
+    if (encode_rogue_config(&config_info->rogue_config, obj) != webconfig_error_none) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode gas config\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
 
@@ -3503,5 +3512,4 @@ webconfig_error_t encode_em_ap_metrics_report_object(rdk_wifi_radio_t *radio,
     }
     return webconfig_error_none;
 }
-
 #endif

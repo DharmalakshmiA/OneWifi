@@ -2614,20 +2614,25 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     decode_param_string(global_cfg, "TxRxRateList", param);
     snprintf(global_info->txrx_rate_list, sizeof(global_info->txrx_rate_list), "%s", param->valuestring);
 #endif
-
-    decode_param_bool(global_cfg, "RogueAPEnable", param);
-    global_info->rogue_ap_enable = (param->type & cJSON_True) ? true:false;
-
-    decode_param_integer(global_cfg, "RogueAPFrequency", param);
-    global_info->rogue_ap_freq = param->valuedouble;
-
     param = cJSON_GetObjectItem(global_cfg, "IgniteLinkQualityThreshold");
     if (param != NULL && cJSON_IsNumber(param)) {
         global_info->ignite_link_quality_threshold = param->valuedouble;
     }
 
-
     wifi_util_dbg_print(WIFI_WEBCONFIG,"wifi global Parameters decode successfully\n");
+    return webconfig_error_none;
+}
+
+webconfig_error_t decode_rogue_config(const cJSON *rogue_cfg, wifi_RogueConfig_t *rogue_info)
+{
+    const cJSON  *param;
+
+    decode_param_bool(rogue_cfg, "RogueAPEnable", param);
+    rogue_info->rogue_ap_enable = (param->type & cJSON_True) ? true:false;
+
+    decode_param_integer(rogue_cfg, "RogueAPFrequency", param);
+    rogue_info->rogue_ap_freq = param->valuedouble;
+
     return webconfig_error_none;
 }
 
@@ -3384,6 +3389,12 @@ webconfig_error_t decode_config_object(const cJSON *wifi, wifi_global_config_t *
     ret = decode_wifi_global_config(wifi, &wifi_info->global_parameters);
     if(ret != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s %d  Validation of wifi global Configuration Failed\n",__FUNCTION__, __LINE__);
+        return webconfig_error_decode;
+    }
+
+    ret = decode_wifi_rogue_config(wifi, &wifi_info->rogue_config);
+    if(ret != webconfig_error_none) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s %d  Validation of wifi rogue Configuration Failed\n",__FUNCTION__, __LINE__);
         return webconfig_error_decode;
     }
 
