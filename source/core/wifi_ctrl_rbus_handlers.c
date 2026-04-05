@@ -362,6 +362,7 @@ bus_error_t set_rogueap_status(char *name, raw_data_t *p_data, bus_user_data_t *
 
     wifi_util_info_print(WIFI_CTRL, "%s:%d Rogue AP Status : %d\n", __func__, __LINE__, rogue_ap_status);
     start_rogueap_detection(rogue_ap_status);
+    wifi_hal_set_rogueap_status(rogue_ap_status);
     webconfig_data_free(data);
     free(data);
 

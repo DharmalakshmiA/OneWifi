@@ -874,7 +874,7 @@ webconfig_error_t encode_config_object(const wifi_global_config_t *config_info, 
         return webconfig_error_encode;
     }
 
-    if (encode_rogue_config(&config_info->rogue_config, obj) != webconfig_error_none) {
+    if (encode_rogue_config(&config_info->rogue_config, config_obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode gas config\n", __func__, __LINE__);
         return webconfig_error_encode;
     }

@@ -2633,6 +2633,7 @@ webconfig_error_t decode_rogue_config(const cJSON *rogue_cfg, wifi_RogueConfig_t
     decode_param_integer(rogue_cfg, "RogueAPFrequency", param);
     rogue_info->rogue_ap_freq = param->valuedouble;
 
+    wifi_util_dbg_print(WIFI_WEBCONFIG,"Rogue Params %d %u decoded successfully\n", rogue_info->rogue_ap_enable, rogue_info->rogue_ap_freq);
     return webconfig_error_none;
 }
 
@@ -3392,7 +3393,7 @@ webconfig_error_t decode_config_object(const cJSON *wifi, wifi_global_config_t *
         return webconfig_error_decode;
     }
 
-    ret = decode_wifi_rogue_config(wifi, &wifi_info->rogue_config);
+    ret = decode_rogue_config(wifi, &wifi_info->rogue_config);
     if(ret != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s %d  Validation of wifi rogue Configuration Failed\n",__FUNCTION__, __LINE__);
         return webconfig_error_decode;
