@@ -1260,17 +1260,200 @@ bool isgasConfigChanged(wifi_global_config_t *data_config)
     return false;
 }
 
+void print_wifi_global_param(const char *tag, wifi_global_param_t *p)
+{
+    wifi_util_dbg_print(WIFI_CTRL,
+        "%s:\n"
+        " notify_wifi_changes=%d\n"
+        " prefer_private=%d\n"
+        " prefer_private_configure=%d\n"
+        " factory_reset=%d\n"
+        " tx_overflow_selfheal=%d\n"
+        " inst_wifi_client_enabled=%d\n"
+        " inst_wifi_client_reporting_period=%d\n"
+        " inst_wifi_client_def_reporting_period=%d\n"
+        " wifi_active_msmt_enabled=%d\n"
+        " wifi_active_msmt_pktsize=%d\n"
+        " wifi_active_msmt_num_samples=%d\n"
+        " wifi_active_msmt_sample_duration=%d\n"
+        " vlan_cfg_version=%d\n"
+        " wps_pin=%s\n"
+        " bandsteering_enable=%d\n"
+        " good_rssi_threshold=%d\n"
+        " assoc_count_threshold=%d\n"
+        " assoc_gate_time=%d\n"
+        " whix_log_interval=%d\n"
+        " whix_chutility_loginterval=%d\n"
+        " assoc_monitor_duration=%d\n"
+        " rapid_reconnect_enable=%d\n"
+        " vap_stats_feature=%d\n"
+        " mfp_config_feature=%d\n"
+        " force_disable_radio_feature=%d\n"
+        " force_disable_radio_status=%d\n"
+        " fixed_wmm_params=%d\n"
+        " wifi_region_code=%s\n"
+        " diagnostic_enable=%d\n"
+        " validate_ssid=%d\n"
+        " device_network_mode=%d\n"
+        " normalized_rssi_list=%s\n"
+        " cli_stat_list=%s\n"
+        " snr_list=%s\n"
+        " txrx_rate_list=%s\n"
+        " mgt_frame_rate_limit_enable=%d\n"
+        " mgt_frame_rate_limit=%d\n"
+        " mgt_frame_rate_limit_window_size=%d\n"
+        " mgt_frame_rate_limit_cooldown_time=%d\n"
+        " ignite_link_quality_threshold=%f\n",
+        tag,
+        p->notify_wifi_changes,
+        p->prefer_private,
+        p->prefer_private_configure,
+        p->factory_reset,
+        p->tx_overflow_selfheal,
+        p->inst_wifi_client_enabled,
+        p->inst_wifi_client_reporting_period,
+        p->inst_wifi_client_def_reporting_period,
+        p->wifi_active_msmt_enabled,
+        p->wifi_active_msmt_pktsize,
+        p->wifi_active_msmt_num_samples,
+        p->wifi_active_msmt_sample_duration,
+        p->vlan_cfg_version,
+        p->wps_pin,
+        p->bandsteering_enable,
+        p->good_rssi_threshold,
+        p->assoc_count_threshold,
+        p->assoc_gate_time,
+        p->whix_log_interval,
+        p->whix_chutility_loginterval,
+        p->assoc_monitor_duration,
+        p->rapid_reconnect_enable,
+        p->vap_stats_feature,
+        p->mfp_config_feature,
+        p->force_disable_radio_feature,
+        p->force_disable_radio_status,
+        p->fixed_wmm_params,
+        p->wifi_region_code,
+        p->diagnostic_enable,
+        p->validate_ssid,
+        p->device_network_mode,
+        p->normalized_rssi_list,
+        p->cli_stat_list,
+        p->snr_list,
+        p->txrx_rate_list,
+        p->mgt_frame_rate_limit_enable,
+        p->mgt_frame_rate_limit,
+        p->mgt_frame_rate_limit_window_size,
+        p->mgt_frame_rate_limit_cooldown_time,
+        p->ignite_link_quality_threshold
+    );
+}
+
+#define DIFF_BOOL(field) \
+    if (mgr->field != data->field) { \
+        wifi_util_dbg_print(WIFI_CTRL, \
+        #field " changed: %d -> %d\n", mgr->field, data->field); \
+        changed = true; \
+    }
+
+#define DIFF_INT(field) \
+    if (mgr->field != data->field) { \
+        wifi_util_dbg_print(WIFI_CTRL, \
+        #field " changed: %d -> %d\n", mgr->field, data->field); \
+        changed = true; \
+    }
+
+#define DIFF_ULONG(field) \
+    if (mgr->field != data->field) { \
+        wifi_util_dbg_print(WIFI_CTRL, \
+        #field " changed: %lu -> %lu\n", mgr->field, data->field); \
+        changed = true; \
+    }
+
+#define DIFF_STR(field) \
+    if (strncmp(mgr->field, data->field, sizeof(mgr->field)) != 0) { \
+        wifi_util_dbg_print(WIFI_CTRL, \
+        #field " changed: %s -> %s\n", mgr->field, data->field); \
+        changed = true; \
+    }
+
+#define DIFF_DOUBLE(field) \
+    if (mgr->field != data->field) { \
+        wifi_util_dbg_print(WIFI_CTRL, \
+        #field " changed: %f -> %f\n", mgr->field, data->field); \
+        changed = true; \
+    }
+
 bool isglobalParamChanged(wifi_global_config_t *data_config)
 {
     wifi_global_config_t  *mgr_global_config;
     mgr_global_config = get_wifidb_wifi_global_config();
-    wifi_global_param_t mgr_param, data_param;
-    mgr_param = mgr_global_config->global_parameters;
-    data_param = data_config->global_parameters;
+    wifi_global_param_t *mgr_param, *data_param;
+    bool changed = false;
+    mgr_param = &mgr_global_config->global_parameters;
+    data_param = &data_config->global_parameters;
+    print_wifi_global_param("OLD", mgr_param);
+    print_wifi_global_param("NEW", data_param);
+    if (memcmp(mgr_param,data_param, sizeof(wifi_global_param_t)) != 0) {
+	    wifi_util_dbg_print(WIFI_CTRL, "Global config change w.r.to memcmp\n");
+	    DIFF_BOOL(notify_wifi_changes);
+	    DIFF_BOOL(prefer_private);
+	    DIFF_BOOL(prefer_private_configure);
+	    DIFF_BOOL(factory_reset);
+	    DIFF_BOOL(tx_overflow_selfheal);
+	    DIFF_BOOL(inst_wifi_client_enabled);
 
-    if (memcmp(&mgr_param,&data_param, sizeof(wifi_global_param_t)) != 0) {
-        wifi_util_dbg_print(WIFI_CTRL,"Global param changed\n");
-        return true;
+	    DIFF_INT(inst_wifi_client_reporting_period);
+	    DIFF_INT(inst_wifi_client_def_reporting_period);
+
+	    DIFF_BOOL(wifi_active_msmt_enabled);
+	    DIFF_INT(wifi_active_msmt_pktsize);
+	    DIFF_INT(wifi_active_msmt_num_samples);
+	    DIFF_INT(wifi_active_msmt_sample_duration);
+
+	    DIFF_INT(vlan_cfg_version);
+	    DIFF_STR(wps_pin);
+
+	    DIFF_BOOL(bandsteering_enable);
+	    DIFF_INT(good_rssi_threshold);
+	    DIFF_INT(assoc_count_threshold);
+	    DIFF_INT(assoc_gate_time);
+
+	    DIFF_INT(whix_log_interval);
+	    DIFF_INT(whix_chutility_loginterval);
+
+	    DIFF_ULONG(rss_memory_restart_threshold_low);
+	    DIFF_ULONG(rss_memory_restart_threshold_high);
+
+	    DIFF_INT(assoc_monitor_duration);
+	    DIFF_BOOL(rapid_reconnect_enable);
+	    DIFF_BOOL(vap_stats_feature);
+	    DIFF_BOOL(mfp_config_feature);
+
+	    DIFF_BOOL(force_disable_radio_feature);
+	    DIFF_BOOL(force_disable_radio_status);
+
+	    DIFF_INT(fixed_wmm_params);
+	    DIFF_STR(wifi_region_code);
+
+	    DIFF_BOOL(diagnostic_enable);
+	    DIFF_BOOL(validate_ssid);
+	    DIFF_INT(device_network_mode);
+
+	    DIFF_STR(normalized_rssi_list);
+	    DIFF_STR(cli_stat_list);
+	    DIFF_STR(snr_list);
+	    DIFF_STR(txrx_rate_list);
+
+	    DIFF_BOOL(mgt_frame_rate_limit_enable);
+	    DIFF_INT(mgt_frame_rate_limit);
+	    DIFF_INT(mgt_frame_rate_limit_window_size);
+	    DIFF_INT(mgt_frame_rate_limit_cooldown_time);
+
+	    DIFF_DOUBLE(ignite_link_quality_threshold);
+	    if (changed) {
+                wifi_util_dbg_print(WIFI_CTRL, "Global param changed\n");
+	    	return true;
+    	    }
     }
     return false;
 }
