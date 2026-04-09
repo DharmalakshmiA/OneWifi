@@ -1379,6 +1379,7 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
         } else {
             g_wifidb->global_config.global_parameters.ignite_link_quality_threshold = 0.0;
         }
+	wifi_util_dbg_print(WIFI_DB, "%s:%d NEW-RECORD-ROGUE %d %d STRUCT-ROGUE %d %u\n", __func__, __LINE__, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
         g_wifidb->global_config.rogue_config.rogue_ap_enable = new_rec->rogue_ap_enable;
         g_wifidb->global_config.rogue_config.rogue_ap_freq = new_rec->rogue_ap_freq;
         wifi_util_dbg_print(WIFI_DB,
@@ -3346,6 +3347,7 @@ int wifidb_update_wifi_rogue_config(wifi_RogueConfig_t *config)
     }
     cfg.rogue_ap_enable = config->rogue_ap_enable;
     cfg.rogue_ap_freq = config->rogue_ap_freq;
+    wifi_util_error_print(WIFI_DB, "%s %d Input-config : %d %u Schema-config: %d %d\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq, cfg.rogue_ap_enable, cfg.rogue_ap_freq);
     if (wifidb_update_table_entry(NULL,NULL,OCLM_UUID,&table_Wifi_Global_Config,&cfg,filter_global) <= 0)
     {
         wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Global Config table \n",__func__, __LINE__);
@@ -7156,6 +7158,8 @@ int update_wifi_rogue_config(wifi_RogueConfig_t *config)
         wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Rogue Config - Null pointer \n",__func__, __LINE__);
         return -1;
     }
+    
+    wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq);
     ret = wifidb_update_wifi_rogue_config(config);
     if(ret == 0)
     {
@@ -8453,7 +8457,8 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
-        wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config);
+        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
+	wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config);
 	pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
         create_onewifi_fr_wifidb_reset_done_flag();
@@ -8578,6 +8583,7 @@ void init_wifidb_data()
             return;
         }
 
+        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
 	if (wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config) != RETURN_OK) {
 	    wifi_util_error_print(WIFI_DB,"%s:%d error in updating rogue config\n", __func__,__LINE__);
 	    pthread_mutex_unlock(&g_wifidb->data_cache_lock);

@@ -1788,7 +1788,7 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
 
     if (rogue_config_changed) {
         wifi_util_dbg_print(WIFI_CTRL,"Rogue config changed\n");
-	if(update_wifi_rogue_config(data_global_config->rogue_config) == -1) {
+	if(update_wifi_rogue_config(&data_global_config->rogue_config) == -1) {
 	    wifi_util_dbg_print(WIFI_CTRL,"Failed to update rogue config\n");
 	    return RETURN_ERR;
 	}
