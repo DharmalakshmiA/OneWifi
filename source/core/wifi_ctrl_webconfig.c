@@ -1387,13 +1387,13 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
 {
     wifi_global_config_t  *mgr_global_config;
     mgr_global_config = get_wifidb_wifi_global_config();
-    wifi_global_param_t *mgr_param, *data_param;
+    wifi_global_param_t *mgr, *data;
     bool changed = false;
-    mgr_param = &mgr_global_config->global_parameters;
-    data_param = &data_config->global_parameters;
-    print_wifi_global_param("OLD", mgr_param);
-    print_wifi_global_param("NEW", data_param);
-    if (memcmp(mgr_param,data_param, sizeof(wifi_global_param_t)) != 0) {
+    mgr = &mgr_global_config->global_parameters;
+    data = &data_config->global_parameters;
+    print_wifi_global_param("OLD", mgr);
+    print_wifi_global_param("NEW", data);
+    if (memcmp(mgr,data, sizeof(wifi_global_param_t)) != 0) {
 	    wifi_util_dbg_print(WIFI_CTRL, "Global config change w.r.to memcmp\n");
 	    DIFF_BOOL(notify_wifi_changes);
 	    DIFF_BOOL(prefer_private);
