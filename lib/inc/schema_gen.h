@@ -186,6 +186,15 @@
         PJS_OVS_INT(query_responselength_limit)\
    )
 
+#define PJS_SCHEMA_Wifi_Rogue_Config \
+   PJS(schema_Wifi_Rogue_Config, \
+        PJS_OVS_UUID_Q(_uuid)\
+        PJS_OVS_UUID_Q(_version)\
+        PJS_OVS_BOOL(rogue_ap_enable)\
+        PJS_OVS_INT(rogue_ap_freq)\
+   )
+
+
 #define PJS_SCHEMA_Wifi_Rfc_Config \
    PJS(schema_Wifi_Rfc_Config, \
         PJS_OVS_UUID_Q(_uuid)\
@@ -1716,6 +1725,7 @@
      PJS_SCHEMA_Wifi_VAP_Config \
      PJS_SCHEMA_Wifi_Interworking_Config \
      PJS_SCHEMA_Wifi_GAS_Config \
+     PJS_SCHEMA_Wifi_Rogue_Config \
      PJS_SCHEMA_Alarms \
      PJS_SCHEMA_Wifi_Master_State \
      PJS_SCHEMA_Wifi_MacFilter_Config \
@@ -1814,6 +1824,7 @@
     SCHEMA(Wifi_VAP_Config) \
     SCHEMA(Wifi_Interworking_Config) \
     SCHEMA(Wifi_GAS_Config) \
+    SCHEMA(Wifi_Rogue_Config) \
     SCHEMA(Wifi_Rfc_Config) \
     SCHEMA(Alarms) \
     SCHEMA(Wifi_Master_State) \
@@ -1912,6 +1923,7 @@
     SCHEMA(Wifi_VAP_Config) \
     SCHEMA(Wifi_Interworking_Config) \
     SCHEMA(Wifi_GAS_Config) \
+    SCHEMA(Wifi_Rogue_Config) \
     SCHEMA(Wifi_Rfc_Config) \
     SCHEMA(Alarms) \
     SCHEMA(Wifi_MacFilter_Config) \
@@ -2146,6 +2158,11 @@
     COLUMN(comeback_delay) \
     COLUMN(response_buffering_time) \
     COLUMN(query_responselength_limit)
+
+#define SCHEMA__Wifi_Rogue_Config "Wifi_Rogue_Config"
+#define SCHEMA_COLUMN__Wifi_Rogue_Config(COLUMN) \
+    COLUMN(rogue_ap_enable) \
+    COLUMN(rogue_ap_freq)
 
 #define SCHEMA__Wifi_Rfc_Config "Wifi_Rfc_Config"
 #define SCHEMA_COLUMN__Wifi_Rfc_Config(COLUMN) \
@@ -3532,6 +3549,9 @@
 #define SCHEMA__Wifi_GAS_Config__response_buffering_time "response_buffering_time"
 #define SCHEMA__Wifi_GAS_Config__query_responselength_limit "query_responselength_limit"
 
+#define SCHEMA__Wifi_Rogue_Config__rogue_ap_enable "rogue_ap_enable"
+#define SCHEMA__Wifi_Rogue_Config__rogue_ap_freq "rogue_ap_freq"
+
 #define SCHEMA__Wifi_Rfc_Config__rfc_id "rfc_id"
 #define SCHEMA__Wifi_Rfc_Config__dfs_rfc "dfs_rfc"
 #define SCHEMA__Wifi_Rfc_Config__wifipasspoint_rfc "wifipasspoint_rfc"
@@ -4650,8 +4670,6 @@
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit "mgt_frame_rate_limit"
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit_window_size "mgt_frame_rate_limit_window_size"
 #define SCHEMA__Wifi_Global_Config__mgt_frame_rate_limit_cooldown_time "mgt_frame_rate_limit_cooldown_time"
-#define SCHEMA__Wifi_Global_Config__rogue_ap_enable "rogue_ap_enable"
-#define SCHEMA__Wifi_Global_Config__rogue_ap_freq "rogue_ap_freq"
 #define SCHEMA__Wifi_Global_Config__ignite_link_quality_threshold "ignite_link_quality_threshold"
 
 #define SCHEMA__Wifi_Preassoc_Control_Config__rssi_up_threshold "rssi_up_threshold"

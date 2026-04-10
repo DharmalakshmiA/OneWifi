@@ -1348,6 +1348,7 @@ void print_wifi_global_param(const char *tag, wifi_global_param_t *p)
     );
 }
 
+#if 0
 #define DIFF_BOOL(field) \
     if (mgr->field != data->field) { \
         wifi_util_dbg_print(WIFI_CTRL, \
@@ -1382,6 +1383,7 @@ void print_wifi_global_param(const char *tag, wifi_global_param_t *p)
         #field " changed: %f -> %f\n", mgr->field, data->field); \
         changed = true; \
     }
+#endif
 
 bool isglobalParamChanged(wifi_global_config_t *data_config)
 {
@@ -1395,6 +1397,7 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     print_wifi_global_param("NEW", data);
     if (memcmp(mgr,data, sizeof(wifi_global_param_t)) != 0) {
 	    wifi_util_dbg_print(WIFI_CTRL, "Global config change w.r.to memcmp\n");
+#if 0
 	    DIFF_BOOL(notify_wifi_changes);
 	    DIFF_BOOL(prefer_private);
 	    DIFF_BOOL(prefer_private_configure);
@@ -1454,6 +1457,8 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
                 wifi_util_dbg_print(WIFI_CTRL, "Global param changed\n");
 	    	return true;
     	    }
+#endif
+	    return true;
     }
     return false;
 }
