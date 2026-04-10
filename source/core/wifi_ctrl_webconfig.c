@@ -1390,7 +1390,6 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     wifi_global_config_t  *mgr_global_config;
     mgr_global_config = get_wifidb_wifi_global_config();
     wifi_global_param_t *mgr, *data;
-    bool changed = false;
     mgr = &mgr_global_config->global_parameters;
     data = &data_config->global_parameters;
     print_wifi_global_param("OLD", mgr);
