@@ -1259,7 +1259,7 @@ void callback_Wifi_Rogue_Config(ovsdb_update_monitor_t *mon,
             __func__, __LINE__);
 
         // Reset to defaults
-        memset(&g_wifidb->rogue_config, 0, sizeof(wifi_RogueConfig_t));
+        memset(&g_wifidb->global_config.rogue_config, 0, sizeof(wifi_RogueConfig_t));
 
     } else if ((mon->mon_type == OVSDB_UPDATE_NEW) ||
                (mon->mon_type == OVSDB_UPDATE_MODIFY)) {
@@ -1277,10 +1277,10 @@ void callback_Wifi_Rogue_Config(ovsdb_update_monitor_t *mon,
 
         pthread_mutex_lock(&g_wifidb->data_cache_lock);
 
-        wifi_util_dbg_print(WIFI_DB, "%s:%d [NEW] Rogue Details : %d %d [OLD] Rogue Details : %d %d\n", __func__, __LINE__, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq,  g_wifidb->rogue_config.rogue_ap_enable, g_wifidb->rogue_config.rogue_ap_freq);
+        wifi_util_dbg_print(WIFI_DB, "%s:%d [NEW] Rogue Details : %d %d [OLD] Rogue Details : %d %d\n", __func__, __LINE__, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq,  g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
         // Update cache from DB
-        g_wifidb->rogue_config.rogue_ap_enable = new_rec->rogue_ap_enable;
-        g_wifidb->rogue_config.rogue_ap_freq   = new_rec->rogue_ap_freq;
+        g_wifidb->global_config.rogue_config.rogue_ap_enable = new_rec->rogue_ap_enable;
+        g_wifidb->global_config.rogue_config.rogue_ap_freq   = new_rec->rogue_ap_freq;
 
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
 

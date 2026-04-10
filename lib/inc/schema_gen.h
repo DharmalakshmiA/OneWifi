@@ -1614,6 +1614,7 @@
         PJS_OVS_UUID_Q(_uuid)\
         PJS_OVS_UUID_Q(_version)\
         PJS_OVS_UUID(gas_config)\
+        PJS_OVS_UUID(rogue_config)\
         PJS_OVS_BOOL(notify_wifi_changes) \
         PJS_OVS_BOOL(prefer_private) \
         PJS_OVS_BOOL(prefer_private_configure) \
@@ -3326,6 +3327,7 @@
 #define SCHEMA__Wifi_Global_Config "Wifi_Global_Config"
 #define SCHEMA_COLUMN__Wifi_Global_Config(COLUMN) \
     COLUMN(gas_config) \
+    COLUMN(rogue_config) \
     COLUMN(notify_wifi_changes) \
     COLUMN(prefer_private) \
     COLUMN(prefer_private_configure) \
@@ -4622,6 +4624,7 @@
 #define SCHEMA__Wifi_Radio_Config__amsdu_tid "amsdu_tid"
 
 #define SCHEMA__Wifi_Global_Config__gas_config "gas_config"
+#define SCHEMA__Wifi_Global_Config__rogue_config "rogue_config"
 #define SCHEMA__Wifi_Global_Config__notify_wifi_changes "notify_wifi_changes"
 #define SCHEMA__Wifi_Global_Config__prefer_private "prefer_private"
 #define SCHEMA__Wifi_Global_Config__prefer_private_configure "prefer_private_configure"
