@@ -271,6 +271,7 @@ typedef struct wifi_ctrl {
     events_bus_data_t   events_bus_data;
     hotspot_cfg_sem_param_t hotspot_sem_param;
     bool                rf_status_down;
+    bool                hotspot_client_dhcp_failure_subscribed;
 } wifi_ctrl_t;
 
 
@@ -356,6 +357,7 @@ UINT getTotalNumberVAPs();
 UINT getNumberRadios();
 UINT getMaxNumberVAPsPerRadio(UINT radioIndex);
 UINT getNumberVAPsPerRadio(UINT radioIndex);
+BOOL isRadioBeEnabled(UINT radio_index);
 //getVAPArrayIndexFromVAPIndex() need to be used in case of VAPS considered as single array (from 0 to MAX_VAP)
 //In case of to get vap array index per radio, use convert_vap_index_to_vap_array_index()
 int getVAPArrayIndexFromVAPIndex(unsigned int apIndex, unsigned int *vap_array_index);
@@ -416,6 +418,7 @@ void hotspot_cfg_sem_signal(bool status);
 bus_error_t publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status);
 int publish_endpoint_enable(void);
 int rogueap_timer_handler(void* arg);
+int get_mld_mac_from_link_mac(mac_address_t in_addr, mac_address_t mld_addr);
 
 #ifdef __cplusplus
 }
