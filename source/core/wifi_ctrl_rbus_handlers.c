@@ -27,6 +27,7 @@
 #include "wifi_monitor.h"
 #include "wifi_webconfig.h"
 #include "run_qmgr.h"
+#include "wifi_stubs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
