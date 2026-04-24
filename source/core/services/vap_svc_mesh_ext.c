@@ -723,16 +723,16 @@ int process_udhcp_ip_check(vap_svc_t *svc)
 	    char tmp[128] = {0};
 	    get_formatted_time(tmp);
             if (has_valid_ip(iface)) {
-		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_VALID_IP_BRWW0:1\n", tmp);
-                get_stubs_descriptor()->t2_event_d_fn("WIFI_IGNITE_VALID_IP_BRWW0", 1);
+		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_VALID_IP_BRWW0:True\n", tmp);
+                get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_VALID_IP_BRWW0", "True");
                 wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Received Valid IP address on brww0 interface\n");
                 scheduler_cancel_timer_task(ctrl->sched, ext->ext_udhcp_ip_check_id);
                 ext->ext_udhcp_ip_check_id = 0;
                 ip_check_count = 0;
                 return 0;
             } else {
-		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_VALID_IP_BRWW0:0\n", tmp);
-                get_stubs_descriptor()->t2_event_d_fn("WIFI_IGNITE_VALID_IP_BRWW0", 0);
+		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_VALID_IP_BRWW0:False\n", tmp);
+                get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_VALID_IP_BRWW0", "False");
                 wifi_util_error_print(WIFI_CTRL, "IGNITE_RF_DOWN: Invalid IP address detected on brww0 interface\n");
             }
         }
@@ -2055,12 +2055,12 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
 		memset(tmp, 0, sizeof(tmp));
                 get_formatted_time(tmp);
 		if (rc != bus_error_success) {
-                    write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_CONN_PUBLISH:0\n", tmp);
-		    get_stubs_descriptor()->t2_event_d_fn( "WIFI_IGNITE_CONN_PUBLISH", 0);
+                    write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_CONN_PUBLISH:False\n", tmp);
+		    get_stubs_descriptor()->t2_event_s_fn( "WIFI_IGNITE_CONN_PUBLISH", "False");
                     wifi_util_error_print(WIFI_CTRL,"IGNITE_RF_DOWN: Failed to publish connect status to WM\n");
                 } else {
-                    write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_CONN_PUBLISH:1\n", tmp);
-		    get_stubs_descriptor()->t2_event_d_fn("WIFI_IGNITE_CONN_PUBLISH", 1);
+                    write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_CONN_PUBLISH:True\n", tmp);
+		    get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_CONN_PUBLISH", "True");
                     wifi_util_info_print(WIFI_CTRL,"IGNITE_RF_DOWN: Connect status sent successfully to the WM\n");
                 }
                 bssid_mac_str = (char *)malloc(MAC_ADDR_STR_LEN);
@@ -2192,12 +2192,12 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
             memset(tmp, 0, sizeof(tmp));
             get_formatted_time(tmp);
             if (rc != bus_error_success) {
-		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_DISCONN_PUBLISH:0\n", tmp);
-                get_stubs_descriptor()->t2_event_d_fn("WIFI_IGNITE_DISCONN_PUBLISH", 0);
+		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_DISCONN_PUBLISH:False\n", tmp);
+                get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_DISCONN_PUBLISH", "False");
                 wifi_util_error_print(WIFI_CTRL, "IGNITE_RF_DOWN: Failed to publish disconnect status to WM\n");
             } else {
-		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_DISCONN_PUBLISH:1\n", tmp);
-                get_stubs_descriptor()->t2_event_d_fn("WIFI_IGNITE_DISCONN_PUBLISH", 1);
+		write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_DISCONN_PUBLISH:True\n", tmp);
+                get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_DISCONN_PUBLISH", "True");
                 wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Disconnect status sent successfully to the WM\n");
             }
         }

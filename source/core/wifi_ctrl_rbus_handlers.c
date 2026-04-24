@@ -165,7 +165,6 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
     bus_error_t rc = bus_error_success;
     bool rf_status = false;
     char tmp[128] = {0};
-    char eventName[32] = {0};
      static const char *wifi_health_log = "/rdklogs/logs/wifihealth.txt";
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     if (ctrl == NULL) {
@@ -186,12 +185,11 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
     wifi_util_info_print(WIFI_CTRL, "%s:%d RF-Status : %d\n", __func__, __LINE__, ctrl->rf_status_down);
     start_station_vaps(rf_status);
     get_formatted_time(tmp);
-    write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_ENABLED:%d\n", tmp, rf_status);
-    snprintf(eventName, sizeof(eventName), "WIFI_IGNITE_ENABLED");
-    get_stubs_descriptor()->t2_event_d_fn(eventName, rf_status);
     if (rf_status) {
+        write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_ENABLED:True\n", tmp, rf_status);
+        get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_ENABLED", "True");
 	wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Docsis disabled. Starting Station Vaps\n");
-        apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_start, NULL, 0);
+	apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_start, NULL, 0);
 
         wifi_global_config_t *global_cfg = get_wifidb_wifi_global_config();
         if (global_cfg != NULL &&
@@ -214,6 +212,8 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
             }
         }
     } else {
+        write_to_file(wifi_health_log, "\n%s WIFI_IGNITE_ENABLED:False\n", tmp, rf_status);
+        get_stubs_descriptor()->t2_event_s_fn("WIFI_IGNITE_ENABLED", "False");
        wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Docsis enabled. Stoping Station Vaps\n");
        apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_stop, NULL, 0);
        //Stop station vaps
