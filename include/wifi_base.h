@@ -53,6 +53,9 @@ extern "C" {
 #define ACCESSPOINT_ASSOC_REQ_EVENT         "Device.WiFi.AP.STA.AssocRequest"
 #define WIFI_CLIENT_GET_ASSOC_REQ           "Device.WiFi.AP.STA.GetAssocRequest"
 #define WIFI_ACCESSPOINT_TABLE              "Device.WiFi.AccessPoint.{i}."
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_TABLE "Device.WiFi.AccessPoint.{i}.RogueKnownGateway.{i}."
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_MAC "Device.WiFi.AccessPoint.{i}.RogueKnownGateway.{i}.MAC"
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_ENTRIES "Device.WiFi.AccessPoint.{i}.RogueKnownGatewayEntries"
 #define WIFI_ACCESSPOINT_DEV_CONNECTED      "Device.WiFi.AccessPoint.{i}.X_RDK_deviceConnected"
 #define WIFI_ACCESSPOINT_DEV_DISCONNECTED   "Device.WiFi.AccessPoint.{i}.X_RDK_deviceDisconnected"
 #define WIFI_ACCESSPOINT_DEV_DEAUTH         "Device.WiFi.AccessPoint.{i}.X_RDK_deviceDeauthenticated"
@@ -727,10 +730,18 @@ typedef struct {
     wifi_global_param_t global_parameters;
 } __attribute__((packed)) wifi_global_config_t;
 
+#define MAX_KNOWN_APS 5
+
+typedef struct {
+    mac_address_t mac[6];
+    bool    valid;
+} known_ap_entry_t;
+
 typedef struct {
     wifi_vap_name_t         vap_name;
     UINT                    vap_index;
     hash_map_t              *acl_map;
+    known_ap_entry_t known_ap_table[MAX_KNOWN_APS];
     hash_map_t              *associated_devices_map; //Full
     hash_map_t              *associated_devices_diff_map; //Add,Remove
     pthread_mutex_t         *associated_devices_lock;

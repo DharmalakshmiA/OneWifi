@@ -2991,6 +2991,31 @@ bus_error_t ignite_table_addrowhandler(char const *tableName, char const *aliasN
     return bus_error_success;
 }
 
+bus_error_t roguegw_addrowhandler(char const *rowName)
+{
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    ctrl->rogue_tree_instance_num--;
+
+    wifi_util_info_print(WIFI_CTRL, "%s() called:\n\t rowName=%s: instance_num:%d\n", __func__,
+        rowName, ctrl->rogue_tree_instance_num);
+
+    return bus_error_success;
+}
+
+bus_error_t roguegw_removerowhandler(char const *tableName, char const *aliasName,
+    uint32_t *instNum)
+{
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d: tableAddRowHandler1 called. tableName=%s, aliasName=%s\n",
+        __FUNCTION__, __LINE__, tableName, aliasName);
+
+    *instNum = ++ctrl->rogue_tree_instance_num;
+    wifi_util_dbg_print(WIFI_CTRL,"%s:%d instance_num:%d\r\n",__func__, __LINE__, ctrl->rogue_tree_instance_num);
+
+    return bus_error_success;
+}
+
 static event_bus_element_t *events_getEventElement(char *eventName)
 {
     int i;
@@ -4275,10 +4300,30 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_STA_SELFHEAL_CONNECTION_TIMEOUT, bus_element_type_event,
                                     { get_sta_connection_timeout, NULL, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
                                     { bus_data_type_boolean, false, 0, 0, 0, NULL } },
-                                { WIFI_ACCESSPOINT_TABLE, bus_element_type_table,
-                                    { NULL, NULL, ap_table_addrowhandler, ap_table_removerowhandler,NULL, NULL}, slow_speed, num_of_vaps,
-                                    { bus_data_type_object, false, 0, 0, 0, NULL } },
-                                { WIFI_ACCESSPOINT_DEV_CONNECTED, bus_element_type_event,
+				{ WIFI_ACCESSPOINT_TABLE, bus_element_type_table,
+				{ NULL, NULL, ap_table_addrowhandler, ap_table_removerowhandler,NULL, NULL}, slow_speed, num_of_vaps,
+					{ bus_data_type_object, false, 0, 0, 0, NULL } },
+				
+				
+				{ WIFI_ACCESSPOINT_ROGUEKNOWNGW_TABLE, bus_element_type_table,
+				{ NULL, NULL,roguegw_addrowhandler,roguegw_removerowhandler,NULL, NULL },slow_speed,MAX_ROGUE_ENTRIES,
+					{ bus_data_type_object, false, 0, 0, 0, NULL }
+				},
+
+				{ WIFI_ACCESSPOINT_ROGUEKNOWNGW_MAC, bus_element_type_property,
+					{ roguegw_get_mac, roguegw_set_mac, NULL, NULL, NULL, NULL },
+					slow_speed, ZERO_TABLE,
+					{ bus_data_type_string, false, 0, 0, 0, NULL }
+				},
+
+				{ WIFI_ACCESSPOINT_ROGUEKNOWNGW_ENTRIES, bus_element_type_property,
+					{ roguegw_get_entries, NULL,
+						NULL, NULL, NULL, NULL },
+					slow_speed,
+					ZERO_TABLE,
+					{ bus_data_type_uint32, false, 0, 0, 0, NULL }
+				}, 
+				{ WIFI_ACCESSPOINT_DEV_CONNECTED, bus_element_type_event,
                                     { NULL, NULL, NULL, NULL, eventSubHandler, NULL}, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
                                 { WIFI_ACCESSPOINT_DEV_DISCONNECTED, bus_element_type_event,
