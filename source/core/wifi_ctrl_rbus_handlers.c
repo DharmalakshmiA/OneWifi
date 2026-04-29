@@ -2991,7 +2991,841 @@ bus_error_t ignite_table_addrowhandler(char const *tableName, char const *aliasN
     return bus_error_success;
 }
 
-bus_error_t roguegw_addrowhandler(char const *rowName)
+/* ================================================================
+ *  Helpers
+ * ================================================================ */
+
+/*
+ * Count currently valid entries in the table.
+ */
+static unsigned int known_ap_count(const known_ap_entry_t *table)
+{
+    unsigned int n = 0;
+    for (int i = 0; i < MAX_KNOWN_APS; i++) {
+        if (table[i].valid) n++;
+    }
+    return n;
+}
+
+/*
+ * Find an existing entry matching 'mac'.
+ * Returns slot index [0..MAX_KNOWN_APS-1], or -1 if not found.
+ */
+static int known_ap_find(const known_ap_entry_t *table,
+                          const mac_address_t    mac)
+{
+    for (int i = 0; i < MAX_KNOWN_APS; i++) {
+        if (table[i].valid &&
+            memcmp(table[i].mac, mac, sizeof(mac_address_t)) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/*
+ * Find the first free (invalid) slot.
+ * Returns slot index [0..MAX_KNOWN_APS-1], or -1 if table is full.
+ */
+static int known_ap_find_free(const known_ap_entry_t *table)
+{
+    for (int i = 0; i < MAX_KNOWN_APS; i++) {
+        if (!table[i].valid) return i;
+    }
+    return -1;
+}
+
+/* ================================================================
+ *  Init Functions
+ * ================================================================ */
+
+void init_pending_roguegw_config(void)
+{
+    wifi_mgr_t   *mgr        = get_wifimgr_obj();
+    unsigned int  num_radios = getNumberRadios();
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter num_radios=%u\n",
+                        __func__, __LINE__, num_radios);
+
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    for (unsigned int r = 0; r < num_radios; r++) {
+        wifi_vap_info_map_t *vap_map = &mgr->radio_config[r].vaps;
+
+        wifi_util_dbg_print(WIFI_CTRL,
+                            "%s:%d radio=%u num_vaps=%u\n",
+                            __func__, __LINE__, r, vap_map->num_vaps);
+
+        for (unsigned int v = 0; v < vap_map->num_vaps; v++) {
+            rdk_wifi_vap_info_t *rdk_vap = &vap_map->rdk_vap_array[v];
+            unsigned int         idx     = rdk_vap->vap_index;
+
+            memcpy(g_apply_roguegw_config.config[idx].known_ap_table,
+                   rdk_vap->known_ap_table,
+                   sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+
+            g_apply_roguegw_config.config[idx].vap_index  = rdk_vap->vap_index;
+            g_apply_roguegw_config.config[idx].is_pending = false;
+
+            wifi_util_dbg_print(WIFI_CTRL,
+                                "%s:%d radio=%u vap_idx=%u vap_index=%u "
+                                "vap_name=%s is_pending=%d\n",
+                                __func__, __LINE__,
+                                r, v, idx,
+                                rdk_vap->vap_name,
+                                g_apply_roguegw_config.config[idx].is_pending);
+
+            /* Log each pre-existing entry in this VAP's table */
+            for (int s = 0; s < MAX_KNOWN_APS; s++) {
+                known_ap_entry_t *e =
+                    &g_apply_roguegw_config.config[idx].known_ap_table[s];
+                if (e->valid) {
+                    char mac_str[MAC_STR_LEN] = {0};
+                    to_mac_str(e->mac, mac_str, sizeof(mac_str));
+                    wifi_util_dbg_print(WIFI_CTRL,
+                                        "%s:%d   slot=%d mac=%s valid=%d\n",
+                                        __func__, __LINE__, s, mac_str, e->valid);
+                }
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit\n", __func__, __LINE__);
+}
+
+void init_roguegw_function(void)
+{
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d initializing roguegw global config\n",
+                        __func__, __LINE__);
+
+    memset(&g_apply_roguegw_config, 0, sizeof(g_apply_roguegw_config));
+    pthread_mutex_init(&g_apply_roguegw_config.lock, NULL);
+    init_pending_roguegw_config();
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d roguegw global config ready\n",
+                        __func__, __LINE__);
+}
+
+
+/* ================================================================
+ *  GET  Device.WiFi.AccessPoint.{i}.RogueKnownGateway.{i}.MAC
+ * ================================================================ */
+bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
+                             bus_user_data_t *user_data)
+{
+    (void)user_data;
+    unsigned int ap_inst = 0;
+    unsigned int gw_inst = 0;
+    unsigned int vap_index = 0;
+    unsigned int radio_idx = 0;
+    unsigned int vap_idx   = 0;
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
+                        __func__, __LINE__, name ? name : "NULL");
+
+    /* ---- 1. Input validation ------------------------------------ */
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d property name is not found\n",
+                              __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    /* ---- 2. Parse indices -------------------------------------- */
+    if (sscanf(name,
+               "Device.WiFi.AccessPoint.%u.RogueKnownGateway.%u.MAC",
+               &ap_inst, &gw_inst) != 2) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d failed to parse indices from '%s'\n",
+                              __func__, __LINE__, name);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d parsed ap_inst=%u gw_inst=%u\n",
+                        __func__, __LINE__, ap_inst, gw_inst);
+
+    if (gw_inst < 1 || gw_inst > MAX_KNOWN_APS) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d gw_inst=%u out of range [1..%d]\n",
+                              __func__, __LINE__, gw_inst, MAX_KNOWN_APS);
+        return bus_error_invalid_input;
+    }
+
+    /* ---- 3. Resolve VAP indices -------------------------------- */
+    vap_index = ap_inst - 1;
+
+    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_radio_index_from_vap_index failed "
+                              "vap_index=%u\n",
+                              __func__, __LINE__, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_vap_index_from_radio failed "
+                              "radio_idx=%u vap_index=%u\n",
+                              __func__, __LINE__, radio_idx, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d resolved radio_idx=%u vap_idx=%u vap_index=%u\n",
+                        __func__, __LINE__, radio_idx, vap_idx, vap_index);
+
+    /* ---- 4. Fetch entry from pending table --------------------- */
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    known_ap_entry_t *entry =
+        &g_apply_roguegw_config.config[vap_index].known_ap_table[gw_inst - 1];
+
+    char mac_str[MAC_STR_LEN] = {0};
+
+    if (entry->valid) {
+        to_mac_str(entry->mac, mac_str, sizeof(mac_str));
+        wifi_util_dbg_print(WIFI_CTRL,
+                            "%s:%d slot=%d valid=true mac=%s "
+                            "vap_index=%u radio_idx=%u vap_idx=%u\n",
+                            __func__, __LINE__,
+                            gw_inst - 1, mac_str,
+                            vap_index, radio_idx, vap_idx);
+    } else {
+        strncpy(mac_str, "00:00:00:00:00:00", sizeof(mac_str) - 1);
+        wifi_util_dbg_print(WIFI_CTRL,
+                            "%s:%d slot=%d valid=false returning zeros "
+                            "vap_index=%u radio_idx=%u vap_idx=%u\n",
+                            __func__, __LINE__,
+                            gw_inst - 1,
+                            vap_index, radio_idx, vap_idx);
+    }
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    /* ---- 5. Fill raw_data_t ------------------------------------ */
+    uint32_t str_len = strlen(mac_str) + 1;
+
+    p_data->data_type      = bus_data_type_string;
+    p_data->raw_data.bytes = malloc(str_len);
+    if (p_data->raw_data.bytes == NULL) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d malloc failed len=%u\n",
+                              __func__, __LINE__, str_len);
+        return bus_error_out_of_resources;
+    }
+
+    strncpy((char *)p_data->raw_data.bytes, mac_str, str_len);
+    p_data->raw_data_len = str_len;
+
+    wifi_util_info_print(WIFI_CTRL,
+                         "%s:%d return mac=%s slot=%d "
+                         "ap_inst=%u gw_inst=%u vap_index=%u "
+                         "radio_idx=%u vap_idx=%u\n",
+                         __func__, __LINE__,
+                         mac_str, gw_inst - 1,
+                         ap_inst, gw_inst,
+                         vap_index, radio_idx, vap_idx);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit success\n",
+                        __func__, __LINE__);
+    return bus_error_success;
+}
+
+/* ================================================================
+ *  GET  Device.WiFi.AccessPoint.{i}.RogueKnownGatewayEntries
+ * ================================================================ */
+bus_error_t roguegw_get_entries(char *name, raw_data_t *p_data,
+                                 bus_user_data_t *user_data)
+{
+    (void)user_data;
+    unsigned int ap_inst  = 0;
+    unsigned int vap_index = 0;
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
+                        __func__, __LINE__, name ? name : "NULL");
+
+    /* ---- 1. Input validation ------------------------------------ */
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d property name is not found\n",
+                              __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    /* ---- 2. Parse AP instance ---------------------------------- */
+    if (sscanf(name, "Device.WiFi.AccessPoint.%u.RogueKnownGatewayEntries",
+               &ap_inst) != 1) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d failed to parse ap_inst from '%s'\n",
+                              __func__, __LINE__, name);
+        return bus_error_invalid_input;
+    }
+
+    vap_index = ap_inst - 1;
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d parsed ap_inst=%u vap_index=%u\n",
+                        __func__, __LINE__, ap_inst, vap_index);
+
+    /* ---- 3. Count valid entries in pending table --------------- */
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    uint32_t count = known_ap_count(
+        g_apply_roguegw_config.config[vap_index].known_ap_table);
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    /* ---- 4. Fill raw_data_t ------------------------------------ */
+    p_data->data_type    = bus_data_type_uint32;
+    p_data->raw_data.u32 = count;
+    p_data->raw_data_len = sizeof(uint32_t);
+
+    wifi_util_info_print(WIFI_CTRL,
+                         "%s:%d ap_inst=%u vap_index=%u entries=%u\n",
+                         __func__, __LINE__, ap_inst, vap_index, count);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit success\n",
+                        __func__, __LINE__);
+    return bus_error_success;
+}
+
+/* ================================================================
+ *  SET  Device.WiFi.AccessPoint.{i}.X_RDK_KnownGW_Add
+ * ================================================================ */
+bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
+                                 bus_user_data_t *user_data)
+{
+    (void)user_data;
+    unsigned int  ap_inst   = 0;
+    unsigned int  vap_index = 0;
+    unsigned int  radio_idx = 0;
+    unsigned int  vap_idx   = 0;
+    mac_address_t new_mac   = {0};
+    mac_address_t zero_mac  = {0};
+    char         *pTmp      = NULL;
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
+                        __func__, __LINE__, name ? name : "NULL");
+
+    /* ---- 1. Input validation ------------------------------------ */
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d property name is not found\n",
+                              __func__, __LINE__);
+        return bus_error_element_name_missing;
+    }
+
+    pTmp = (char *)p_data->raw_data.bytes;
+    if ((p_data->data_type != bus_data_type_string) || (pTmp == NULL)) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d wrong bus data_type=0x%x or NULL bytes\n",
+                              __func__, __LINE__, p_data->data_type);
+        return bus_error_invalid_input;
+    }
+
+    if (pTmp[0] == '\0') {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d empty MAC string rejected\n",
+                              __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d bus set string='%s'\n",
+                        __func__, __LINE__, pTmp);
+
+    /* ---- 2. Parse AP instance and resolve indices -------------- */
+    if (sscanf(name, "Device.WiFi.AccessPoint.%u.", &ap_inst) != 1) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d failed to parse ap_inst from '%s'\n",
+                              __func__, __LINE__, name);
+        return bus_error_invalid_input;
+    }
+
+    vap_index = ap_inst - 1;
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d parsed ap_inst=%u vap_index=%u\n",
+                        __func__, __LINE__, ap_inst, vap_index);
+
+    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_radio_index_from_vap_index failed "
+                              "vap_index=%u\n",
+                              __func__, __LINE__, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_vap_index_from_radio failed "
+                              "radio_idx=%u vap_index=%u\n",
+                              __func__, __LINE__, radio_idx, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d resolved radio_idx=%u vap_idx=%u vap_index=%u\n",
+                        __func__, __LINE__, radio_idx, vap_idx, vap_index);
+
+    /* ---- 3. Parse and validate MAC ----------------------------- */
+    if (str_to_mac(pTmp, new_mac) != 0) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d str_to_mac failed for '%s'\n",
+                              __func__, __LINE__, pTmp);
+        return bus_error_invalid_input;
+    }
+
+    if (memcmp(new_mac, zero_mac, sizeof(mac_address_t)) == 0) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d all-zeros MAC rejected "
+                              "vap_index=%u radio_idx=%u vap_idx=%u\n",
+                              __func__, __LINE__,
+                              vap_index, radio_idx, vap_idx);
+        return bus_error_invalid_input;
+    }
+
+    /* ---- 4. Update pending global config ----------------------- */
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    known_ap_entry_t *pending_table =
+        g_apply_roguegw_config.config[vap_index].known_ap_table;
+
+    /* Log table state before modification */
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d pending table BEFORE add vap_index=%u "
+                        "total_valid=%u:\n",
+                        __func__, __LINE__,
+                        vap_index, known_ap_count(pending_table));
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        char slot_mac[MAC_STR_LEN] = {0};
+        if (pending_table[s].valid) {
+            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            wifi_util_dbg_print(WIFI_CTRL,
+                                "%s:%d   slot=%d mac=%s valid=%d\n",
+                                __func__, __LINE__,
+                                s, slot_mac, pending_table[s].valid);
+        }
+    }
+
+    /* Duplicate check */
+    int existing = known_ap_find(pending_table, new_mac);
+    if (existing >= 0) {
+        wifi_util_info_print(WIFI_CTRL,
+                             "%s:%d MAC %s already in slot=%d "
+                             "vap_index=%u radio_idx=%u vap_idx=%u — no-op\n",
+                             __func__, __LINE__,
+                             pTmp, existing,
+                             vap_index, radio_idx, vap_idx);
+        pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+        return bus_error_success;
+    }
+
+    /* Capacity check */
+    int free_slot = known_ap_find_free(pending_table);
+    if (free_slot < 0) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d table full count=%d max=%d "
+                              "cannot add mac=%s "
+                              "vap_index=%u radio_idx=%u vap_idx=%u\n",
+                              __func__, __LINE__,
+                              known_ap_count(pending_table), MAX_KNOWN_APS,
+                              pTmp, vap_index, radio_idx, vap_idx);
+        pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+        return bus_error_out_of_resources;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d free_slot=%d found for mac=%s vap_index=%u\n",
+                        __func__, __LINE__, free_slot, pTmp, vap_index);
+
+    memcpy(pending_table[free_slot].mac, new_mac, sizeof(mac_address_t));
+    pending_table[free_slot].valid = true;
+    g_apply_roguegw_config.config[vap_index].is_pending = true;
+
+    wifi_util_info_print(WIFI_CTRL,
+                         "%s:%d staged ADD mac=%s slot=%d total_valid=%u "
+                         "vap_index=%u radio_idx=%u vap_idx=%u "
+                         "is_pending=%d — awaiting ApplySettings\n",
+                         __func__, __LINE__,
+                         pTmp, free_slot,
+                         known_ap_count(pending_table),
+                         vap_index, radio_idx, vap_idx,
+                         g_apply_roguegw_config.config[vap_index].is_pending);
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit success\n",
+                        __func__, __LINE__);
+    return bus_error_success;
+}
+
+/* ================================================================
+ *  SET  Device.WiFi.AccessPoint.{i}.X_RDK_KnownGW_Remove
+ * ================================================================ */
+bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
+                                    bus_user_data_t *user_data)
+{
+    (void)user_data;
+    unsigned int  ap_inst   = 0;
+    unsigned int  vap_index = 0;
+    unsigned int  radio_idx = 0;
+    unsigned int  vap_idx   = 0;
+    mac_address_t del_mac   = {0};
+    char         *pTmp      = NULL;
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
+                        __func__, __LINE__, name ? name : "NULL");
+
+    /* ---- 1. Input validation ------------------------------------ */
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d property name is not found\n",
+                              __func__, __LINE__);
+        return bus_error_element_name_missing;
+    }
+
+    pTmp = (char *)p_data->raw_data.bytes;
+    if ((p_data->data_type != bus_data_type_string) || (pTmp == NULL)) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d wrong bus data_type=0x%x or NULL bytes\n",
+                              __func__, __LINE__, p_data->data_type);
+        return bus_error_invalid_input;
+    }
+
+    if (pTmp[0] == '\0') {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d empty MAC string rejected\n",
+                              __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d bus set string='%s'\n",
+                        __func__, __LINE__, pTmp);
+
+    /* ---- 2. Parse AP instance and resolve indices -------------- */
+    if (sscanf(name, "Device.WiFi.AccessPoint.%u.", &ap_inst) != 1) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d failed to parse ap_inst from '%s'\n",
+                              __func__, __LINE__, name);
+        return bus_error_invalid_input;
+    }
+
+    vap_index = ap_inst - 1;
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d parsed ap_inst=%u vap_index=%u\n",
+                        __func__, __LINE__, ap_inst, vap_index);
+
+    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_radio_index_from_vap_index failed "
+                              "vap_index=%u\n",
+                              __func__, __LINE__, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d get_vap_index_from_radio failed "
+                              "radio_idx=%u vap_index=%u\n",
+                              __func__, __LINE__, radio_idx, vap_index);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d resolved radio_idx=%u vap_idx=%u vap_index=%u\n",
+                        __func__, __LINE__, radio_idx, vap_idx, vap_index);
+
+    /* ---- 3. Parse MAC ------------------------------------------ */
+    if (str_to_mac(pTmp, del_mac) != 0) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d str_to_mac failed for '%s'\n",
+                              __func__, __LINE__, pTmp);
+        return bus_error_invalid_input;
+    }
+
+    /* ---- 4. Update pending global config ----------------------- */
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    known_ap_entry_t *pending_table =
+        g_apply_roguegw_config.config[vap_index].known_ap_table;
+
+    /* Log table state before modification */
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d pending table BEFORE remove vap_index=%u "
+                        "total_valid=%u:\n",
+                        __func__, __LINE__,
+                        vap_index, known_ap_count(pending_table));
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        char slot_mac[MAC_STR_LEN] = {0};
+        if (pending_table[s].valid) {
+            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            wifi_util_dbg_print(WIFI_CTRL,
+                                "%s:%d   slot=%d mac=%s valid=%d\n",
+                                __func__, __LINE__,
+                                s, slot_mac, pending_table[s].valid);
+        }
+    }
+
+    int slot = known_ap_find(pending_table, del_mac);
+    if (slot < 0) {
+        wifi_util_info_print(WIFI_CTRL,
+                             "%s:%d mac=%s not found in pending table "
+                             "vap_index=%u radio_idx=%u vap_idx=%u — no-op\n",
+                             __func__, __LINE__,
+                             pTmp, vap_index, radio_idx, vap_idx);
+        pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+        return bus_error_success;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d mac=%s found at slot=%d "
+                        "vap_index=%u radio_idx=%u vap_idx=%u — clearing\n",
+                        __func__, __LINE__,
+                        pTmp, slot, vap_index, radio_idx, vap_idx);
+
+    memset(&pending_table[slot], 0, sizeof(known_ap_entry_t));
+    pending_table[slot].valid = false;
+    g_apply_roguegw_config.config[vap_index].is_pending = true;
+
+    wifi_util_info_print(WIFI_CTRL,
+                         "%s:%d staged REMOVE mac=%s slot=%d remaining=%u "
+                         "vap_index=%u radio_idx=%u vap_idx=%u "
+                         "is_pending=%d — awaiting ApplySettings\n",
+                         __func__, __LINE__,
+                         pTmp, slot,
+                         known_ap_count(pending_table),
+                         vap_index, radio_idx, vap_idx,
+                         g_apply_roguegw_config.config[vap_index].is_pending);
+
+    /* Log table state after modification */
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d pending table AFTER remove vap_index=%u "
+                        "total_valid=%u:\n",
+                        __func__, __LINE__,
+                        vap_index, known_ap_count(pending_table));
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        char slot_mac[MAC_STR_LEN] = {0};
+        if (pending_table[s].valid) {
+            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            wifi_util_dbg_print(WIFI_CTRL,
+                                "%s:%d   slot=%d mac=%s valid=%d\n",
+                                __func__, __LINE__,
+                                s, slot_mac, pending_table[s].valid);
+        }
+    }
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit success\n",
+                        __func__, __LINE__);
+    return bus_error_success;
+}
+
+bus_error_t apply_roguegw_config(char *name, raw_data_t *p_data,
+                                  bus_user_data_t *user_data)
+{
+    (void)user_data;
+    wifi_ctrl_t             *ctrl       = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_mgr_t              *mgr        = get_wifimgr_obj();
+    unsigned int             num_radios = getNumberRadios();
+    unsigned int             radio_idx  = 0;
+    unsigned int             vap_idx    = 0;
+    unsigned int             vap_index  = 0;
+    bool                     any_pending = false;
+    char                    *pTmp       = NULL;
+    webconfig_subdoc_data_t  data;
+    char                    *str        = NULL;
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
+                        __func__, __LINE__, name ? name : "NULL");
+
+    /* ---- 1. Pointer sanity ------------------------------------- */
+    if (!ctrl || !mgr) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d NULL pointer ctrl=%p mgr=%p\n",
+                              __func__, __LINE__,
+                              (void *)ctrl, (void *)mgr);
+        return bus_error_general;
+    }
+
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d property name not found\n",
+                              __func__, __LINE__);
+        return bus_error_element_name_missing;
+    }
+
+    pTmp = (char *)p_data->raw_data.bytes;
+    if ((p_data->data_type != bus_data_type_string) || !pTmp) {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d wrong data_type=0x%x or NULL bytes\n",
+                              __func__, __LINE__, p_data->data_type);
+        return bus_error_invalid_input;
+    }
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d bus set string='%s' num_radios=%u\n",
+                        __func__, __LINE__, pTmp, num_radios);
+
+    /* ---- 2. Check if anything is pending ----------------------- */
+    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+    for (radio_idx = 0; radio_idx < num_radios; radio_idx++) {
+        unsigned int num_vaps = getNumberVAPsPerRadio(radio_idx);
+        for (vap_idx = 0; vap_idx < num_vaps; vap_idx++) {
+            vap_index = mgr->radio_config[radio_idx]
+                            .vaps.rdk_vap_array[vap_idx].vap_index;
+            if (g_apply_roguegw_config.config[vap_index].is_pending) {
+                any_pending = true;
+                wifi_util_dbg_print(WIFI_CTRL,
+                                    "%s:%d pending found radio_idx=%u "
+                                    "vap_idx=%u vap_index=%u\n",
+                                    __func__, __LINE__,
+                                    radio_idx, vap_idx, vap_index);
+            }
+        }
+    }
+
+    if (!any_pending) {
+        wifi_util_dbg_print(WIFI_CTRL,
+                            "%s:%d no pending changes across any VAP — skip\n",
+                            __func__, __LINE__);
+        pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+        return bus_error_success;
+    }
+
+    /* ---- 3. Init subdoc data — copies ALL radios, global config,
+     *         hal_cap from mgr in one shot.
+     *         Then we overwrite only the pending known_ap_tables.   */
+    webconfig_init_subdoc_data(&data);
+
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d webconfig_init_subdoc_data done "
+                        "num_radios=%u\n",
+                        __func__, __LINE__,
+                        data.u.decoded.num_radios);
+
+    /* ---- 4. Overwrite known_ap_table for pending VAPs ---------- */
+    for (radio_idx = 0; radio_idx < num_radios; radio_idx++) {
+        unsigned int num_vaps = getNumberVAPsPerRadio(radio_idx);
+
+        for (vap_idx = 0; vap_idx < num_vaps; vap_idx++) {
+            vap_index = mgr->radio_config[radio_idx]
+                            .vaps.rdk_vap_array[vap_idx].vap_index;
+
+            if (!g_apply_roguegw_config.config[vap_index].is_pending) {
+                wifi_util_dbg_print(WIFI_CTRL,
+                                    "%s:%d radio_idx=%u vap_idx=%u "
+                                    "vap_index=%u not pending — skip\n",
+                                    __func__, __LINE__,
+                                    radio_idx, vap_idx, vap_index);
+                continue;
+            }
+
+            known_ap_entry_t *pending_table =
+                g_apply_roguegw_config.config[vap_index].known_ap_table;
+
+            /* Log full pending table being committed */
+            wifi_util_dbg_print(WIFI_CTRL,
+                                "%s:%d committing pending table "
+                                "radio_idx=%u vap_idx=%u vap_index=%u "
+                                "vap_name=%s total_valid=%u:\n",
+                                __func__, __LINE__,
+                                radio_idx, vap_idx, vap_index,
+                                mgr->radio_config[radio_idx]
+                                    .vaps.rdk_vap_array[vap_idx].vap_name,
+                                known_ap_count(pending_table));
+
+            for (int s = 0; s < MAX_KNOWN_APS; s++) {
+                char slot_mac[MAC_STR_LEN] = {0};
+                to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+                wifi_util_dbg_print(WIFI_CTRL,
+                                    "%s:%d   slot=%d mac=%s valid=%d\n",
+                                    __func__, __LINE__,
+                                    s, slot_mac, pending_table[s].valid);
+            }
+
+            /*
+             * webconfig_init_subdoc_data already copied the current
+             * known_ap_table from mgr. Now overwrite it with the
+             * pending (updated) version.
+             */
+            memcpy(data.u.decoded.radios[radio_idx].vaps
+                       .rdk_vap_array[vap_idx].known_ap_table,
+                   pending_table,
+                   sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+
+            g_apply_roguegw_config.config[vap_index].is_pending = false;
+
+            wifi_util_info_print(WIFI_CTRL,
+                                 "%s:%d pending table copied to decoded data "
+                                 "and is_pending cleared "
+                                 "radio_idx=%u vap_idx=%u vap_index=%u "
+                                 "vap_name=%s\n",
+                                 __func__, __LINE__,
+                                 radio_idx, vap_idx, vap_index,
+                                 mgr->radio_config[radio_idx]
+                                     .vaps.rdk_vap_array[vap_idx].vap_name);
+        }
+    }
+
+    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
+    /* ---- 5. Encode and push ------------------------------------ */
+    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d calling webconfig_encode "
+                        "subdoc_type=%d\n",
+                        __func__, __LINE__,
+                        webconfig_subdoc_type_knownap);
+
+    if (webconfig_encode(&ctrl->webconfig, &data,
+                         webconfig_subdoc_type_knownap)
+            == webconfig_error_none) {
+
+        str = (char *)data.u.encoded.raw;
+
+        wifi_util_info_print(WIFI_CTRL,
+                             "%s:%d webconfig_encode success "
+                             "pushing encoded knownap subdoc "
+                             "num_radios=%u\n",
+                             __func__, __LINE__, num_radios);
+
+        push_event_to_ctrl_queue(str, strlen(str),
+                                 wifi_event_type_webconfig,
+                                 wifi_event_webconfig_set_known_ap, NULL);
+
+        wifi_util_dbg_print(WIFI_CTRL,
+                            "%s:%d push_event_to_ctrl_queue done\n",
+                            __func__, __LINE__);
+    } else {
+        wifi_util_error_print(WIFI_CTRL,
+                              "%s:%d webconfig_encode failed "
+                              "subdoc_type=%d\n",
+                              __func__, __LINE__,
+                              webconfig_subdoc_type_knownap);
+        webconfig_data_free(&data);
+        return bus_error_general;
+    }
+
+    webconfig_data_free(&data);
+
+    wifi_util_info_print(WIFI_CTRL,
+                         "%s:%d apply_roguegw_config completed "
+                         "num_radios=%u\n",
+                         __func__, __LINE__, num_radios);
+
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d exit success\n",
+                        __func__, __LINE__);
+    return bus_error_success;
+}
+
+bus_error_t roguegw_removerowhandler(char const *rowName)
 {
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     ctrl->rogue_tree_instance_num--;
@@ -3002,7 +3836,7 @@ bus_error_t roguegw_addrowhandler(char const *rowName)
     return bus_error_success;
 }
 
-bus_error_t roguegw_removerowhandler(char const *tableName, char const *aliasName,
+bus_error_t roguegw_addrowhandler(char const *tableName, char const *aliasName,
     uint32_t *instNum)
 {
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();

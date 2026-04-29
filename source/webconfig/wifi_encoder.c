@@ -90,6 +90,98 @@ webconfig_error_t encode_radio_operating_classes(const wifi_radio_operationParam
     }
     return webconfig_error_none;
 }
+/* ================================================================
+ *  encode_knownap_object
+ *  Encodes one VAP's known_ap_table into a cJSON array element.
+ *
+ *  JSON structure per VAP:
+ *  {
+ *    "VapName": "private_ssid_2g",
+ *    "KnownAPList": [
+ *      { "MAC": "aa:bb:cc:dd:ee:ff" },
+ *      ...
+ *    ]
+ *  }
+ * ================================================================ */
+webconfig_error_t encode_knownap_object(rdk_wifi_vap_info_t *rdk_vap_info,
+                                         cJSON               *obj_array)
+{
+    if (!rdk_vap_info || !obj_array) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                              "%s:%d NULL pointer rdk_vap_info=%p obj_array=%p\n",
+                              __func__, __LINE__,
+                              (void *)rdk_vap_info, (void *)obj_array);
+        return webconfig_error_encode;
+    }
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+                        "%s:%d encoding vap_name=%s vap_index=%u\n",
+                        __func__, __LINE__,
+                        rdk_vap_info->vap_name, rdk_vap_info->vap_index);
+
+    cJSON *obj_vap  = cJSON_CreateObject();
+    cJSON *obj_list = cJSON_CreateArray();
+
+    if (!obj_vap || !obj_list) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                              "%s:%d cJSON_Create failed vap_name=%s\n",
+                              __func__, __LINE__, rdk_vap_info->vap_name);
+        cJSON_Delete(obj_vap);
+        cJSON_Delete(obj_list);
+        return webconfig_error_encode;
+    }
+
+    cJSON_AddItemToArray(obj_array, obj_vap);
+    cJSON_AddStringToObject(obj_vap, "VapName",
+                            (char *)rdk_vap_info->vap_name);
+    cJSON_AddItemToObject(obj_vap, "KnownAPList", obj_list);
+
+    unsigned int encoded_count = 0;
+
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        known_ap_entry_t *entry = &rdk_vap_info->known_ap_table[s];
+
+        if (!entry->valid) {
+            wifi_util_dbg_print(WIFI_WEBCONFIG,
+                                "%s:%d slot=%d invalid, skip\n",
+                                __func__, __LINE__, s);
+            continue;
+        }
+
+        char mac_str[MAC_STR_LEN] = {0};
+        snprintf(mac_str, sizeof(mac_str),
+                 "%02x:%02x:%02x:%02x:%02x:%02x",
+                 entry->mac[0], entry->mac[1], entry->mac[2],
+                 entry->mac[3], entry->mac[4], entry->mac[5]);
+
+        cJSON *obj_entry = cJSON_CreateObject();
+        if (!obj_entry) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d cJSON_CreateObject failed slot=%d\n",
+                                  __func__, __LINE__, s);
+            return webconfig_error_encode;
+        }
+
+        cJSON_AddItemToArray(obj_list, obj_entry);
+        cJSON_AddStringToObject(obj_entry, "MAC", mac_str);
+        cJSON_AddNumberToObject(obj_entry, "Slot", s);
+
+        wifi_util_dbg_print(WIFI_WEBCONFIG,
+                            "%s:%d   encoded slot=%d mac=%s vap_name=%s\n",
+                            __func__, __LINE__,
+                            s, mac_str, rdk_vap_info->vap_name);
+        encoded_count++;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG,
+                         "%s:%d encoded %u known APs for vap_name=%s "
+                         "vap_index=%u\n",
+                         __func__, __LINE__,
+                         encoded_count, rdk_vap_info->vap_name,
+                         rdk_vap_info->vap_index);
+
+    return webconfig_error_none;
+}
 
 webconfig_error_t encode_radio_curr_operating_classes(const wifi_radio_operationParam_t *oper,
     cJSON *radio_object)

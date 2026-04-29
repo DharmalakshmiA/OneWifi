@@ -146,6 +146,7 @@ typedef enum {
     webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_link_report,
     webconfig_subdoc_type_ignite,
+    webconfig_subdoc_type_knownap,
     webconfig_subdoc_type_max
 } webconfig_subdoc_type_t;
 
@@ -507,6 +508,15 @@ webconfig_error_t       decode_ignite_subdoc(webconfig_t *config, webconfig_subd
 webconfig_error_t       encode_ignite_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 webconfig_error_t       translate_to_ignite_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 webconfig_error_t       translate_from_ignite_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+
+//knownap config
+
+webconfig_error_t       init_knownap_subdoc(webconfig_subdoc_t *doc);
+webconfig_error_t       access_knownap_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       decode_knownap_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       encode_knownap_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       translate_to_knownap_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       translate_from_knownap_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 
 //harvester
 

@@ -183,6 +183,19 @@ typedef struct {
 }__attribute__((packed)) wifi_sta_conn_info_t;
 
 typedef struct {
+    known_ap_entry_t known_ap_table[MAX_KNOWN_APS];
+    unsigned int     vap_index;        /* which VAP this table belongs to */
+    bool             is_pending;
+} pending_roguegw_config_t;
+
+typedef struct {
+    pending_roguegw_config_t config[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];
+    pthread_mutex_t          lock;
+} apply_roguegw_config_t;
+
+static apply_roguegw_config_t g_apply_roguegw_config;
+
+typedef struct {
     int  wifi_csa_sched_handler_id[MAX_NUM_RADIOS];
     int  wifi_radio_sched_handler_id[MAX_NUM_RADIOS];
     int  wifi_vap_sched_handler_id[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];

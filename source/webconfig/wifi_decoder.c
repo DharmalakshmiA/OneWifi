@@ -167,6 +167,136 @@
     }   \
 }   \
 
+/* ================================================================
+ *  decode_knownap_object
+ *  Decodes a single VAP's KnownAPList from cJSON into
+ *  rdk_vap_info->known_ap_table[].
+ * ================================================================ */
+webconfig_error_t decode_knownap_object(rdk_wifi_vap_info_t *rdk_vap_info,
+                                         cJSON               *obj_vap)
+{
+    if (!rdk_vap_info || !obj_vap) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                              "%s:%d NULL pointer rdk_vap_info=%p obj_vap=%p\n",
+                              __func__, __LINE__,
+                              (void *)rdk_vap_info, (void *)obj_vap);
+        return webconfig_error_decode;
+    }
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+                        "%s:%d enter vap_name=%s vap_index=%u\n",
+                        __func__, __LINE__,
+                        rdk_vap_info->vap_name, rdk_vap_info->vap_index);
+
+    /* Clear the table before populating from JSON */
+    memset(rdk_vap_info->known_ap_table, 0,
+           sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+
+    cJSON *obj_list = cJSON_GetObjectItem(obj_vap, "KnownAPList");
+    if (!obj_list || !cJSON_IsArray(obj_list)) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                              "%s:%d KnownAPList missing or not array "
+                              "vap_name=%s\n",
+                              __func__, __LINE__, rdk_vap_info->vap_name);
+        return webconfig_error_decode;
+    }
+
+    unsigned int size = (unsigned int)cJSON_GetArraySize(obj_list);
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+                        "%s:%d KnownAPList size=%u MAX_KNOWN_APS=%d "
+                        "vap_name=%s\n",
+                        __func__, __LINE__,
+                        size, MAX_KNOWN_APS, rdk_vap_info->vap_name);
+
+    if (size > MAX_KNOWN_APS) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                              "%s:%d KnownAPList size=%u exceeds "
+                              "MAX_KNOWN_APS=%d vap_name=%s — truncating\n",
+                              __func__, __LINE__,
+                              size, MAX_KNOWN_APS, rdk_vap_info->vap_name);
+        size = MAX_KNOWN_APS;
+    }
+
+    unsigned int decoded_count = 0;
+
+    for (unsigned int i = 0; i < size; i++) {
+        cJSON *obj_entry = cJSON_GetArrayItem(obj_list, i);
+        if (!obj_entry) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d NULL array item at i=%u\n",
+                                  __func__, __LINE__, i);
+            continue;
+        }
+
+        /* ---- Parse Slot (use as target index) ------------------ */
+        cJSON *obj_slot = cJSON_GetObjectItem(obj_entry, "Slot");
+        int slot = -1;
+        if (obj_slot && cJSON_IsNumber(obj_slot)) {
+            slot = (int)obj_slot->valuedouble;
+        }
+
+        if (slot < 0 || slot >= MAX_KNOWN_APS) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d invalid slot=%d at i=%u "
+                                  "vap_name=%s — skip\n",
+                                  __func__, __LINE__,
+                                  slot, i, rdk_vap_info->vap_name);
+            continue;
+        }
+
+        /* ---- Parse MAC ---------------------------------------- */
+        cJSON *obj_mac = cJSON_GetObjectItem(obj_entry, "MAC");
+        if (!obj_mac || !cJSON_IsString(obj_mac)) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d MAC missing or not string "
+                                  "slot=%d vap_name=%s\n",
+                                  __func__, __LINE__,
+                                  slot, rdk_vap_info->vap_name);
+            continue;
+        }
+
+        char *tmp_mac = cJSON_GetStringValue(obj_mac);
+        if (!tmp_mac || tmp_mac[0] == '\0') {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d empty MAC string slot=%d "
+                                  "vap_name=%s\n",
+                                  __func__, __LINE__,
+                                  slot, rdk_vap_info->vap_name);
+            continue;
+        }
+
+        mac_address_t mac = {0};
+        if (str_to_mac_bytes(tmp_mac, mac) != 0) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d str_to_mac_bytes failed "
+                                  "mac='%s' slot=%d vap_name=%s\n",
+                                  __func__, __LINE__,
+                                  tmp_mac, slot, rdk_vap_info->vap_name);
+            continue;
+        }
+
+        memcpy(rdk_vap_info->known_ap_table[slot].mac, mac,
+               sizeof(mac_address_t));
+        rdk_vap_info->known_ap_table[slot].valid = true;
+
+        wifi_util_dbg_print(WIFI_WEBCONFIG,
+                            "%s:%d   decoded slot=%d mac=%s valid=true "
+                            "vap_name=%s\n",
+                            __func__, __LINE__,
+                            slot, tmp_mac, rdk_vap_info->vap_name);
+        decoded_count++;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG,
+                         "%s:%d decoded %u known APs for vap_name=%s "
+                         "vap_index=%u\n",
+                         __func__, __LINE__,
+                         decoded_count, rdk_vap_info->vap_name,
+                         rdk_vap_info->vap_index);
+
+    return webconfig_error_none;
+}
 
 webconfig_error_t decode_cac_object(wifi_vap_info_t *vap_info, cJSON *obj_array );
 bool is_valid_channel(unsigned int channel, bool dfs)
