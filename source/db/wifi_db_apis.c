@@ -1989,7 +1989,7 @@ void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
 
         char cur_mac_str[MAC_STR_LEN] = {0};
         to_mac_str(rdk_vap->known_ap_table[cs].mac,
-                   cur_mac_str, sizeof(cur_mac_str));
+                   cur_mac_str);
 
         found_slot = known_ap_find(incoming,
                                    rdk_vap->known_ap_table[cs].mac);
@@ -2021,7 +2021,7 @@ void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
         }
 
         char new_mac_str[MAC_STR_LEN] = {0};
-        to_mac_str(incoming[ns].mac, new_mac_str, sizeof(new_mac_str));
+        to_mac_str(incoming[ns].mac, new_mac_str);
 
         found_slot = known_ap_find(rdk_vap->known_ap_table,
                                    incoming[ns].mac);
@@ -2070,7 +2070,7 @@ void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
     for (int s = 0; s < MAX_KNOWN_APS; s++) {
         char final_mac[MAC_STR_LEN] = {0};
         to_mac_str(rdk_vap->known_ap_table[s].mac,
-                   final_mac, sizeof(final_mac));
+                   final_mac);
         wifi_util_dbg_print(WIFI_DB,
                             "%s:%d   [final] slot=%d mac=%s valid=%d\n",
                             __func__, __LINE__,
