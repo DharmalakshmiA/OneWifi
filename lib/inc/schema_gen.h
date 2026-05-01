@@ -1937,7 +1937,7 @@
     SCHEMA(Wifi_Rfc_Config) \
     SCHEMA(Alarms) \
     SCHEMA(Wifi_MacFilter_Config) \
-    SCHEMA(Wifi_Rogue_Config) \
+    SCHEMA(Wifi_RogueAP_Config) \
     SCHEMA(Wifi_Master_State) \
     SCHEMA(Wifi_Ethernet_State) \
     SCHEMA(Connection_Manager_Uplink) \

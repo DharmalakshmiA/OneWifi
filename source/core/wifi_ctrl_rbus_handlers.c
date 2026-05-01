@@ -3044,7 +3044,7 @@ void init_pending_roguegw_config(void)
     pthread_mutex_lock(&g_apply_roguegw_config.lock);
 
     for (unsigned int r = 0; r < num_radios; r++) {
-        wifi_vap_info_map_t *vap_map = &mgr->radio_config[r].vaps;
+        rdk_wifi_vap_map_t *vap_map = &mgr->radio_config[r].vaps;
 
         wifi_util_dbg_print(WIFI_CTRL,
                             "%s:%d radio=%u num_vaps=%u\n",

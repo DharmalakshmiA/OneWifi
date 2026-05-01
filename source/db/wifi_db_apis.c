@@ -4203,7 +4203,7 @@ int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
 	   config->rogue_ap_enable = pcfg->rogue_ap_enable;
 	   config->rogue_ap_freq = pcfg->rogue_ap_freq;
     }
-    wifi_util_dbg_print(WIFI_DB, "Rogue AP [DB] Rogue Configd : %s %d  [STRUCT]enable:%d Freq:%u\n", __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, config->rogue_ap_enable, config->rogue_ap_freq);
+    wifi_util_dbg_print(WIFI_DB, "Rogue AP [DB] Rogue Configd : %d %u  [STRUCT]enable:%d Freq:%u\n", __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, config->rogue_ap_enable, config->rogue_ap_freq);
     return 0;
 }
 /************************************************************************************
