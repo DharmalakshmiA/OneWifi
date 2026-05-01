@@ -245,8 +245,8 @@
    PJS(schema_Wifi_RogueAP_Config, \
         PJS_OVS_UUID_Q(_uuid)\
         PJS_OVS_UUID_Q(_version)\
-        PJS_OVS_STRING(vap_name, WIFI_AP_MAX_VAP_NAME_LEN + 1)\
-        PJS_OVS_SET_STR(mac_list, 18 + 1, 5)\
+        PJS_OVS_STRING(vap_name,128 + 1) \
+        PJS_OVS_SET_STRING(mac_list, 64, 64 + 1) \
    )
 
 #define PJS_SCHEMA_Alarms \
