@@ -2493,24 +2493,24 @@ static int check_and_reset_channel_change(void *arg)
 /* ================================================================
  *  webconfig_hal_knownap_apply
  *
- *  Called from the webconfig apply path after the subdoc is
- *  decoded.  Compares new_config->known_ap_table (from decoded
- *  data) against current_config->known_ap_table (live mgr state)
- *  and applies only the delta — additions and removals.
- *
+ *  Called from webconfig_ctrl_apply after decode.
+ *  Compares new_config->known_ap_table (decoded) against
+ *  current_config->known_ap_table (live mgr) and applies delta.
+ *  Persists each change to DB via wifidb_update_wifi_knownap_config
+ *  (one atomic upsert per VAP after all deltas are applied).
  * ================================================================ */
 int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
-                                 webconfig_subdoc_decoded_data_t *data )
+                                 webconfig_subdoc_decoded_data_t *data)
 {
-    unsigned int          radio_index = 0;
-    unsigned int          vap_index  = 0;
+    unsigned int          radio_index    = 0;
+    unsigned int          vap_index      = 0;
     rdk_wifi_vap_info_t  *new_config     = NULL;
     rdk_wifi_vap_info_t  *current_config = NULL;
-    wifi_mgr_t           *mgr        = get_wifimgr_obj();
-    int                   ret        = RETURN_OK;
+    wifi_mgr_t           *mgr           = get_wifimgr_obj();
+    int                   ret           = RETURN_OK;
+    char                  knownap_key[128] = {0};
 
-    wifi_util_dbg_print(WIFI_MGR, "%s:%d enter subdoc_type=%d\n",
-                        __func__, __LINE__, subdoc_type);
+    wifi_util_dbg_print(WIFI_MGR, "%s:%d enter\n", __func__, __LINE__);
 
     if (!mgr || !data) {
         wifi_util_error_print(WIFI_MGR,
@@ -2520,7 +2520,6 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
         return RETURN_ERR;
     }
 
-    /* ---- Iterate all radios and VAPs --------------------------- */
     for (radio_index = 0;
          radio_index < getNumberRadios();
          radio_index++) {
@@ -2528,7 +2527,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
         unsigned int num_vaps = getNumberVAPsPerRadio(radio_index);
 
         wifi_util_dbg_print(WIFI_MGR,
-                            "%s:%d processing radio_index=%u num_vaps=%u\n",
+                            "%s:%d radio_index=%u num_vaps=%u\n",
                             __func__, __LINE__, radio_index, num_vaps);
 
         for (vap_index = 0; vap_index < num_vaps; vap_index++) {
@@ -2540,8 +2539,8 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
 
             if (!new_config || !current_config) {
                 wifi_util_error_print(WIFI_MGR,
-                                      "%s:%d NULL config pointer "
-                                      "radio_index=%u vap_index=%u\n",
+                                      "%s:%d NULL config radio_index=%u "
+                                      "vap_index=%u\n",
                                       __func__, __LINE__,
                                       radio_index, vap_index);
                 return RETURN_ERR;
@@ -2549,19 +2548,22 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
 
             wifi_util_dbg_print(WIFI_MGR,
                                 "%s:%d radio_index=%u vap_index=%u "
-                                "vap_name=%s\n",
+                                "vap_name=%s vap_global_index=%u\n",
                                 __func__, __LINE__,
                                 radio_index, vap_index,
-                                current_config->vap_name);
+                                current_config->vap_name,
+                                current_config->vap_index);
 
             /* ---- Log current live table ----------------------- */
             wifi_util_dbg_print(WIFI_MGR,
-                                "%s:%d current known_ap_table "
-                                "radio_index=%u vap_index=%u "
+                                "%s:%d [current] radio_index=%u "
+                                "vap_index=%u vap_name=%s "
                                 "total_valid=%u:\n",
                                 __func__, __LINE__,
                                 radio_index, vap_index,
-                                known_ap_count(current_config->known_ap_table));
+                                current_config->vap_name,
+                                known_ap_count(
+                                    current_config->known_ap_table));
 
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
                 char cur_mac[MAC_STR_LEN] = {0};
@@ -2576,13 +2578,14 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 }
             }
 
-            /* ---- Log new table -------------------------------- */
+            /* ---- Log new decoded table ------------------------ */
             wifi_util_dbg_print(WIFI_MGR,
-                                "%s:%d new known_ap_table "
-                                "radio_index=%u vap_index=%u "
+                                "%s:%d [new] radio_index=%u "
+                                "vap_index=%u vap_name=%s "
                                 "total_valid=%u:\n",
                                 __func__, __LINE__,
                                 radio_index, vap_index,
+                                new_config->vap_name,
                                 known_ap_count(new_config->known_ap_table));
 
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
@@ -2598,9 +2601,11 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 }
             }
 
+            /* Track whether this VAP had any delta */
+            bool vap_changed = false;
+
             /* ================================================
-             *  STEP 1 — REMOVE entries that are in current
-             *           but NOT in new
+             *  STEP 1 — REMOVE: in current but NOT in new
              * ================================================ */
             for (int cs = 0; cs < MAX_KNOWN_APS; cs++) {
                 if (!current_config->known_ap_table[cs].valid) {
@@ -2611,43 +2616,45 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 to_mac_str(current_config->known_ap_table[cs].mac,
                            cur_mac_str, sizeof(cur_mac_str));
 
-                /* Check if this MAC still exists in new config */
                 int found_in_new =
                     known_ap_find(new_config->known_ap_table,
                                   current_config->known_ap_table[cs].mac);
 
-                if (found_in_new < 0) {
-                    /* MAC was removed — delete from live table */
-                    wifi_util_info_print(WIFI_MGR,
-                                         "%s:%d REMOVE mac=%s slot=%d "
-                                         "radio_index=%u vap_index=%u "
-                                         "vap_name=%s\n",
-                                         __func__, __LINE__,
-                                         cur_mac_str, cs,
-                                         radio_index, vap_index,
-                                         current_config->vap_name);
-
-                    memset(&current_config->known_ap_table[cs], 0,
-                           sizeof(known_ap_entry_t));
-                    current_config->known_ap_table[cs].valid = false;
-
+                if (found_in_new >= 0) {
                     wifi_util_dbg_print(WIFI_MGR,
-                                        "%s:%d cleared current slot=%d "
-                                        "radio_index=%u vap_index=%u\n",
-                                        __func__, __LINE__,
-                                        cs, radio_index, vap_index);
-                } else {
-                    wifi_util_dbg_print(WIFI_MGR,
-                                        "%s:%d mac=%s slot=%d still present "
-                                        "in new config at slot=%d — keep\n",
+                                        "%s:%d mac=%s slot=%d still in "
+                                        "new at slot=%d — keep\n",
                                         __func__, __LINE__,
                                         cur_mac_str, cs, found_in_new);
+                    continue;
                 }
+
+                wifi_util_info_print(WIFI_MGR,
+                                     "%s:%d REMOVE mac=%s slot=%d "
+                                     "radio_index=%u vap_index=%u "
+                                     "vap_name=%s\n",
+                                     __func__, __LINE__,
+                                     cur_mac_str, cs,
+                                     radio_index, vap_index,
+                                     current_config->vap_name);
+
+                /* Clear mgr cache */
+                memset(&current_config->known_ap_table[cs], 0,
+                       sizeof(known_ap_entry_t));
+                current_config->known_ap_table[cs].valid = false;
+
+                wifi_util_dbg_print(WIFI_MGR,
+                                    "%s:%d cleared mgr slot=%d "
+                                    "radio_index=%u vap_index=%u "
+                                    "vap_name=%s\n",
+                                    __func__, __LINE__,
+                                    cs, radio_index, vap_index,
+                                    current_config->vap_name);
+                vap_changed = true;
             }
 
             /* ================================================
-             *  STEP 2 — ADD entries that are in new
-             *           but NOT in current
+             *  STEP 2 — ADD: in new but NOT in current
              * ================================================ */
             for (int ns = 0; ns < MAX_KNOWN_APS; ns++) {
                 if (!new_config->known_ap_table[ns].valid) {
@@ -2665,24 +2672,24 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 if (found_in_current >= 0) {
                     wifi_util_dbg_print(WIFI_MGR,
                                         "%s:%d mac=%s already in current "
-                                        "slot=%d — skip add\n",
+                                        "slot=%d — skip\n",
                                         __func__, __LINE__,
                                         new_mac_str, found_in_current);
                     continue;
                 }
 
-                /* Find a free slot in the live table */
                 int free_slot =
                     known_ap_find_free(current_config->known_ap_table);
 
                 if (free_slot < 0) {
                     wifi_util_error_print(WIFI_MGR,
-                                          "%s:%d current table full, "
-                                          "cannot add mac=%s "
-                                          "radio_index=%u vap_index=%u\n",
+                                          "%s:%d table full cannot add "
+                                          "mac=%s radio_index=%u "
+                                          "vap_index=%u vap_name=%s\n",
                                           __func__, __LINE__,
-                                          new_mac_str,
-                                          radio_index, vap_index);
+                                          new_mac_str, radio_index,
+                                          vap_index,
+                                          current_config->vap_name);
                     ret = RETURN_ERR;
                     continue;
                 }
@@ -2693,7 +2700,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 current_config->known_ap_table[free_slot].valid = true;
 
                 wifi_util_info_print(WIFI_MGR,
-                                     "%s:%d ADD mac=%s new_slot=%d "
+                                     "%s:%d ADD mac=%s slot=%d "
                                      "radio_index=%u vap_index=%u "
                                      "vap_name=%s total_valid=%u\n",
                                      __func__, __LINE__,
@@ -2702,24 +2709,67 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                                      current_config->vap_name,
                                      known_ap_count(
                                          current_config->known_ap_table));
+                vap_changed = true;
             }
 
-            /* ---- Log final live table after apply ------------ */
-            wifi_util_dbg_print(WIFI_MGR,
-                                "%s:%d final known_ap_table after apply "
-                                "radio_index=%u vap_index=%u "
-                                "total_valid=%u:\n",
-                                __func__, __LINE__,
-                                radio_index, vap_index,
-                                known_ap_count(
-                                    current_config->known_ap_table));
+            /* ================================================
+             *  STEP 3 — PERSIST: one atomic upsert per VAP
+             *           only if something actually changed.
+             *           Passes the full updated table so the DB
+             *           row reflects the current live state.
+             * ================================================ */
+            if (vap_changed) {
+                wifi_util_dbg_print(WIFI_MGR,
+                                    "%s:%d persisting to DB vap_name=%s "
+                                    "radio_index=%u vap_index=%u "
+                                    "total_valid=%u\n",
+                                    __func__, __LINE__,
+                                    current_config->vap_name,
+                                    radio_index, vap_index,
+                                    known_ap_count(
+                                        current_config->known_ap_table));
+
+                if (wifidb_update_wifi_knownap_config(
+                        current_config->vap_name,
+                        current_config->known_ap_table,
+                        true) != RETURN_OK) {
+                    wifi_util_error_print(WIFI_MGR,
+                                          "%s:%d DB persist failed "
+                                          "vap_name=%s radio_index=%u "
+                                          "vap_index=%u\n",
+                                          __func__, __LINE__,
+                                          current_config->vap_name,
+                                          radio_index, vap_index);
+                    ret = RETURN_ERR;
+                }
+            } else {
+                wifi_util_dbg_print(WIFI_MGR,
+                                    "%s:%d no delta for vap_name=%s "
+                                    "radio_index=%u vap_index=%u "
+                                    "— skip DB write\n",
+                                    __func__, __LINE__,
+                                    current_config->vap_name,
+                                    radio_index, vap_index);
+            }
+
+            /* ---- Log final live table ------------------------- */
+            wifi_util_info_print(WIFI_MGR,
+                                 "%s:%d [final] radio_index=%u "
+                                 "vap_index=%u vap_name=%s "
+                                 "total_valid=%u:\n",
+                                 __func__, __LINE__,
+                                 radio_index, vap_index,
+                                 current_config->vap_name,
+                                 known_ap_count(
+                                     current_config->known_ap_table));
 
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
                 char final_mac[MAC_STR_LEN] = {0};
                 to_mac_str(current_config->known_ap_table[s].mac,
                            final_mac, sizeof(final_mac));
                 wifi_util_dbg_print(WIFI_MGR,
-                                    "%s:%d   [final] slot=%d mac=%s valid=%d\n",
+                                    "%s:%d   [final] slot=%d "
+                                    "mac=%s valid=%d\n",
                                     __func__, __LINE__,
                                     s, final_mac,
                                     current_config->known_ap_table[s].valid);

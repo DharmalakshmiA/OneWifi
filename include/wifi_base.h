@@ -56,6 +56,9 @@ extern "C" {
 #define WIFI_ACCESSPOINT_ROGUEKNOWNGW_TABLE "Device.WiFi.AccessPoint.{i}.RogueKnownGateway.{i}."
 #define WIFI_ACCESSPOINT_ROGUEKNOWNGW_MAC "Device.WiFi.AccessPoint.{i}.RogueKnownGateway.{i}.MAC"
 #define WIFI_ACCESSPOINT_ROGUEKNOWNGW_ENTRIES "Device.WiFi.AccessPoint.{i}.RogueKnownGatewayEntries"
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_ADD     "Device.WiFi.AccessPoint.{i}.X_RDK_KnownGW_Add"
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_REMOVE  "Device.WiFi.AccessPoint.{i}.X_RDK_KnownGW_Remove"
+#define WIFI_ACCESSPOINT_ROGUEKNOWNGW_APPLY "Device.WiFi.AccessPoint.{i}.X_RDK_KnownGW_ApplySettings"
 #define WIFI_ACCESSPOINT_DEV_CONNECTED      "Device.WiFi.AccessPoint.{i}.X_RDK_deviceConnected"
 #define WIFI_ACCESSPOINT_DEV_DISCONNECTED   "Device.WiFi.AccessPoint.{i}.X_RDK_deviceDisconnected"
 #define WIFI_ACCESSPOINT_DEV_DEAUTH         "Device.WiFi.AccessPoint.{i}.X_RDK_deviceDeauthenticated"
@@ -733,7 +736,7 @@ typedef struct {
 #define MAX_KNOWN_APS 5
 
 typedef struct {
-    mac_address_t mac[6];
+    mac_address_t mac;
     bool    valid;
 } known_ap_entry_t;
 

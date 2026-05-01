@@ -107,6 +107,7 @@ ovsdb_table_t table_Wifi_GAS_Config;
 ovsdb_table_t table_Wifi_Rogue_Config;
 ovsdb_table_t table_Wifi_Global_Config;
 ovsdb_table_t table_Wifi_MacFilter_Config;
+ovsdb_table_t table_Wifi_KnownAp_Config;
 ovsdb_table_t table_Wifi_Passpoint_Config;
 ovsdb_table_t table_Wifi_Anqp_Config;
 ovsdb_table_t table_Wifi_Preassoc_Control_Config;
@@ -8691,6 +8692,7 @@ int start_wifidb_monitor()
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Preassoc_Control_Config, true);
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Postassoc_Control_Config, true);
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Rfc_Config, true);
+    ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_KnownAp_Config, true);
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Global_Config, true);
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Passpoint_Config, true);
     ONEWIFI_OVSDB_TABLE_MONITOR(g_wifidb->wifidb_fd, Wifi_Anqp_Config, true);

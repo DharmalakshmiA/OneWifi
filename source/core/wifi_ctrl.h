@@ -193,7 +193,7 @@ typedef struct {
     pthread_mutex_t          lock;
 } apply_roguegw_config_t;
 
-static apply_roguegw_config_t g_apply_roguegw_config;
+apply_roguegw_config_t g_apply_roguegw_config;
 
 typedef struct {
     int  wifi_csa_sched_handler_id[MAX_NUM_RADIOS];
