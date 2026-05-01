@@ -267,14 +267,12 @@ webconfig_error_t decode_knownap_object(rdk_wifi_vap_info_t *rdk_vap_info,
         }
 
         mac_address_t mac = {0};
-        if (str_to_mac_bytes(tmp_mac, mac) != 0) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                                  "%s:%d str_to_mac_bytes failed "
-                                  "mac='%s' slot=%d vap_name=%s\n",
+        str_to_mac_bytes(tmp_mac, mac);
+        wifi_util_error_print(WIFI_WEBCONFIG,
+                                  "%s:%d str_to_mac_bytes"
+                                  "vap_name=%s slot=%d\n",
                                   __func__, __LINE__,
-                                  tmp_mac, slot, rdk_vap_info->vap_name);
-            continue;
-        }
+                                 rdk_vap_info->vap_name, slot);
 
         memcpy(rdk_vap_info->known_ap_table[slot].mac, mac,
                sizeof(mac_address_t));

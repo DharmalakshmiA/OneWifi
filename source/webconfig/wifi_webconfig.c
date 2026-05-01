@@ -795,12 +795,12 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_link_report].translate_from_subdoc = translate_from_link_report_subdoc;
     
     //webconfig_subdoc_type_knownap_report 
-    config->subdocs[webconfig_subdoc_type_knownap_report].type = webconfig_subdoc_type_knownap;
+    config->subdocs[webconfig_subdoc_type_knownap].type = webconfig_subdoc_type_knownap;
     strcpy(config->subdocs[webconfig_subdoc_type_knownap].name, "KnownAPReport");
     config->subdocs[webconfig_subdoc_type_knownap].major = 1;
     config->subdocs[webconfig_subdoc_type_knownap].minor = 1;
     config->subdocs[webconfig_subdoc_type_knownap].init_subdoc = init_knownap_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].access_check_subdoc = access_check_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].access_check_subdoc = access_knownap_subdoc;
     config->subdocs[webconfig_subdoc_type_knownap].encode_subdoc = encode_knownap_subdoc;
     config->subdocs[webconfig_subdoc_type_knownap].decode_subdoc = decode_knownap_subdoc;
     config->subdocs[webconfig_subdoc_type_knownap].translate_to_subdoc = translate_to_knownap_subdoc;
