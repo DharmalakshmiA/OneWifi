@@ -3075,7 +3075,7 @@ void init_pending_roguegw_config(void)
                     &g_apply_roguegw_config.config[idx].known_ap_table[s];
                 if (e->valid) {
                     char mac_str[MAC_STR_LEN] = {0};
-                    to_mac_str(e->mac, mac_str, sizeof(mac_str));
+                    to_mac_str(e->mac, mac_str);
                     wifi_util_dbg_print(WIFI_CTRL,
                                         "%s:%d   slot=%d mac=%s valid=%d\n",
                                         __func__, __LINE__, s, mac_str, e->valid);
@@ -3180,7 +3180,7 @@ bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
     char mac_str[MAC_STR_LEN] = {0};
 
     if (entry->valid) {
-        to_mac_str(entry->mac, mac_str, sizeof(mac_str));
+        to_mac_str(entry->mac, mac_str);
         wifi_util_dbg_print(WIFI_CTRL,
                             "%s:%d slot=%d valid=true mac=%s "
                             "vap_index=%u radio_idx=%u vap_idx=%u\n",
@@ -3397,7 +3397,7 @@ bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
     for (int s = 0; s < MAX_KNOWN_APS; s++) {
         char slot_mac[MAC_STR_LEN] = {0};
         if (pending_table[s].valid) {
-            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            to_mac_str(pending_table[s].mac, slot_mac);
             wifi_util_dbg_print(WIFI_CTRL,
                                 "%s:%d   slot=%d mac=%s valid=%d\n",
                                 __func__, __LINE__,
@@ -3558,7 +3558,7 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
     for (int s = 0; s < MAX_KNOWN_APS; s++) {
         char slot_mac[MAC_STR_LEN] = {0};
         if (pending_table[s].valid) {
-            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            to_mac_str(pending_table[s].mac, slot_mac);
             wifi_util_dbg_print(WIFI_CTRL,
                                 "%s:%d   slot=%d mac=%s valid=%d\n",
                                 __func__, __LINE__,
@@ -3606,7 +3606,7 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
     for (int s = 0; s < MAX_KNOWN_APS; s++) {
         char slot_mac[MAC_STR_LEN] = {0};
         if (pending_table[s].valid) {
-            to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+            to_mac_str(pending_table[s].mac, slot_mac);
             wifi_util_dbg_print(WIFI_CTRL,
                                 "%s:%d   slot=%d mac=%s valid=%d\n",
                                 __func__, __LINE__,
@@ -3738,7 +3738,7 @@ bus_error_t apply_roguegw_config(char *name, raw_data_t *p_data,
 
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
                 char slot_mac[MAC_STR_LEN] = {0};
-                to_mac_str(pending_table[s].mac, slot_mac, sizeof(slot_mac));
+                to_mac_str(pending_table[s].mac, slot_mac);
                 wifi_util_dbg_print(WIFI_CTRL,
                                     "%s:%d   slot=%d mac=%s valid=%d\n",
                                     __func__, __LINE__,

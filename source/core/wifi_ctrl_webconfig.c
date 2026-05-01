@@ -2508,7 +2508,6 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
     rdk_wifi_vap_info_t  *current_config = NULL;
     wifi_mgr_t           *mgr           = get_wifimgr_obj();
     int                   ret           = RETURN_OK;
-    char                  knownap_key[128] = {0};
 
     wifi_util_dbg_print(WIFI_MGR, "%s:%d enter\n", __func__, __LINE__);
 
@@ -2569,7 +2568,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 char cur_mac[MAC_STR_LEN] = {0};
                 if (current_config->known_ap_table[s].valid) {
                     to_mac_str(current_config->known_ap_table[s].mac,
-                               cur_mac, sizeof(cur_mac));
+                               cur_mac);
                     wifi_util_dbg_print(WIFI_MGR,
                                         "%s:%d   [current] slot=%d "
                                         "mac=%s valid=%d\n",
@@ -2592,7 +2591,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                 char new_mac_log[MAC_STR_LEN] = {0};
                 if (new_config->known_ap_table[s].valid) {
                     to_mac_str(new_config->known_ap_table[s].mac,
-                               new_mac_log, sizeof(new_mac_log));
+                               new_mac_log);
                     wifi_util_dbg_print(WIFI_MGR,
                                         "%s:%d   [new] slot=%d "
                                         "mac=%s valid=%d\n",
@@ -2614,7 +2613,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
 
                 char cur_mac_str[MAC_STR_LEN] = {0};
                 to_mac_str(current_config->known_ap_table[cs].mac,
-                           cur_mac_str, sizeof(cur_mac_str));
+                           cur_mac_str);
 
                 int found_in_new =
                     known_ap_find(new_config->known_ap_table,
@@ -2663,7 +2662,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
 
                 char new_mac_str[MAC_STR_LEN] = {0};
                 to_mac_str(new_config->known_ap_table[ns].mac,
-                           new_mac_str, sizeof(new_mac_str));
+                           new_mac_str);
 
                 int found_in_current =
                     known_ap_find(current_config->known_ap_table,
@@ -2766,7 +2765,7 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
                 char final_mac[MAC_STR_LEN] = {0};
                 to_mac_str(current_config->known_ap_table[s].mac,
-                           final_mac, sizeof(final_mac));
+                           final_mac);
                 wifi_util_dbg_print(WIFI_MGR,
                                     "%s:%d   [final] slot=%d "
                                     "mac=%s valid=%d\n",
