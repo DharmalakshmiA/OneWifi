@@ -3798,7 +3798,7 @@ bus_error_t apply_roguegw_config(char *name, raw_data_t *p_data,
 
         push_event_to_ctrl_queue(str, strlen(str),
                                  wifi_event_type_webconfig,
-                                 wifi_event_webconfig_set_known_ap, NULL);
+                                 wifi_event_webconfig_set_knownap_data, NULL);
 
         wifi_util_dbg_print(WIFI_CTRL,
                             "%s:%d push_event_to_ctrl_queue done\n",

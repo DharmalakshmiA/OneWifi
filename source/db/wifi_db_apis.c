@@ -1811,6 +1811,585 @@ void callback_Wifi_Postassoc_Control_Config(ovsdb_update_monitor_t *mon,
     }
 }
 
+
+/* ================================================================
+ *  2. callback_Wifi_RogueAP_Config
+ *
+ *  One row per VAP keyed by vap_name.
+ *  mac_list[] holds all known AP MACs for that VAP.
+ *  On NEW/MODIFY — diff against mgr cache and apply delta.
+ *  On DEL       — clear mgr cache for that VAP.
+ * ================================================================ */
+void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
+        struct schema_Wifi_RogueAP_Config *old_rec,
+        struct schema_Wifi_RogueAP_Config *new_rec)
+{
+    wifi_mgr_t          *mgr         = get_wifimgr_obj();
+    rdk_wifi_vap_info_t *rdk_vap     = NULL;
+    mac_address_t        mac         = {0};
+    int                  vap_index   = -1;
+    int                  free_slot   = -1;
+    int                  found_slot  = -1;
+
+    if (dbwritten == false) {
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d DB not initialised yet\n",
+                             __func__, __LINE__);
+        return;
+    }
+
+    /* ---- DELETE --------------------------------------------- */
+    if (mon->mon_type == OVSDB_UPDATE_DEL) {
+        if (!old_rec) {
+            wifi_util_error_print(WIFI_DB,
+                                  "%s:%d DEL old_rec is NULL\n",
+                                  __func__, __LINE__);
+            return;
+        }
+
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d DEL vap_name=%s — clearing "
+                             "known_ap_table\n",
+                             __func__, __LINE__, old_rec->vap_name);
+
+        vap_index = convert_vap_name_to_index(
+            &mgr->hal_cap.wifi_prop, old_rec->vap_name);
+        if (vap_index == -1) {
+            wifi_util_error_print(WIFI_DB,
+                                  "%s:%d DEL unable to find vap_index "
+                                  "vap_name=%s\n",
+                                  __func__, __LINE__, old_rec->vap_name);
+            return;
+        }
+
+        rdk_vap = get_wifidb_rdk_vap_info(vap_index);
+        if (rdk_vap == NULL) {
+            wifi_util_error_print(WIFI_DB,
+                                  "%s:%d DEL rdk_vap NULL vap_index=%d\n",
+                                  __func__, __LINE__, vap_index);
+            return;
+        }
+
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d DEL clearing table vap_index=%d "
+                            "vap_name=%s total_valid_before=%u\n",
+                            __func__, __LINE__,
+                            vap_index, rdk_vap->vap_name,
+                            known_ap_count(rdk_vap->known_ap_table));
+
+        memset(rdk_vap->known_ap_table, 0,
+               sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d DEL cleared vap_name=%s\n",
+                             __func__, __LINE__, old_rec->vap_name);
+        return;
+    }
+
+    /* ---- NEW or MODIFY -------------------------------------- */
+    if ((mon->mon_type != OVSDB_UPDATE_NEW) &&
+        (mon->mon_type != OVSDB_UPDATE_MODIFY)) {
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d unknown mon_type=%d\n",
+                            __func__, __LINE__, mon->mon_type);
+        return;
+    }
+
+    if (!new_rec) {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d NEW/MODIFY new_rec is NULL\n",
+                              __func__, __LINE__);
+        return;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d %s vap_name=%s mac_list_len=%d\n",
+                        __func__, __LINE__,
+                        (mon->mon_type == OVSDB_UPDATE_NEW) ?
+                        "NEW" : "MODIFY",
+                        new_rec->vap_name, new_rec->mac_list_len);
+
+    /* ---- Resolve VAP --------------------------------------- */
+    vap_index = convert_vap_name_to_index(
+        &mgr->hal_cap.wifi_prop, new_rec->vap_name);
+    if (vap_index == -1) {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d unable to find vap_index "
+                              "vap_name=%s\n",
+                              __func__, __LINE__, new_rec->vap_name);
+        return;
+    }
+
+    rdk_vap = get_wifidb_rdk_vap_info(vap_index);
+    if (rdk_vap == NULL) {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d rdk_vap NULL vap_index=%d "
+                              "vap_name=%s\n",
+                              __func__, __LINE__,
+                              vap_index, new_rec->vap_name);
+        return;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d vap_index=%d vap_name=%s "
+                        "current_total_valid=%u incoming_mac_count=%d\n",
+                        __func__, __LINE__,
+                        vap_index, rdk_vap->vap_name,
+                        known_ap_count(rdk_vap->known_ap_table),
+                        new_rec->mac_list_len);
+
+    /* ---- Build a temporary table from incoming mac_list ---- */
+    known_ap_entry_t incoming[MAX_KNOWN_APS];
+    memset(incoming, 0, sizeof(incoming));
+    int incoming_count = 0;
+
+    for (int i = 0;
+         i < new_rec->mac_list_len && incoming_count < MAX_KNOWN_APS;
+         i++) {
+
+        if (!new_rec->mac_list[i] || new_rec->mac_list[i][0] == '\0') {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d i=%d empty mac string skip\n",
+                                __func__, __LINE__, i);
+            continue;
+        }
+
+        memset(mac, 0, sizeof(mac_address_t));
+        if (str_to_mac_bytes(new_rec->mac_list[i], mac) != 0) {
+            wifi_util_error_print(WIFI_DB,
+                                  "%s:%d str_to_mac_bytes failed "
+                                  "mac='%s' i=%d vap_name=%s\n",
+                                  __func__, __LINE__,
+                                  new_rec->mac_list[i], i,
+                                  new_rec->vap_name);
+            continue;
+        }
+
+        memcpy(incoming[incoming_count].mac, mac, sizeof(mac_address_t));
+        incoming[incoming_count].valid = true;
+
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d   incoming[%d] mac=%s\n",
+                            __func__, __LINE__,
+                            incoming_count, new_rec->mac_list[i]);
+        incoming_count++;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d parsed incoming_count=%d vap_name=%s\n",
+                        __func__, __LINE__,
+                        incoming_count, new_rec->vap_name);
+
+    /* ---- STEP 1: REMOVE — in cache but not in incoming ----- */
+    for (int cs = 0; cs < MAX_KNOWN_APS; cs++) {
+        if (!rdk_vap->known_ap_table[cs].valid) {
+            continue;
+        }
+
+        char cur_mac_str[MAC_STR_LEN] = {0};
+        to_mac_str(rdk_vap->known_ap_table[cs].mac,
+                   cur_mac_str, sizeof(cur_mac_str));
+
+        found_slot = known_ap_find(incoming,
+                                   rdk_vap->known_ap_table[cs].mac);
+        if (found_slot >= 0) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d mac=%s slot=%d still present "
+                                "in incoming at [%d] — keep\n",
+                                __func__, __LINE__,
+                                cur_mac_str, cs, found_slot);
+            continue;
+        }
+
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d REMOVE mac=%s slot=%d "
+                             "vap_index=%d vap_name=%s\n",
+                             __func__, __LINE__,
+                             cur_mac_str, cs,
+                             vap_index, rdk_vap->vap_name);
+
+        memset(&rdk_vap->known_ap_table[cs], 0,
+               sizeof(known_ap_entry_t));
+        rdk_vap->known_ap_table[cs].valid = false;
+    }
+
+    /* ---- STEP 2: ADD — in incoming but not in cache -------- */
+    for (int ns = 0; ns < MAX_KNOWN_APS; ns++) {
+        if (!incoming[ns].valid) {
+            continue;
+        }
+
+        char new_mac_str[MAC_STR_LEN] = {0};
+        to_mac_str(incoming[ns].mac, new_mac_str, sizeof(new_mac_str));
+
+        found_slot = known_ap_find(rdk_vap->known_ap_table,
+                                   incoming[ns].mac);
+        if (found_slot >= 0) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d mac=%s already in cache "
+                                "slot=%d — skip\n",
+                                __func__, __LINE__,
+                                new_mac_str, found_slot);
+            continue;
+        }
+
+        free_slot = known_ap_find_free(rdk_vap->known_ap_table);
+        if (free_slot < 0) {
+            wifi_util_error_print(WIFI_DB,
+                                  "%s:%d cache full cannot add "
+                                  "mac=%s vap_index=%d vap_name=%s\n",
+                                  __func__, __LINE__,
+                                  new_mac_str, vap_index,
+                                  rdk_vap->vap_name);
+            continue;
+        }
+
+        memcpy(rdk_vap->known_ap_table[free_slot].mac,
+               incoming[ns].mac, sizeof(mac_address_t));
+        rdk_vap->known_ap_table[free_slot].valid = true;
+
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d ADD mac=%s slot=%d "
+                             "vap_index=%d vap_name=%s "
+                             "total_valid=%u\n",
+                             __func__, __LINE__,
+                             new_mac_str, free_slot,
+                             vap_index, rdk_vap->vap_name,
+                             known_ap_count(rdk_vap->known_ap_table));
+    }
+
+    /* ---- Log final cache state ----------------------------- */
+    wifi_util_info_print(WIFI_DB,
+                         "%s:%d [final] vap_index=%d vap_name=%s "
+                         "total_valid=%u:\n",
+                         __func__, __LINE__,
+                         vap_index, rdk_vap->vap_name,
+                         known_ap_count(rdk_vap->known_ap_table));
+
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        char final_mac[MAC_STR_LEN] = {0};
+        to_mac_str(rdk_vap->known_ap_table[s].mac,
+                   final_mac, sizeof(final_mac));
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d   [final] slot=%d mac=%s valid=%d\n",
+                            __func__, __LINE__,
+                            s, final_mac,
+                            rdk_vap->known_ap_table[s].valid);
+    }
+}
+
+/* ================================================================
+ *  3. wifidb_reset_knownap_table  (unchanged — memset per VAP)
+ * ================================================================ */
+void wifidb_reset_knownap_table(void)
+{
+    wifi_mgr_t          *mgr       = get_wifimgr_obj();
+    rdk_wifi_vap_info_t *rdk_vap   = NULL;
+    unsigned int         vap_index = 0;
+
+    wifi_util_dbg_print(WIFI_DB, "%s:%d enter\n", __func__, __LINE__);
+
+    for (UINT index = 0; index < getTotalNumberVAPs(); index++) {
+        vap_index = VAP_INDEX(mgr->hal_cap, index);
+
+        if (getVapInfo(vap_index) == NULL) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d VAP info not found vap_index=%u\n",
+                                __func__, __LINE__, vap_index);
+            continue;
+        }
+
+        rdk_vap = get_wifidb_rdk_vap_info(vap_index);
+        if (rdk_vap == NULL) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d rdk_vap not found vap_index=%u\n",
+                                __func__, __LINE__, vap_index);
+            continue;
+        }
+
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d clearing vap_index=%u vap_name=%s "
+                            "total_valid_before=%u\n",
+                            __func__, __LINE__,
+                            vap_index, rdk_vap->vap_name,
+                            known_ap_count(rdk_vap->known_ap_table));
+
+        memset(rdk_vap->known_ap_table, 0,
+               sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+    }
+
+    wifi_util_dbg_print(WIFI_DB, "%s:%d exit\n", __func__, __LINE__);
+}
+
+/* ================================================================
+ *  4. wifidb_get_wifi_knownap_config
+ *     One SELECT per VAP row — reads mac_list[] directly into
+ *     rdk_vap->known_ap_table[].
+ * ================================================================ */
+void wifidb_get_wifi_knownap_config(void)
+{
+    struct schema_Wifi_RogueAP_Config *pcfg      = NULL;
+    wifi_db_t                         *g_wifidb  = get_wifidb_obj();
+    wifi_mgr_t                        *mgr       = get_wifimgr_obj();
+    rdk_wifi_vap_info_t               *rdk_vap   = NULL;
+    mac_address_t                      mac       = {0};
+    int                                count     = 0;
+    int                                itr       = 0;
+    int                                vap_index = -1;
+    int                                free_slot = -1;
+
+    wifi_util_dbg_print(WIFI_DB, "%s:%d enter\n", __func__, __LINE__);
+
+    /* Fetch all rows — one per VAP */
+    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
+                                             &table_Wifi_RogueAP_Config,
+                                             NULL, &count);
+    if (pcfg == NULL) {
+        wifidb_print("%s:%d table_Wifi_RogueAP_Config not found "
+                     "count=%d\n", __func__, __LINE__, count);
+        return;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d found %d VAP rows in DB\n",
+                        __func__, __LINE__, count);
+
+    for (itr = 0; (itr < count) && (pcfg != NULL); itr++) {
+
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d itr=%d vap_name=%s mac_list_len=%d\n",
+                            __func__, __LINE__,
+                            itr, pcfg->vap_name, pcfg->mac_list_len);
+
+        /* ---- Resolve VAP ----------------------------------- */
+        vap_index = convert_vap_name_to_index(
+            &mgr->hal_cap.wifi_prop, pcfg->vap_name);
+        if (vap_index == -1) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d unable to find vap_index "
+                                "vap_name=%s\n",
+                                __func__, __LINE__, pcfg->vap_name);
+            pcfg++;
+            continue;
+        }
+
+        rdk_vap = get_wifidb_rdk_vap_info(vap_index);
+        if (rdk_vap == NULL) {
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d rdk_vap NULL vap_index=%d "
+                                "vap_name=%s\n",
+                                __func__, __LINE__,
+                                vap_index, pcfg->vap_name);
+            pcfg++;
+            continue;
+        }
+
+        /* ---- Clear before repopulating --------------------- */
+        memset(rdk_vap->known_ap_table, 0,
+               sizeof(known_ap_entry_t) * MAX_KNOWN_APS);
+
+        /* ---- Load each MAC in mac_list into table ---------- */
+        for (int i = 0; i < pcfg->mac_list_len; i++) {
+
+            if (!pcfg->mac_list[i] || pcfg->mac_list[i][0] == '\0') {
+                wifi_util_dbg_print(WIFI_DB,
+                                    "%s:%d i=%d empty mac skip "
+                                    "vap_name=%s\n",
+                                    __func__, __LINE__,
+                                    i, pcfg->vap_name);
+                continue;
+            }
+
+            memset(mac, 0, sizeof(mac_address_t));
+            if (str_to_mac_bytes(pcfg->mac_list[i], mac) != 0) {
+                wifi_util_error_print(WIFI_DB,
+                                      "%s:%d str_to_mac_bytes failed "
+                                      "mac='%s' i=%d vap_name=%s\n",
+                                      __func__, __LINE__,
+                                      pcfg->mac_list[i], i,
+                                      pcfg->vap_name);
+                continue;
+            }
+
+            if (known_ap_find(rdk_vap->known_ap_table, mac) >= 0) {
+                wifi_util_dbg_print(WIFI_DB,
+                                    "%s:%d duplicate mac=%s i=%d "
+                                    "vap_name=%s skip\n",
+                                    __func__, __LINE__,
+                                    pcfg->mac_list[i], i,
+                                    pcfg->vap_name);
+                continue;
+            }
+
+            free_slot = known_ap_find_free(rdk_vap->known_ap_table);
+            if (free_slot < 0) {
+                wifi_util_error_print(WIFI_DB,
+                                      "%s:%d table full cannot add "
+                                      "mac=%s vap_index=%d vap_name=%s\n",
+                                      __func__, __LINE__,
+                                      pcfg->mac_list[i],
+                                      vap_index, pcfg->vap_name);
+                continue;
+            }
+
+            memcpy(rdk_vap->known_ap_table[free_slot].mac, mac,
+                   sizeof(mac_address_t));
+            rdk_vap->known_ap_table[free_slot].valid = true;
+
+            wifi_util_dbg_print(WIFI_DB,
+                                "%s:%d   loaded mac=%s slot=%d "
+                                "vap_name=%s\n",
+                                __func__, __LINE__,
+                                pcfg->mac_list[i], free_slot,
+                                pcfg->vap_name);
+        }
+
+        wifi_util_info_print(WIFI_DB,
+                             "%s:%d loaded vap_name=%s vap_index=%d "
+                             "total_valid=%u\n",
+                             __func__, __LINE__,
+                             pcfg->vap_name, vap_index,
+                             known_ap_count(rdk_vap->known_ap_table));
+        pcfg++;
+    }
+
+    wifi_util_dbg_print(WIFI_DB, "%s:%d exit total_vap_rows=%d\n",
+                        __func__, __LINE__, count);
+}
+
+/* ================================================================
+ *  5. wifidb_update_wifi_knownap_config
+ *     Single upsert/delete per VAP using vap_name as key.
+ *     Writes the ENTIRE known_ap_table[] as mac_list[] in one shot.
+ *     add=true  → upsert all valid MACs for this VAP
+ *     add=false → delete the VAP row entirely
+ * ================================================================ */
+int wifidb_update_wifi_knownap_config(char *vap_name,
+                                       known_ap_entry_t *table,
+                                       bool add)
+{
+    struct schema_Wifi_RogueAP_Config  cfg;
+    wifi_db_t                         *g_wifidb  = get_wifidb_obj();
+    json_t                            *where      = NULL;
+    int                                ret        = 0;
+    int                                vap_index  = -1;
+
+    if (!vap_name || vap_name[0] == '\0') {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d NULL or empty vap_name\n",
+                              __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d enter vap_name=%s add=%d\n",
+                        __func__, __LINE__, vap_name, add);
+
+    vap_index = convert_vap_name_to_index(
+        &((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop,
+        vap_name);
+    if (vap_index == -1) {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d unable to get vap_index "
+                              "vap_name=%s\n",
+                              __func__, __LINE__, vap_name);
+        return RETURN_ERR;
+    }
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d vap_name=%s vap_index=%d\n",
+                        __func__, __LINE__, vap_name, vap_index);
+
+    /* ---- REMOVE path — delete entire VAP row --------------- */
+    if (!add) {
+        where = onewifi_ovsdb_tran_cond(OCLM_STR, "vap_name",
+                                        OFUNC_EQ, vap_name);
+        ret = onewifi_ovsdb_table_delete_where(
+            g_wifidb->wifidb_sock_path,
+            &table_Wifi_RogueAP_Config, where);
+
+        if (ret < 0) {
+            wifidb_print("%s:%d DB error delete failed "
+                         "vap_name=%s ret=%d\n",
+                         __func__, __LINE__, vap_name, ret);
+            return RETURN_ERR;
+        }
+
+        wifidb_print("%s:%d deleted row vap_name=%s\n",
+                     __func__, __LINE__, vap_name);
+        return RETURN_OK;
+    }
+
+    /* ---- ADD/UPDATE path — upsert entire mac_list ---------- */
+    memset(&cfg, 0, sizeof(cfg));
+
+    strncpy(cfg.vap_name, vap_name, sizeof(cfg.vap_name) - 1);
+    cfg.vap_name_exists = true;
+    cfg.mac_list_len    = 0;
+
+    if (!table) {
+        wifi_util_error_print(WIFI_DB,
+                              "%s:%d NULL table vap_name=%s\n",
+                              __func__, __LINE__, vap_name);
+        return RETURN_ERR;
+    }
+
+    /* Populate mac_list[] with all valid entries */
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        if (!table[s].valid) {
+            continue;
+        }
+
+        char mac_str[MAC_STR_LEN] = {0};
+        snprintf(mac_str, sizeof(mac_str),
+                 "%02x:%02x:%02x:%02x:%02x:%02x",
+                 table[s].mac[0], table[s].mac[1],
+                 table[s].mac[2], table[s].mac[3],
+                 table[s].mac[4], table[s].mac[5]);
+
+        strncpy(cfg.mac_list[cfg.mac_list_len], mac_str,
+                sizeof(cfg.mac_list[0]) - 1);
+
+        wifi_util_dbg_print(WIFI_DB,
+                            "%s:%d   mac_list[%d]=%s slot=%d "
+                            "vap_name=%s\n",
+                            __func__, __LINE__,
+                            cfg.mac_list_len, mac_str, s, vap_name);
+
+        cfg.mac_list_len++;
+    }
+
+    cfg.mac_list_exists = true;
+
+    wifi_util_dbg_print(WIFI_DB,
+                        "%s:%d upserting vap_name=%s "
+                        "mac_list_len=%d\n",
+                        __func__, __LINE__,
+                        vap_name, cfg.mac_list_len);
+
+    /* Upsert with parent link to Wifi_VAP_Config */
+    char *filter[] = {"-", NULL};
+    if (onewifi_ovsdb_table_upsert_with_parent(
+            g_wifidb->wifidb_sock_path,
+            &table_Wifi_RogueAP_Config, &cfg, false,
+            filter,
+            SCHEMA_TABLE(Wifi_VAP_Config),
+            onewifi_ovsdb_where_simple(
+                SCHEMA_COLUMN(Wifi_VAP_Config, vap_name), vap_name),
+            SCHEMA_COLUMN(Wifi_VAP_Config, rogue_ap)) == false) {
+        wifidb_print("%s:%d DB upsert failed vap_name=%s\n",
+                     __func__, __LINE__, vap_name);
+        return RETURN_ERR;
+    }
+
+    wifidb_print("%s:%d upsert success vap_name=%s "
+                 "mac_list_len=%d\n",
+                 __func__, __LINE__, vap_name, cfg.mac_list_len);
+
+    return RETURN_OK;
+}
+
+
 /************************************************************************************
  ************************************************************************************
   Function    : wifidb_update_interworking
@@ -3623,7 +4202,7 @@ int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
 	   config->rogue_ap_enable = pcfg->rogue_ap_enable;
 	   config->rogue_ap_freq = pcfg->rogue_ap_freq;
     }
-    wifi_util_dbg_print(WIFI_DB, "Rogue AP [DB] Rogue Configd : %d %d  [STRUCT]enable:%d Freq:%u\n", __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, config->rogue_ap_enable, config->rogue_ap_freq);
+    wifi_util_dbg_print(WIFI_DB, "Rogue AP [DB] Rogue Configd : %s %d  [STRUCT]enable:%d Freq:%u\n", __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, config->rogue_ap_enable, config->rogue_ap_freq);
     return 0;
 }
 /************************************************************************************
@@ -8319,6 +8898,10 @@ void wifidb_init_default_value()
 
     wifidb_init_global_config_default(&g_wifidb->global_config.global_parameters);
     wifidb_reset_macfilter_hashmap();
+    wifidb_reset_knownap_table();
+    wifi_util_info_print(WIFI_DB,
+                         "%s:%d [factory_reset] knownap table reset done\n",
+                         __func__, __LINE__);
     wifidb_init_gas_config_default(&g_wifidb->global_config.gas_config);
     wifidb_init_rogue_config_default(&g_wifidb->global_config.rogue_config);
     wifidb_init_rfc_config_default(&g_wifidb->rfc_dml_parameters);
@@ -8639,6 +9222,11 @@ void init_wifidb_data()
         }
 
         wifidb_get_wifi_macfilter_config();
+        wifidb_get_wifi_knownap_config();
+
+        wifi_util_info_print(WIFI_DB,
+                         "%s:%d [reboot] knownap config loaded from DB\n",
+                         __func__, __LINE__);
         wifidb_get_wifi_global_config(&g_wifidb->global_config.global_parameters);
         wifidb_get_gas_config(g_wifidb->global_config.gas_config.AdvertisementID,&g_wifidb->global_config.gas_config);
         wifidb_get_rogue_config(&g_wifidb->global_config.rogue_config);
@@ -8742,6 +9330,7 @@ int init_wifidb_tables()
     ONEWIFI_OVSDB_TABLE_INIT_NO_KEY(Wifi_Global_Config);
     ONEWIFI_OVSDB_TABLE_INIT_NO_KEY(Wifi_Rogue_Config);
     ONEWIFI_OVSDB_TABLE_INIT(Wifi_Passpoint_Config, vap_name);
+    ONEWIFI_OVSDB_TABLE_INIT(Wifi_KnownAp_Config, vap_name);
     ONEWIFI_OVSDB_TABLE_INIT(Wifi_Anqp_Config, vap_name);
     ONEWIFI_OVSDB_TABLE_INIT(Wifi_Ignite_Config, ignite_name);
     //connect to wifidb with sock path

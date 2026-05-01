@@ -799,12 +799,12 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     strcpy(config->subdocs[webconfig_subdoc_type_knownap].name, "KnownAPReport");
     config->subdocs[webconfig_subdoc_type_knownap].major = 1;
     config->subdocs[webconfig_subdoc_type_knownap].minor = 1;
-    config->subdocs[webconfig_subdoc_type_knownap].init_subdoc = init_knownap_report_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].access_check_subdoc = access_check_knownap_report_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].encode_subdoc = encode_knownap_report_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].decode_subdoc = decode_knownap_report_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].translate_to_subdoc = translate_to_knownap_report_subdoc;
-    config->subdocs[webconfig_subdoc_type_knownap].translate_from_subdoc = translate_from_knownap_report_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].init_subdoc = init_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].access_check_subdoc = access_check_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].encode_subdoc = encode_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].decode_subdoc = decode_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].translate_to_subdoc = translate_to_knownap_subdoc;
+    config->subdocs[webconfig_subdoc_type_knownap].translate_from_subdoc = translate_from_knownap_subdoc;
 
 
     config->proto_desc.translate_to = translate_to_proto;
