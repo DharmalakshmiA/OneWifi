@@ -740,6 +740,25 @@
     "isRoot": true
     },
 
+    "Wifi_RogueAP_Config": {
+    "columns": {
+        "vap_name": {
+            "type": "string"
+        },
+        "mac_list": {
+            "type": {
+                "key": {
+                    "type": "string",
+                    "maxLength": 18
+                },
+                "min": 0,
+                "max": 5
+            }
+        }
+    },
+    "isRoot": true
+    },
+    
     "Wifi_VAP_Config": {
       "columns": {
         "vap_name": {

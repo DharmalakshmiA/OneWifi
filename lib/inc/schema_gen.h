@@ -241,6 +241,14 @@
        PJS_OVS_INT(expiry_time)\
    )
 
+#define PJS_SCHEMA_Wifi_RogueAP_Config \
+   PJS(schema_Wifi_RogueAP_Config, \
+        PJS_OVS_UUID_Q(_uuid)\
+        PJS_OVS_UUID_Q(_version)\
+        PJS_OVS_STRING(vap_name, WIFI_AP_MAX_VAP_NAME_LEN + 1)\
+        PJS_OVS_SET_STR(mac_list, 18 + 1, 5)\
+   )
+
 #define PJS_SCHEMA_Alarms \
     PJS(schema_Alarms, \
         PJS_OVS_UUID_Q(_uuid)\
@@ -1729,6 +1737,7 @@
      PJS_SCHEMA_Alarms \
      PJS_SCHEMA_Wifi_Master_State \
      PJS_SCHEMA_Wifi_MacFilter_Config \
+     PJS_SCHEMA_Wifi_RogueAP_Config \
      PJS_SCHEMA_Wifi_Rfc_Config \
      PJS_SCHEMA_Wifi_Ethernet_State \
      PJS_SCHEMA_Connection_Manager_Uplink \
@@ -1836,6 +1845,7 @@
     SCHEMA(Wifi_Radio_Config) \
     SCHEMA(Wifi_Radio_Config_ovs) \
     SCHEMA(Wifi_MacFilter_Config) \
+    SCHEMA(Wifi_RogueAP_Config) \
     SCHEMA(Wifi_Global_Config) \
     SCHEMA(Wifi_Preassoc_Control_Config) \
     SCHEMA(Wifi_Postassoc_Control_Config) \
@@ -1927,6 +1937,7 @@
     SCHEMA(Wifi_Rfc_Config) \
     SCHEMA(Alarms) \
     SCHEMA(Wifi_MacFilter_Config) \
+    SCHEMA(Wifi_Rogue_Config) \
     SCHEMA(Wifi_Master_State) \
     SCHEMA(Wifi_Ethernet_State) \
     SCHEMA(Connection_Manager_Uplink) \
@@ -2203,6 +2214,11 @@
     COLUMN(device_mac) \
     COLUMN(reason) \
     COLUMN(expiry_time)
+
+#define SCHEMA__Wifi_RogueAP_Config "Wifi_RogueAP_Config"
+#define SCHEMA_COLUMN__Wifi_RogueAP_Config(COLUMN) \
+    COLUMN(vap_name) \
+    COLUMN(mac_list)
 
 #define SCHEMA__Alarms "Alarms"
 #define SCHEMA_COLUMN__Alarms(COLUMN) \
@@ -3592,6 +3608,9 @@
 #define SCHEMA__Wifi_MacFilter_Config__devie_mac "device_mac"
 #define SCHEMA__Wifi_MacFilter_Config__reason "reason"
 #define SCHEMA__Wifi_MacFilter_Config__expiry_time "expiry_time"
+
+#define SCHEMA__Wifi_RogueAP_Config__vap_name  "vap_name"
+#define SCHEMA__Wifi_RogueAP_Config__mac_list  "mac_list"
 
 #define SCHEMA__Wifi_Master_State__if_type "if_type"
 #define SCHEMA__Wifi_Master_State__if_uuid "if_uuid"
