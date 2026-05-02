@@ -1814,16 +1814,16 @@ void callback_Wifi_Postassoc_Control_Config(ovsdb_update_monitor_t *mon,
 
 
 /* ================================================================
- *  2. callback_Wifi_RogueAP_Config
+ *  2. callback_Wifi_KnownAp_Config
  *
  *  One row per VAP keyed by vap_name.
  *  mac_list[] holds all known AP MACs for that VAP.
  *  On NEW/MODIFY — diff against mgr cache and apply delta.
  *  On DEL       — clear mgr cache for that VAP.
  * ================================================================ */
-void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
-        struct schema_Wifi_RogueAP_Config *old_rec,
-        struct schema_Wifi_RogueAP_Config *new_rec)
+void callback_Wifi_KnownAp_Config(ovsdb_update_monitor_t *mon,
+        struct schema_Wifi_KnownAp_Config *old_rec,
+        struct schema_Wifi_KnownAp_Config *new_rec)
 {
     wifi_mgr_t          *mgr         = get_wifimgr_obj();
     rdk_wifi_vap_info_t *rdk_vap     = NULL;
@@ -1956,15 +1956,13 @@ void callback_Wifi_RogueAP_Config(ovsdb_update_monitor_t *mon,
         }
 
         memset(mac, 0, sizeof(mac_address_t));
-        if (str_to_mac_bytes(new_rec->mac_list[i], mac) != 0) {
+        str_to_mac_bytes(new_rec->mac_list[i], mac); 
             wifi_util_error_print(WIFI_DB,
-                                  "%s:%d str_to_mac_bytes failed "
+                                  "%s:%d str_to_mac_bytes "
                                   "mac='%s' i=%d vap_name=%s\n",
                                   __func__, __LINE__,
                                   new_rec->mac_list[i], i,
                                   new_rec->vap_name);
-            continue;
-        }
 
         memcpy(incoming[incoming_count].mac, mac, sizeof(mac_address_t));
         incoming[incoming_count].valid = true;
@@ -2129,7 +2127,7 @@ void wifidb_reset_knownap_table(void)
  * ================================================================ */
 void wifidb_get_wifi_knownap_config(void)
 {
-    struct schema_Wifi_RogueAP_Config *pcfg      = NULL;
+    struct schema_Wifi_KnownAp_Config *pcfg      = NULL;
     wifi_db_t                         *g_wifidb  = get_wifidb_obj();
     wifi_mgr_t                        *mgr       = get_wifimgr_obj();
     rdk_wifi_vap_info_t               *rdk_vap   = NULL;
@@ -2143,10 +2141,10 @@ void wifidb_get_wifi_knownap_config(void)
 
     /* Fetch all rows — one per VAP */
     pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
-                                             &table_Wifi_RogueAP_Config,
+                                             &table_Wifi_KnownAp_Config,
                                              NULL, &count);
     if (pcfg == NULL) {
-        wifidb_print("%s:%d table_Wifi_RogueAP_Config not found "
+        wifidb_print("%s:%d table_Wifi_KnownAp_Config not found "
                      "count=%d\n", __func__, __LINE__, count);
         return;
     }
@@ -2269,7 +2267,7 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
                                        known_ap_entry_t *table,
                                        bool add)
 {
-    struct schema_Wifi_RogueAP_Config  cfg;
+    struct schema_Wifi_KnownAp_Config  cfg;
     wifi_db_t                         *g_wifidb  = get_wifidb_obj();
     json_t                            *where      = NULL;
     int                                ret        = 0;
@@ -2307,7 +2305,7 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
                                         OFUNC_EQ, vap_name);
         ret = onewifi_ovsdb_table_delete_where(
             g_wifidb->wifidb_sock_path,
-            &table_Wifi_RogueAP_Config, where);
+            &table_Wifi_KnownAp_Config, where);
 
         if (ret < 0) {
             wifidb_print("%s:%d DB error delete failed "
@@ -2360,8 +2358,6 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
         cfg.mac_list_len++;
     }
 
-    cfg.mac_list_exists = true;
-
     wifi_util_dbg_print(WIFI_DB,
                         "%s:%d upserting vap_name=%s "
                         "mac_list_len=%d\n",
@@ -2372,7 +2368,7 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
     char *filter[] = {"-", NULL};
     if (onewifi_ovsdb_table_upsert_with_parent(
             g_wifidb->wifidb_sock_path,
-            &table_Wifi_RogueAP_Config, &cfg, false,
+            &table_Wifi_KnownAp_Config, &cfg, false,
             filter,
             SCHEMA_TABLE(Wifi_VAP_Config),
             onewifi_ovsdb_where_simple(

@@ -740,7 +740,7 @@
     "isRoot": true
     },
 
-    "Wifi_RogueAP_Config": {
+    "Wifi_KnownAp_Config": {
     "columns": {
         "vap_name": {
             "type": "string"

@@ -241,8 +241,8 @@
        PJS_OVS_INT(expiry_time)\
    )
 
-#define PJS_SCHEMA_Wifi_RogueAP_Config \
-   PJS(schema_Wifi_RogueAP_Config, \
+#define PJS_SCHEMA_Wifi_KnownAp_Config \
+   PJS(schema_Wifi_KnownAp_Config, \
         PJS_OVS_UUID_Q(_uuid)\
         PJS_OVS_UUID_Q(_version)\
         PJS_OVS_STRING(vap_name,128 + 1) \
@@ -1737,7 +1737,7 @@
      PJS_SCHEMA_Alarms \
      PJS_SCHEMA_Wifi_Master_State \
      PJS_SCHEMA_Wifi_MacFilter_Config \
-     PJS_SCHEMA_Wifi_RogueAP_Config \
+     PJS_SCHEMA_Wifi_KnownAp_Config \
      PJS_SCHEMA_Wifi_Rfc_Config \
      PJS_SCHEMA_Wifi_Ethernet_State \
      PJS_SCHEMA_Connection_Manager_Uplink \
@@ -1845,7 +1845,7 @@
     SCHEMA(Wifi_Radio_Config) \
     SCHEMA(Wifi_Radio_Config_ovs) \
     SCHEMA(Wifi_MacFilter_Config) \
-    SCHEMA(Wifi_RogueAP_Config) \
+    SCHEMA(Wifi_KnownAp_Config) \
     SCHEMA(Wifi_Global_Config) \
     SCHEMA(Wifi_Preassoc_Control_Config) \
     SCHEMA(Wifi_Postassoc_Control_Config) \
@@ -1937,7 +1937,7 @@
     SCHEMA(Wifi_Rfc_Config) \
     SCHEMA(Alarms) \
     SCHEMA(Wifi_MacFilter_Config) \
-    SCHEMA(Wifi_RogueAP_Config) \
+    SCHEMA(Wifi_KnownAp_Config) \
     SCHEMA(Wifi_Master_State) \
     SCHEMA(Wifi_Ethernet_State) \
     SCHEMA(Connection_Manager_Uplink) \
@@ -2215,8 +2215,8 @@
     COLUMN(reason) \
     COLUMN(expiry_time)
 
-#define SCHEMA__Wifi_RogueAP_Config "Wifi_RogueAP_Config"
-#define SCHEMA_COLUMN__Wifi_RogueAP_Config(COLUMN) \
+#define SCHEMA__Wifi_KnownAp_Config "Wifi_KnownAp_Config"
+#define SCHEMA_COLUMN__Wifi_KnownAp_Config(COLUMN) \
     COLUMN(vap_name) \
     COLUMN(mac_list)
 
@@ -3609,8 +3609,8 @@
 #define SCHEMA__Wifi_MacFilter_Config__reason "reason"
 #define SCHEMA__Wifi_MacFilter_Config__expiry_time "expiry_time"
 
-#define SCHEMA__Wifi_RogueAP_Config__vap_name  "vap_name"
-#define SCHEMA__Wifi_RogueAP_Config__mac_list  "mac_list"
+#define SCHEMA__Wifi_KnownAp_Config__vap_name  "vap_name"
+#define SCHEMA__Wifi_KnownAp_Config__mac_list  "mac_list"
 
 #define SCHEMA__Wifi_Master_State__if_type "if_type"
 #define SCHEMA__Wifi_Master_State__if_uuid "if_uuid"
