@@ -2200,15 +2200,7 @@ void wifidb_get_wifi_knownap_config(void)
             }
 
             memset(mac, 0, sizeof(mac_address_t));
-            if (str_to_mac_bytes(pcfg->mac_list[i], mac) != 0) {
-                wifi_util_error_print(WIFI_DB,
-                                      "%s:%d str_to_mac_bytes failed "
-                                      "mac='%s' i=%d vap_name=%s\n",
-                                      __func__, __LINE__,
-                                      pcfg->mac_list[i], i,
-                                      pcfg->vap_name);
-                continue;
-            }
+            str_to_mac_bytes(pcfg->mac_list[i], mac);
 
             if (known_ap_find(rdk_vap->known_ap_table, mac) >= 0) {
                 wifi_util_dbg_print(WIFI_DB,
@@ -2373,7 +2365,7 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
             SCHEMA_TABLE(Wifi_VAP_Config),
             onewifi_ovsdb_where_simple(
                 SCHEMA_COLUMN(Wifi_VAP_Config, vap_name), vap_name),
-            SCHEMA_COLUMN(Wifi_VAP_Config, rogue_ap)) == false) {
+            SCHEMA_COLUMN(Wifi_VAP_Config, knownap_config)) == false) {
         wifidb_print("%s:%d DB upsert failed vap_name=%s\n",
                      __func__, __LINE__, vap_name);
         return RETURN_ERR;
