@@ -3113,8 +3113,7 @@ bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
     unsigned int ap_inst = 0;
     unsigned int gw_inst = 0;
     unsigned int vap_index = 0;
-    unsigned int radio_idx = 0;
-    unsigned int vap_idx   = 0;
+    uint8_t radio_index = 0, vap_index = 0;
 
     wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
                         __func__, __LINE__, name ? name : "NULL");
@@ -3152,7 +3151,7 @@ bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
     vap_index = ap_inst - 1;
    
     if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
-        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vap_index);
         return bus_error_invalid_input;
     }
 
@@ -3285,8 +3284,7 @@ bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
     (void)user_data;
     unsigned int  ap_inst   = 0;
     unsigned int  vap_index = 0;
-    unsigned int  radio_idx = 0;
-    unsigned int  vap_idx   = 0;
+    uint8_t radio_idx = 0, vap_idx = 0;
     mac_address_t new_mac   = {0};
     mac_address_t zero_mac  = {0};
     char         *pTmp      = NULL;
@@ -3336,7 +3334,7 @@ bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
                         __func__, __LINE__, ap_inst, vap_index);
 
    if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
-        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vap_index);
         return bus_error_invalid_input;
     }
     wifi_util_dbg_print(WIFI_CTRL,
@@ -3344,12 +3342,7 @@ bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
                         __func__, __LINE__, radio_idx, vap_idx, vap_index);
 
     /* ---- 3. Parse and validate MAC ----------------------------- */
-    if (str_to_mac_bytes(pTmp, new_mac) != 0) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d to_mac_str failed for '%s'\n",
-                              __func__, __LINE__, pTmp);
-        return bus_error_invalid_input;
-    }
+    str_to_mac_bytes(pTmp, new_mac);
 
     if (memcmp(new_mac, zero_mac, sizeof(mac_address_t)) == 0) {
         wifi_util_error_print(WIFI_CTRL,
@@ -3444,8 +3437,8 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
     (void)user_data;
     unsigned int  ap_inst   = 0;
     unsigned int  vap_index = 0;
-    unsigned int  radio_idx = 0;
-    unsigned int  vap_idx   = 0;
+    uint8_t radio_idx = 0, vap_idx = 0;
+    
     mac_address_t del_mac   = {0};
     char         *pTmp      = NULL;
 
@@ -3494,7 +3487,7 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
                         __func__, __LINE__, ap_inst, vap_index);
 
    if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
-        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vap_index);
         return bus_error_invalid_input;
     }
 
@@ -3503,12 +3496,7 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
                         __func__, __LINE__, radio_idx, vap_idx, vap_index);
 
     /* ---- 3. Parse MAC ------------------------------------------ */
-    if (str_to_mac_bytes(pTmp, del_mac) != 0) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d to_mac_str failed for '%s'\n",
-                              __func__, __LINE__, pTmp);
-        return bus_error_invalid_input;
-    }
+    str_to_mac_bytes(pTmp, del_mac);
 
     /* ---- 4. Update pending global config ----------------------- */
     pthread_mutex_lock(&g_apply_roguegw_config.lock);
