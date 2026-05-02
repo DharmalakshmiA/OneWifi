@@ -195,6 +195,10 @@ typedef struct {
 
 apply_roguegw_config_t g_apply_roguegw_config;
 
+unsigned int known_ap_count(const known_ap_entry_t *table);
+int known_ap_find(const known_ap_entry_t *table, const mac_address_t  mac);
+int known_ap_find_free(const known_ap_entry_t *table);
+
 typedef struct {
     int  wifi_csa_sched_handler_id[MAX_NUM_RADIOS];
     int  wifi_radio_sched_handler_id[MAX_NUM_RADIOS];

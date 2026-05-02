@@ -2992,7 +2992,7 @@ bus_error_t ignite_table_addrowhandler(char const *tableName, char const *aliasN
 /*
  * Count currently valid entries in the table.
  */
-static unsigned int known_ap_count(const known_ap_entry_t *table)
+unsigned int known_ap_count(const known_ap_entry_t *table)
 {
     unsigned int n = 0;
     for (int i = 0; i < MAX_KNOWN_APS; i++) {
@@ -3005,7 +3005,7 @@ static unsigned int known_ap_count(const known_ap_entry_t *table)
  * Find an existing entry matching 'mac'.
  * Returns slot index [0..MAX_KNOWN_APS-1], or -1 if not found.
  */
-static int known_ap_find(const known_ap_entry_t *table,
+int known_ap_find(const known_ap_entry_t *table,
                           const mac_address_t    mac)
 {
     for (int i = 0; i < MAX_KNOWN_APS; i++) {
@@ -3021,7 +3021,7 @@ static int known_ap_find(const known_ap_entry_t *table,
  * Find the first free (invalid) slot.
  * Returns slot index [0..MAX_KNOWN_APS-1], or -1 if table is full.
  */
-static int known_ap_find_free(const known_ap_entry_t *table)
+int known_ap_find_free(const known_ap_entry_t *table)
 {
     for (int i = 0; i < MAX_KNOWN_APS; i++) {
         if (!table[i].valid) return i;
@@ -3150,22 +3150,12 @@ bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
 
     /* ---- 3. Resolve VAP indices -------------------------------- */
     vap_index = ap_inst - 1;
-
-    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_radio_index_from_vap_index failed "
-                              "vap_index=%u\n",
-                              __func__, __LINE__, vap_index);
+   
+    if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
         return bus_error_invalid_input;
     }
 
-    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_vap_index_from_radio failed "
-                              "radio_idx=%u vap_index=%u\n",
-                              __func__, __LINE__, radio_idx, vap_index);
-        return bus_error_invalid_input;
-    }
 
     wifi_util_dbg_print(WIFI_CTRL,
                         "%s:%d resolved radio_idx=%u vap_idx=%u vap_index=%u\n",
@@ -3345,30 +3335,18 @@ bus_error_t roguegw_add_knownap(char *name, raw_data_t *p_data,
                         "%s:%d parsed ap_inst=%u vap_index=%u\n",
                         __func__, __LINE__, ap_inst, vap_index);
 
-    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_radio_index_from_vap_index failed "
-                              "vap_index=%u\n",
-                              __func__, __LINE__, vap_index);
+   if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
         return bus_error_invalid_input;
     }
-
-    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_vap_index_from_radio failed "
-                              "radio_idx=%u vap_index=%u\n",
-                              __func__, __LINE__, radio_idx, vap_index);
-        return bus_error_invalid_input;
-    }
-
     wifi_util_dbg_print(WIFI_CTRL,
                         "%s:%d resolved radio_idx=%u vap_idx=%u vap_index=%u\n",
                         __func__, __LINE__, radio_idx, vap_idx, vap_index);
 
     /* ---- 3. Parse and validate MAC ----------------------------- */
-    if (str_to_mac(pTmp, new_mac) != 0) {
+    if (str_to_mac_bytes(pTmp, new_mac) != 0) {
         wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d str_to_mac failed for '%s'\n",
+                              "%s:%d to_mac_str failed for '%s'\n",
                               __func__, __LINE__, pTmp);
         return bus_error_invalid_input;
     }
@@ -3515,19 +3493,8 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
                         "%s:%d parsed ap_inst=%u vap_index=%u\n",
                         __func__, __LINE__, ap_inst, vap_index);
 
-    if (get_radio_index_from_vap_index(vap_index, &radio_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_radio_index_from_vap_index failed "
-                              "vap_index=%u\n",
-                              __func__, __LINE__, vap_index);
-        return bus_error_invalid_input;
-    }
-
-    if (get_vap_index_from_radio(radio_idx, vap_index, &vap_idx) != RETURN_OK) {
-        wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d get_vap_index_from_radio failed "
-                              "radio_idx=%u vap_index=%u\n",
-                              __func__, __LINE__, radio_idx, vap_index);
+   if (get_vap_and_radio_index_from_vap_instance(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, &radio_idx, &vap_idx)) {
+        wifi_util_error_print(WIFI_CTRL, "%s: Invalid VAP index %u\n", __func__, vapIndex);
         return bus_error_invalid_input;
     }
 
@@ -3536,9 +3503,9 @@ bus_error_t roguegw_remove_knownap(char *name, raw_data_t *p_data,
                         __func__, __LINE__, radio_idx, vap_idx, vap_index);
 
     /* ---- 3. Parse MAC ------------------------------------------ */
-    if (str_to_mac(pTmp, del_mac) != 0) {
+    if (str_to_mac_bytes(pTmp, del_mac) != 0) {
         wifi_util_error_print(WIFI_CTRL,
-                              "%s:%d str_to_mac failed for '%s'\n",
+                              "%s:%d to_mac_str failed for '%s'\n",
                               __func__, __LINE__, pTmp);
         return bus_error_invalid_input;
     }
