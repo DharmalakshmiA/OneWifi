@@ -427,6 +427,7 @@ WEBCONFIG_SOURCES = $(ONE_WIFI_HOME)/source/webconfig/wifi_decoder.c	\
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_radiodiag_stats.c    \
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_multivap.c    \
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_ignite.c    \
+        $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_known_ap.c    \
         $(ONE_WIFI_HOME)/source/utils/wifi_util.c	\
 
 

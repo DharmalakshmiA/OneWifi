@@ -413,6 +413,7 @@ ifdef ONEWIFI_MEMWRAPTOOL_APP_SUPPORT
     WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_memwraptool.c
 endif
     WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_ignite.c
+    WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_known_ap.c
 
 ifdef EM_APP
     #INCLUDEDIRS +=  -I$(ONE_WIFI_HOME)/source/apps/em
