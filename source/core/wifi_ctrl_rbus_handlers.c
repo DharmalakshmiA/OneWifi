@@ -3113,7 +3113,7 @@ bus_error_t roguegw_get_mac(char *name, raw_data_t *p_data,
     unsigned int ap_inst = 0;
     unsigned int gw_inst = 0;
     unsigned int vap_index = 0;
-    uint8_t radio_index = 0, vap_index = 0;
+    uint8_t radio_idx = 0, vap_idx = 0;
 
     wifi_util_dbg_print(WIFI_CTRL, "%s:%d enter name=%s\n",
                         __func__, __LINE__, name ? name : "NULL");
