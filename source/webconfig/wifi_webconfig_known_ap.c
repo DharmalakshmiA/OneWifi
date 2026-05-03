@@ -103,7 +103,7 @@ webconfig_error_t encode_knownap_subdoc(webconfig_t          *config,
     data->u.encoded.json = json;
 
     cJSON_AddStringToObject(json, "Version",    "1.0");
-    cJSON_AddStringToObject(json, "SubDocName", "known_ap");
+    cJSON_AddStringToObject(json, "SubDocName", "KnownAPReport");
 
     obj_array = cJSON_CreateArray();
     if (!obj_array) {
