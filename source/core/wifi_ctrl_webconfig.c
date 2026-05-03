@@ -2491,6 +2491,37 @@ static int check_and_reset_channel_change(void *arg)
 }
 
 /* ================================================================
+ *  Build a hal_known_ap_list_t from an OneWifi known_ap_entry_t[]
+ *  and push it to the HAL for one VAP.
+ * ================================================================ */
+static void push_known_aps_to_hal(unsigned int vap_index,
+                                   const known_ap_entry_t *table)
+{
+    hal_known_ap_list_t hal_list;
+    memset(&hal_list, 0, sizeof(hal_list));
+
+    for (int s = 0; s < MAX_KNOWN_APS; s++) {
+        hal_list.table[s].valid = table[s].valid;
+        if (table[s].valid) {
+            memcpy(hal_list.table[s].mac, table[s].mac,
+                   sizeof(mac_address_t));
+            hal_list.count++;
+        }
+    }
+
+    wifi_util_info_print(WIFI_MGR,
+                         "%s:%d vap_index=%u hal count=%u\n",
+                         __func__, __LINE__, vap_index, hal_list.count);
+
+    if (wifi_hal_set_known_aps((INT)vap_index, &hal_list) != RETURN_OK) {
+        wifi_util_error_print(WIFI_MGR,
+                              "%s:%d wifi_hal_set_known_aps failed "
+                              "vap_index=%u\n",
+                              __func__, __LINE__, vap_index);
+    }
+}
+
+/* ================================================================
  *  webconfig_hal_knownap_apply
  *
  *  Called from webconfig_ctrl_apply after decode.
@@ -2741,6 +2772,10 @@ int webconfig_hal_knownap_apply(wifi_ctrl_t *ctrl,
                                           radio_index, vap_index);
                     ret = RETURN_ERR;
                 }
+		/* ---- NEW: push updated table to HAL --------------- */
+                push_known_aps_to_hal(current_config->vap_index,
+                                      current_config->known_ap_table);
+		wifi_util_error_print(WIFI_MGR, "%s %d Known ap config push to hal done\n", __func__, __LINE__);
             } else {
                 wifi_util_dbg_print(WIFI_MGR,
                                     "%s:%d no delta for vap_name=%s "
