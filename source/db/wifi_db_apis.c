@@ -2260,9 +2260,10 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
                                        bool add)
 {
     struct schema_Wifi_KnownAp_Config  cfg;
-    wifi_db_t                         *g_wifidb  = get_wifidb_obj();
-    json_t                            *where      = NULL;
-    int                                ret        = 0;
+    wifi_db_t                         *g_wifidb = get_wifidb_obj();
+    json_t                            *where     = NULL;
+    int                                ret       = 0;
+    bool                               update    = false;
 
     if (!vap_name || vap_name[0] == '\0') {
         wifi_util_error_print(WIFI_DB,
@@ -2275,17 +2276,17 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
                         "%s:%d enter vap_name=%s add=%d\n",
                         __func__, __LINE__, vap_name, add);
 
-    /* ---- REMOVE path — delete entire VAP row --------------- */
+    /* ---- REMOVE path ------------------------------------------- */
     if (!add) {
         where = onewifi_ovsdb_tran_cond(OCLM_STR, "vap_name",
                                         OFUNC_EQ, vap_name);
         ret = onewifi_ovsdb_table_delete_where(
-            g_wifidb->wifidb_sock_path,
-            &table_Wifi_KnownAp_Config, where);
+                  g_wifidb->wifidb_sock_path,
+                  &table_Wifi_KnownAp_Config, where);
+        if (where) { json_decref(where); where = NULL; }
 
         if (ret < 0) {
-            wifidb_print("%s:%d DB error delete failed "
-                         "vap_name=%s ret=%d\n",
+            wifidb_print("%s:%d DB delete failed vap_name=%s ret=%d\n",
                          __func__, __LINE__, vap_name, ret);
             return RETURN_ERR;
         }
@@ -2294,14 +2295,12 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
         return RETURN_OK;
     }
 
-    /* ---- ADD/UPDATE path — plain upsert, no parent link ---- */
+    /* ---- Build schema struct ------------------------------------ */
     memset(&cfg, 0, sizeof(cfg));
-
     strncpy(cfg.vap_name, vap_name, sizeof(cfg.vap_name) - 1);
     cfg.vap_name_exists  = true;
     cfg.mac_list_len     = 0;
-    cfg.mac_list_present = true;     /* FIX: must be set or mac_list
-                                        won't be serialized            */
+    cfg.mac_list_present = true;
 
     if (!table) {
         wifi_util_error_print(WIFI_DB,
@@ -2324,38 +2323,60 @@ int wifidb_update_wifi_knownap_config(char *vap_name,
                 sizeof(cfg.mac_list[0]) - 1);
 
         wifi_util_dbg_print(WIFI_DB,
-                            "%s:%d   mac_list[%d]=%s slot=%d "
-                            "vap_name=%s\n",
+                            "%s:%d   mac_list[%d]=%s slot=%d vap_name=%s\n",
                             __func__, __LINE__,
                             cfg.mac_list_len, mac_str, s, vap_name);
         cfg.mac_list_len++;
     }
 
     wifi_util_dbg_print(WIFI_DB,
-                        "%s:%d upserting vap_name=%s "
-                        "mac_list_len=%d\n",
-                        __func__, __LINE__,
-                        vap_name, cfg.mac_list_len);
+                        "%s:%d upserting vap_name=%s mac_list_len=%d\n",
+                        __func__, __LINE__, vap_name, cfg.mac_list_len);
 
-    /* FIX: plain upsert — no parent-link that requires the
-     *      knownap_config UUID column to exist in Wifi_VAP_Config  */
+    /* ---- Check if row already exists --------------------------- */
     where = onewifi_ovsdb_tran_cond(OCLM_STR, "vap_name",
                                     OFUNC_EQ, vap_name);
-    ret = onewifi_ovsdb_table_upsert_where(
-              g_wifidb->wifidb_sock_path,
-              &table_Wifi_KnownAp_Config,
-              &cfg,
-              where);
+    struct schema_Wifi_KnownAp_Config *pcfg =
+        onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
+                                         &table_Wifi_KnownAp_Config,
+                                         where, &ret);
+    if (where) { json_decref(where); where = NULL; }
 
-    if (ret <= 0) {
-        wifidb_print("%s:%d DB upsert failed vap_name=%s ret=%d\n",
-                     __func__, __LINE__, vap_name, ret);
-        return RETURN_ERR;
+    if (pcfg != NULL) {
+        update = true;
+        free(pcfg);
     }
 
-    wifidb_print("%s:%d upsert success vap_name=%s "
-                 "mac_list_len=%d\n",
-                 __func__, __LINE__, vap_name, cfg.mac_list_len);
+    /* ---- UPDATE existing row ------------------------------------ */
+    if (update) {
+        where = onewifi_ovsdb_tran_cond(OCLM_STR, "vap_name",
+                                        OFUNC_EQ, vap_name);
+        ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path,
+                                               &table_Wifi_KnownAp_Config,
+                                               where, &cfg);
+        if (where) { json_decref(where); where = NULL; }
+
+        if (ret <= 0) {
+            wifidb_print("%s:%d DB update failed vap_name=%s ret=%d\n",
+                         __func__, __LINE__, vap_name, ret);
+            return RETURN_ERR;
+        }
+        wifidb_print("%s:%d updated row vap_name=%s mac_list_len=%d\n",
+                     __func__, __LINE__, vap_name, cfg.mac_list_len);
+
+    /* ---- INSERT new row ---------------------------------------- */
+    } else {
+        if (!onewifi_ovsdb_table_insert(g_wifidb->wifidb_sock_path,
+                                         &table_Wifi_KnownAp_Config,
+                                         &cfg)) {
+            wifidb_print("%s:%d DB insert failed vap_name=%s\n",
+                         __func__, __LINE__, vap_name);
+            return RETURN_ERR;
+        }
+        wifidb_print("%s:%d inserted row vap_name=%s mac_list_len=%d\n",
+                     __func__, __LINE__, vap_name, cfg.mac_list_len);
+    }
+
     return RETURN_OK;
 }
 
