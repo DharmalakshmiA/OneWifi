@@ -31,7 +31,7 @@
 webconfig_subdoc_object_t wifi_knownap_objects[3] = {
     { webconfig_subdoc_object_type_version, "Version"    },
     { webconfig_subdoc_object_type_subdoc,  "SubDocName" },
-    { webconfig_subdoc_object_type_config,  "Parameters" }
+    { webconfig_subdoc_object_type_knownap,  "KnownAp" }
 };
 
 webconfig_error_t init_knownap_subdoc(webconfig_subdoc_t *doc)
