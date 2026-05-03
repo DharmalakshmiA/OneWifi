@@ -175,7 +175,7 @@ typedef enum {
     webconfig_subdoc_object_type_em_sta_link_metrics,
     webconfig_subdoc_object_type_em_ap_metrics_report,
     webconfig_subdoc_object_type_link_report,
-
+    webconfig_subdoc_object_type_knownap,
     webconfig_subdoc_object_max
 } webconfig_subdoc_object_type_t;
 
