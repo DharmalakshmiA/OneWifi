@@ -120,7 +120,6 @@
         PJS_OVS_BOOL(vap_stats_enable) \
         PJS_OVS_UUID(security) \
         PJS_OVS_UUID(mac_filter) \
-        PJS_OVS_UUID(knownap_config) \
         PJS_OVS_UUID(interworking) \
         PJS_OVS_BOOL(mac_filter_enabled) \
         PJS_OVS_INT(mac_filter_mode) \
@@ -2116,7 +2115,6 @@
     COLUMN(mac_filter_mode) \
     COLUMN(mac_addr_acl_enabled) \
     COLUMN(mac_filter) \
-    COLUMN(knownap_config) \
     COLUMN(wmm_enabled)\
     COLUMN(anqp_parameters)\
     COLUMN(hs2_parameters)\
@@ -3515,7 +3513,6 @@
 #define SCHEMA__Wifi_VAP_Config__mac_filter_enabled "mac_filter_enabled"
 #define SCHEMA__Wifi_VAP_Config__mac_filter_mode "mac_filter_mode"
 #define SCHEMA__Wifi_VAP_Config__mac_filter "mac_filter"
-#define SCHEMA__Wifi_VAP_Config__knownap_config "knownap_config"
 #define SCHEMA__Wifi_VAP_Config__mac_addr_acl_enabled "mac_addr_acl_enabled"
 #define SCHEMA__Wifi_VAP_Config__wmm_enabled "wmm_enabled"
 #define SCHEMA__Wifi_VAP_Config__anqp_parameters "anqp_parameters"
