@@ -186,6 +186,8 @@ typedef struct {
     known_ap_entry_t known_ap_table[MAX_KNOWN_APS];
     unsigned int     vap_index;        /* which VAP this table belongs to */
     bool             is_pending;
+    bool             is_committed;
+    unsigned int     bus_row_count;
 } pending_roguegw_config_t;
 
 typedef struct {
