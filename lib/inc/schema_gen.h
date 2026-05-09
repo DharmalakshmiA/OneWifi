@@ -3387,8 +3387,6 @@
     COLUMN(mgt_frame_rate_limit) \
     COLUMN(mgt_frame_rate_limit_window_size) \
     COLUMN(mgt_frame_rate_limit_cooldown_time) \
-    COLUMN(rogue_ap_enable) \
-    COLUMN(rogue_ap_freq) \
     COLUMN(ignite_link_quality_threshold) \
 
 #define SCHEMA__Wifi_Preassoc_Control_Config "Wifi_Preassoc_Control_Config"
