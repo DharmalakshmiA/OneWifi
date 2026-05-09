@@ -9262,6 +9262,11 @@ void init_wifidb_data()
 	    pthread_mutex_unlock(&g_wifidb->data_cache_lock);
 	    return;
 	}
+
+	if (g_wifidb->global_config.rogue_config.rogue_ap_enable) {
+	    wifi_util_info_print(WIFI_DB,"%s:%d Passing the rogur AP status to hal\n");
+	    wifi_hal_set_rogueap_status(g_wifidb->global_config.rogue_config.rogue_ap_enable);
+	}
 #if defined(CONFIG_IEEE80211BE) && !defined(CONFIG_GENERIC_MLO)
         wifidb_vap_config_update_mld_mac();
 #endif // CONFIG_IEEE80211BE && !CONFIG_GENERIC_MLO
