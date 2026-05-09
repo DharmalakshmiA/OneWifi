@@ -1622,7 +1622,6 @@
         PJS_OVS_UUID_Q(_uuid)\
         PJS_OVS_UUID_Q(_version)\
         PJS_OVS_UUID(gas_config)\
-        PJS_OVS_UUID(rogue_config)\
         PJS_OVS_BOOL(notify_wifi_changes) \
         PJS_OVS_BOOL(prefer_private) \
         PJS_OVS_BOOL(prefer_private_configure) \
@@ -1672,8 +1671,6 @@
         PJS_OVS_INT(mgt_frame_rate_limit_window_size) \
         PJS_OVS_INT(mgt_frame_rate_limit_cooldown_time) \
         PJS_OVS_STRING(ignite_link_quality_threshold, 64 + 1) \
-        PJS_OVS_BOOL(rogue_ap_enable) \
-        PJS_OVS_INT(rogue_ap_freq) \
     )
 
 #define PJS_SCHEMA_Wifi_Preassoc_Control_Config \
@@ -3342,7 +3339,6 @@
 #define SCHEMA__Wifi_Global_Config "Wifi_Global_Config"
 #define SCHEMA_COLUMN__Wifi_Global_Config(COLUMN) \
     COLUMN(gas_config) \
-    COLUMN(rogue_config) \
     COLUMN(notify_wifi_changes) \
     COLUMN(prefer_private) \
     COLUMN(prefer_private_configure) \
@@ -4641,7 +4637,6 @@
 #define SCHEMA__Wifi_Radio_Config__amsdu_tid "amsdu_tid"
 
 #define SCHEMA__Wifi_Global_Config__gas_config "gas_config"
-#define SCHEMA__Wifi_Global_Config__rogue_config "rogue_config"
 #define SCHEMA__Wifi_Global_Config__notify_wifi_changes "notify_wifi_changes"
 #define SCHEMA__Wifi_Global_Config__prefer_private "prefer_private"
 #define SCHEMA__Wifi_Global_Config__prefer_private_configure "prefer_private_configure"

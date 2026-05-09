@@ -4014,7 +4014,6 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     char *filter_global[] = {
 	    "-",
 	    SCHEMA_COLUMN(Wifi_Global_Config, gas_config),
-	    SCHEMA_COLUMN(Wifi_Global_Config, rogue_config),
 	    NULL
     };
     char str[BUFFER_LENGTH_WIFIDB] = {0};
@@ -4180,21 +4179,35 @@ int wifidb_get_wifi_ignite_config(ignite_config_t *ignite_cfg)
 int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
 {
     struct schema_Wifi_Rogue_Config *pcfg = NULL;
+    wifi_db_t *g_wifidb = get_wifidb_obj();
+    int count = 0;
 
-    pcfg = (struct schema_Wifi_Rogue_Config  *) wifidb_get_table_entry(NULL, NULL,&table_Wifi_Rogue_Config,OCLM_UUID);
-    if (pcfg == NULL)
-    {
-        wifidb_print("%s:%d Table table_Wifi_Rogue_Config not found \n",__func__, __LINE__);
+    if (config == NULL) {
+        wifidb_print("%s:%d NULL config pointer\n", __func__, __LINE__);
         return -1;
     }
-    else
-    {
-	   config->rogue_ap_enable = pcfg->rogue_ap_enable;
-	   config->rogue_ap_freq = pcfg->rogue_ap_freq;
+
+    pcfg = onewifi_ovsdb_table_select_where(g_wifidb->wifidb_sock_path,
+                                             &table_Wifi_Rogue_Config,
+                                             NULL, &count);
+    if (pcfg == NULL || count == 0) {
+        wifidb_print("%s:%d table_Wifi_Rogue_Config not found count=%d\n",
+                     __func__, __LINE__, count);
+        return -1;
     }
-    wifi_util_dbg_print(WIFI_DB, "Rogue AP [DB] Rogue Configd : %d %u  [STRUCT]enable:%d Freq:%u\n", __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, config->rogue_ap_enable, config->rogue_ap_freq);
+
+    config->rogue_ap_enable = pcfg->rogue_ap_enable;
+    config->rogue_ap_freq   = pcfg->rogue_ap_freq;
+
+    wifi_util_dbg_print(WIFI_DB,
+        "%s:%d Rogue AP [DB]: enable=%d freq=%u [STRUCT]: enable=%d freq=%u\n",
+        __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq
+        config->rogue_ap_enable, config->rogue_ap_freq);
+
+    free(pcfg);
     return 0;
 }
+
 /************************************************************************************
  ************************************************************************************
   Function    : wifidb_get_wifi_global_config
