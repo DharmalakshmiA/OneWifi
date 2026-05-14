@@ -192,6 +192,7 @@
         PJS_OVS_UUID_Q(_version)\
         PJS_OVS_BOOL(rogue_ap_enable)\
         PJS_OVS_INT(rogue_ap_freq)\
+        PJS_OVS_BOOL(known_ap_enable)\
    )
 
 
@@ -2170,7 +2171,8 @@
 #define SCHEMA__Wifi_Rogue_Config "Wifi_Rogue_Config"
 #define SCHEMA_COLUMN__Wifi_Rogue_Config(COLUMN) \
     COLUMN(rogue_ap_enable) \
-    COLUMN(rogue_ap_freq)
+    COLUMN(rogue_ap_freq) \
+    COLUMN(known_ap_enable)
 
 #define SCHEMA__Wifi_Rfc_Config "Wifi_Rfc_Config"
 #define SCHEMA_COLUMN__Wifi_Rfc_Config(COLUMN) \
@@ -3561,6 +3563,7 @@
 
 #define SCHEMA__Wifi_Rogue_Config__rogue_ap_enable "rogue_ap_enable"
 #define SCHEMA__Wifi_Rogue_Config__rogue_ap_freq "rogue_ap_freq"
+#define SCHEMA__Wifi_Rogue_Config__known_ap_enable "known_ap_enable"
 
 #define SCHEMA__Wifi_Rfc_Config__rfc_id "rfc_id"
 #define SCHEMA__Wifi_Rfc_Config__dfs_rfc "dfs_rfc"

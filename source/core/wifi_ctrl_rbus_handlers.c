@@ -300,6 +300,69 @@ bus_error_t get_rogueap_status(char *name, raw_data_t *p_data, bus_user_data_t *
     return rc;
 }
 
+bus_error_t get_knownap_status(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bus_error_t rc = bus_error_success;
+    wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
+    if (g_wifi_mgr == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d NULL pointers\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+    p_data->data_type = bus_data_type_boolean;
+    p_data->raw_data.b = g_wifi_mgr->global_config.rogue_config.known_ap_enable;
+    wifi_util_error_print(WIFI_CTRL, "%s:%d rogue AP status %d\n", __func__, __LINE__, g_wifi_mgr->global_config.rogue_config.known_ap_enable);
+    return rc;
+}
+
+bus_error_t set_knownap_status(char *name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)user_data;
+    bool known_ap_status = false;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    webconfig_subdoc_data_t *data = NULL;
+
+    if (name == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d property name is not found\r\n", __FUNCTION__,
+            __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    if (p_data->data_type != bus_data_type_boolean) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Invalid data input\n", __func__, __LINE__);
+        return bus_error_general;
+    }
+
+    known_ap_status = p_data->raw_data.b;
+
+    data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
+    if (data == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d malloc failed\n", __func__, __LINE__);
+        return bus_error_out_of_resources;
+    }
+
+    webconfig_init_subdoc_data(data);
+    data->u.decoded.config.rogue_config.known_ap_enable = known_ap_status;
+
+    if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_wifi_config) !=
+        webconfig_error_none) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to encode wifi_config subdoc\n", __func__,
+            __LINE__);
+        free(data);
+        return bus_error_general;
+    }
+
+    push_event_to_ctrl_queue(data->u.encoded.raw, strlen(data->u.encoded.raw) + 1,
+        wifi_event_type_webconfig, wifi_event_webconfig_set_data_webconfig, NULL);
+
+    wifi_util_info_print(WIFI_CTRL, "%s:%d known AP Status : %d\n", __func__, __LINE__, known_ap_status);
+    wifi_hal_set_knownap_status(known_ap_status);
+    webconfig_data_free(data);
+    free(data);
+
+    return bus_error_success;
+}
+
 void start_rogueap_detection(bool rogue_ap_status) {
 	wifi_util_error_print(WIFI_CTRL, "%s:%d Rogue-AP-Status:%d\n", __func__, __LINE__, rogue_ap_status);
 	wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
@@ -5351,7 +5414,12 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
         { WIFI_ROGUEAP_ENABLE_CHECK,                      bus_element_type_method,
          { get_rogueap_status, set_rogueap_status, NULL, NULL, NULL, NULL },                                                 slow_speed,
          ZERO_TABLE,                                                                                                                                   { bus_data_type_boolean, true, 0, 0, 0, NULL } },
-        { WIFI_IGNITE_STATUS,                             bus_element_type_event,    { NULL, NULL, NULL, NULL, NULL, NULL },
+        
+         { WIFI_KNOWNAP_ENABLE_CHECK,                      bus_element_type_method,
+         { get_knownap_status, set_knownap_status, NULL, NULL, NULL, NULL },                                                 slow_speed,
+         ZERO_TABLE,                                                                                                                                   { bus_data_type_boolean, true, 0, 0, 0, NULL } },
+
+         { WIFI_IGNITE_STATUS,                             bus_element_type_event,    { NULL, NULL, NULL, NULL, NULL, NULL },
          slow_speed,                                                                                                                     ZERO_TABLE,   { bus_data_type_string, false, 0, 0, 0, NULL } },
     };
 

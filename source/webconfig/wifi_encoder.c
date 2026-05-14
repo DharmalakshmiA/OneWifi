@@ -945,6 +945,7 @@ webconfig_error_t encode_rogue_config(const wifi_RogueConfig_t *rogue_info,  cJS
     cJSON_AddBoolToObject(rogue_obj, "RogueAPEnable", rogue_info->rogue_ap_enable);
 
     cJSON_AddNumberToObject(rogue_obj, "RogueAPFrequency", rogue_info->rogue_ap_freq);
+    cJSON_AddBoolToObject(rogue_obj, "KnownAPEnable", rogue_info->known_ap_enable);
     return webconfig_error_none;    
 }
 

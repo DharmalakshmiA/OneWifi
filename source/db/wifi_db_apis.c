@@ -1278,18 +1278,20 @@ void callback_Wifi_Rogue_Config(ovsdb_update_monitor_t *mon,
 
         pthread_mutex_lock(&g_wifidb->data_cache_lock);
 
-        wifi_util_dbg_print(WIFI_DB, "%s:%d [NEW] Rogue Details : %d %d [OLD] Rogue Details : %d %d\n", __func__, __LINE__, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq,  g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
+        wifi_util_dbg_print(WIFI_DB, "%s:%d [NEW] Rogue Details : %d %d %d [OLD] Rogue Details : %d %d %d\n", __func__, __LINE__, new_rec->rogue_ap_enable, new_rec->rogue_ap_freq, new_rec->known_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq, g_wifidb->global_config.rogue_config.known_ap_enable);
         // Update cache from DB
         g_wifidb->global_config.rogue_config.rogue_ap_enable = new_rec->rogue_ap_enable;
         g_wifidb->global_config.rogue_config.rogue_ap_freq   = new_rec->rogue_ap_freq;
+        g_wifidb->global_config.rogue_config.known_ap_enable = new_rec->known_ap_enable;
 
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
 
         wifi_util_dbg_print(WIFI_DB,
-            "%s:%d Updated Rogue Config: enable=%d freq=%d\n",
+            "%s:%d Updated Rogue Config: enable=%d freq=%d known-ap-enable=%d\n",
             __func__, __LINE__,
             new_rec->rogue_ap_enable,
-            new_rec->rogue_ap_freq);
+            new_rec->rogue_ap_freq,
+	    new_rec->known_ap_enable);
     }
 }
 
@@ -3970,12 +3972,13 @@ int wifidb_update_wifi_rogue_config(wifi_RogueConfig_t *config)
 
     cfg.rogue_ap_enable = config->rogue_ap_enable;
     cfg.rogue_ap_freq   = config->rogue_ap_freq;
+    cfg.known_ap_enable   = config->known_ap_enable;
 
     wifi_util_error_print(WIFI_DB,
-        "%s %d Input-config : %d %u Schema-config: %d %u\n",
+        "%s %d Input-config : %d %u %d Schema-config: %d %u %d\n",
         __func__, __LINE__,
-        config->rogue_ap_enable, config->rogue_ap_freq,
-        cfg.rogue_ap_enable, cfg.rogue_ap_freq);
+        config->rogue_ap_enable, config->rogue_ap_freq, config->known_ap_enable,
+        cfg.rogue_ap_enable, cfg.rogue_ap_freq, cfg.known_ap_enable);
 
     if (wifidb_update_table_entry(
             NULL,
@@ -3995,9 +3998,9 @@ int wifidb_update_wifi_rogue_config(wifi_RogueConfig_t *config)
     }
 
     wifi_util_error_print(WIFI_CTRL,
-        "%s:%d RogueAP [%d %u]\n",
+        "%s:%d RogueAP [%d %u %d]\n",
         __func__, __LINE__,
-        config->rogue_ap_enable, config->rogue_ap_freq);
+        config->rogue_ap_enable, config->rogue_ap_freq, config->known_ap_enable);
 
     return 0;
 }
@@ -4199,11 +4202,11 @@ int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
 
     config->rogue_ap_enable = pcfg->rogue_ap_enable;
     config->rogue_ap_freq   = pcfg->rogue_ap_freq;
-
+    config->known_ap_enable = pcfg->known_ap_enable;
     wifi_util_dbg_print(WIFI_DB,
-        "%s:%d Rogue AP [DB]: enable=%d freq=%u [STRUCT]: enable=%d freq=%u\n",
-        __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq,
-        config->rogue_ap_enable, config->rogue_ap_freq);
+        "%s:%d Rogue AP [DB]: enable=%d freq=%u known-ap-enable:%d [STRUCT]: enable=%d freq=%u known-ap-enable:%d\n",
+        __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, pcfg->known_ap_enable
+        config->rogue_ap_enable, config->rogue_ap_freq, config->known_ap_enable);
 
     free(pcfg);
     return 0;
@@ -5476,8 +5479,9 @@ void wifidb_init_rogue_config_default(wifi_RogueConfig_t *config)
 
       rogue_config.rogue_ap_enable = 0;
       rogue_config.rogue_ap_freq = 30;
+      rogue_config.known_ap_enable = 0;
 
-      wifi_util_dbg_print(WIFI_DB, "[%s %d] Rogue AP Details : %d %u\n", __func__, __LINE__, rogue_config.rogue_ap_enable, rogue_config.rogue_ap_freq);
+      wifi_util_dbg_print(WIFI_DB, "[%s %d] Rogue AP Details : %d %u %d\n", __func__, __LINE__, rogue_config.rogue_ap_enable, rogue_config.rogue_ap_freq, rogue_config.known_ap_enable);
       pthread_mutex_lock(&g_wifidb->data_cache_lock);
       memcpy(config, &rogue_config, sizeof(wifi_RogueConfig_t));
       pthread_mutex_unlock(&g_wifidb->data_cache_lock);
@@ -5687,6 +5691,7 @@ static void wifidb_global_config_upgrade()
             __LINE__, g_wifidb->db_version);
 	g_wifidb->global_config.rogue_config.rogue_ap_enable = 0;
 	g_wifidb->global_config.rogue_config.rogue_ap_freq = 30;
+	g_wifidb->global_config.rogue_config.known_ap_enable = 0;
     
     }
     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_TCM_PER_VAP_FLAG) {
@@ -7837,7 +7842,7 @@ int update_wifi_rogue_config(wifi_RogueConfig_t *config)
         return -1;
     }
     
-    wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq);
+    wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u %d\n", __func__, __LINE__, config->rogue_ap_enable, config->rogue_ap_freq, config->known_ap_enable);
     ret = wifidb_update_wifi_rogue_config(config);
     if(ret == 0)
     {
@@ -9138,7 +9143,7 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
-        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
+        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u %d\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq, g_wifidb->global_config.rogue_config.known_ap_enable);
 	wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config);
 	pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
@@ -9269,7 +9274,7 @@ void init_wifidb_data()
             return;
         }
 
-        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq);
+        wifi_util_info_print(WIFI_DB,"%s:%d Rogue Details %d %u %d\n", __func__, __LINE__, g_wifidb->global_config.rogue_config.rogue_ap_enable, g_wifidb->global_config.rogue_config.rogue_ap_freq, g_wifidb->global_config.rogue_config.known_ap_enable);
 	if (wifidb_update_wifi_rogue_config(&g_wifidb->global_config.rogue_config) != RETURN_OK) {
 	    wifi_util_error_print(WIFI_DB,"%s:%d error in updating rogue config\n", __func__,__LINE__);
 	    pthread_mutex_unlock(&g_wifidb->data_cache_lock);
@@ -9277,8 +9282,11 @@ void init_wifidb_data()
 	}
 
 	if (g_wifidb->global_config.rogue_config.rogue_ap_enable) {
-	    wifi_util_info_print(WIFI_DB,"%s:%d Passing the rogur AP status to hal\n");
-	    wifi_hal_set_rogueap_status(g_wifidb->global_config.rogue_config.rogue_ap_enable);
+		wifi_util_info_print(WIFI_DB,"%s:%d Passing the rogur AP status to hal\n");
+		wifi_hal_set_rogueap_status(g_wifidb->global_config.rogue_config.rogue_ap_enable);
+		if (g_wifidb->global_config.rogue_config.known_ap_enable) {
+			wifi_hal_set_knownap_status(g_wifidb->global_config.rogue_config.known_ap_enable);
+		}
 	}
 #if defined(CONFIG_IEEE80211BE) && !defined(CONFIG_GENERIC_MLO)
         wifidb_vap_config_update_mld_mac();

@@ -2760,7 +2760,10 @@ webconfig_error_t decode_rogue_config(const cJSON *rogue_cfg, wifi_RogueConfig_t
     decode_param_integer(rogue_cfg, "RogueAPFrequency", param);
     rogue_info->rogue_ap_freq = param->valuedouble;
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG,"Rogue Params %d %u decoded successfully\n", rogue_info->rogue_ap_enable, rogue_info->rogue_ap_freq);
+    decode_param_bool(rogue_cfg, "KnownAPEnable", param);
+    rogue_info->known_ap_enable = (param->type & cJSON_True) ? true:false;
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG,"Rogue Params %d %u %d decoded successfully\n", rogue_info->rogue_ap_enable, rogue_info->rogue_ap_freq, rogue_info->known_ap_enable);
     return webconfig_error_none;
 }
 
