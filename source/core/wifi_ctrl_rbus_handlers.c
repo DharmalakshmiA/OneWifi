@@ -3134,7 +3134,7 @@ static void init_roguegw_bus_rows(void)
             for (unsigned int s = 0; s < count; s++) {
                 uint32_t inst = 0;
                 if (get_bus_descriptor()->bus_add_table_row_fn(
-                        &ctrl->handle, tbl_path, &inst) != bus_error_success) {
+                        &ctrl->handle, tbl_path, NULL, &inst) != bus_error_success) {
                     wifi_util_error_print(WIFI_CTRL,
                         "%s:%d startup bus_add_table_row FAILED "
                         "path=%s slot=%u\n",

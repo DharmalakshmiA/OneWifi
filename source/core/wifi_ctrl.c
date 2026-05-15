@@ -2389,6 +2389,7 @@ static void start_rogueap_scan()
     wifi_radio_operationParam_t *radio_oper_param;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
     INT num_channels;
+    ssid_t ssid;
     INT channels_list[MAX_CHANNELS];
     INT mode = WIFI_RADIO_SCAN_MODE_OFFCHAN;
     int dwell_time = get_dwell_time();
