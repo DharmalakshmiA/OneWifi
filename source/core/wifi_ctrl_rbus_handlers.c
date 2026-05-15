@@ -3911,7 +3911,7 @@ bus_error_t apply_roguegw_config(char *name, raw_data_t *p_data,
                uint32_t inst = 0;
                bus_error_t berr =
                    get_bus_descriptor()->bus_add_table_row_fn(
-                       &ctrl->handle, tbl_path, &inst);
+                       &ctrl->handle, tbl_path, NULL, &inst);
                if (berr != bus_error_success) {
                    wifi_util_error_print(WIFI_CTRL,
                        "%s:%d bus_add_table_row FAILED path=%s n=%u err=%d\n",

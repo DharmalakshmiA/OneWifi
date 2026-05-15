@@ -4205,7 +4205,7 @@ int wifidb_get_rogue_config(wifi_RogueConfig_t *config)
     config->known_ap_enable = pcfg->known_ap_enable;
     wifi_util_dbg_print(WIFI_DB,
         "%s:%d Rogue AP [DB]: enable=%d freq=%u known-ap-enable:%d [STRUCT]: enable=%d freq=%u known-ap-enable:%d\n",
-        __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, pcfg->known_ap_enable
+        __func__, __LINE__, pcfg->rogue_ap_enable, pcfg->rogue_ap_freq, pcfg->known_ap_enable,
         config->rogue_ap_enable, config->rogue_ap_freq, config->known_ap_enable);
 
     free(pcfg);
