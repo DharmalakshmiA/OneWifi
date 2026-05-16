@@ -9286,7 +9286,7 @@ void init_wifidb_data()
 	}
 
 	if (g_wifidb->global_config.rogue_config.rogue_ap_enable) {
-		wifi_util_info_print(WIFI_DB,"%s:%d Passing the rogur AP status to hal\n");
+		wifi_util_info_print(WIFI_DB,"%s:%d Passing the rogur AP status to hal\n", __func__, __LINE__);
 		wifi_hal_set_rogueap_status(g_wifidb->global_config.rogue_config.rogue_ap_enable);
 		if (g_wifidb->global_config.rogue_config.known_ap_enable) {
 			wifi_hal_set_knownap_status(g_wifidb->global_config.rogue_config.known_ap_enable);
