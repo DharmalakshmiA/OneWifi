@@ -2399,22 +2399,6 @@ static void start_rogueap_scan()
     INT mode = WIFI_RADIO_SCAN_MODE_OFFCHAN;
     int dwell_time = get_dwell_time();
     wifi_util_dbg_print(WIFI_CTRL, "%s:%d dwell time:%d\n", __func__, __LINE__, dwell_time);
-#ifndef FEATURE_SINGLE_PHY
-    for (radio_index = 0; radio_index < getNumberRadios(); radio_index++) {
-        radio_oper_param = get_wifidb_radio_map(radio_index);
-        if (radio_oper_param->band == WIFI_FREQUENCY_6_BAND) {
-            if (get_private_ssid_from_radio_config_by_radio_index(radio_index, ssid) == 0 &&
-                strlen(ssid) > 0) {
-                wifi_hal_rnr_init(radio_index, ssid);
-                wifi_util_dbg_print(WIFI_CTRL,
-                    "%s:%d [RNR] init with 6G STA ssid=\"%s\" radio=%u\n",
-                    __func__, __LINE__, ssid, radio_index);
-            }
-            break;
-        }
-    }
-#endif
-    
     for (radio_index = 0; radio_index < getNumberRadios(); radio_index++) {
         radio_oper_param = get_wifidb_radio_map(radio_index);
         if (get_allowed_channels(radio_oper_param->band, &mgr->hal_cap.wifi_prop.radiocap[radio_index],
@@ -3069,35 +3053,6 @@ int get_sta_ssid_from_radio_config_by_radio_index(unsigned int radio_index, ssid
 
     return (found == false) ? -1:0;
 }
-
-
-int get_private_ssid_from_radio_config_by_radio_index(unsigned int radio_index, ssid_t ssid)
-{
-    rdk_wifi_radio_t *radio;
-    wifi_vap_info_map_t *map;
-    bool found = false;
-    unsigned int index, i;
-
-    index = get_private_vap_index_for_radio(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, radio_index);
-
-    radio = find_radio_config_by_index(radio_index);
-    if (radio == NULL) {
-        return -1;
-    }
-
-    map = &radio->vaps.vap_map;
-    for (i = 0; i < map->num_vaps; i++) {
-        if (map->vap_array[i].vap_index == index) {
-            found = true;
-            wifi_util_error_print(WIFI_CTRL,"[%s %d] ssid name : %s\n", __func__, __LINE__, map->vap_array[i].u.bss_info.ssid);
-            snprintf(ssid, sizeof(ssid_t), "%s", map->vap_array[i].u.bss_info.ssid);
-            break;
-        }
-    }
-
-    return (found == false) ? -1:0;
-}
-
 
 wifi_hal_capability_t* rdk_wifi_get_hal_capability_map(void)
 {

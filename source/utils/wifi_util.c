@@ -1694,29 +1694,6 @@ int ht_mode_conversion(wifi_channelBandwidth_t *ht_mode_enum, char *ht_mode, int
     return RETURN_ERR;
 }
 
-int get_private_vap_index_for_radio(wifi_platform_property_t *wifi_prop, unsigned int radio_index)
-{
-    int index;
-    int num_vaps;
-    int vap_index = RETURN_ERR;
-    wifi_interface_name_idex_map_t *if_prop;
-
-    TOTAL_INTERFACES(num_vaps, wifi_prop);
-    if_prop = wifi_prop->interface_map;
-
-    for (index = 0; index < num_vaps; ++index) {
-        if (if_prop->rdk_radio_index == radio_index) {
-            if (!strncmp(if_prop->vap_name, "private_ssid", strlen("private_ssid"))) {
-                vap_index = if_prop->index;
-                break;
-            }
-        }
-        if_prop++;
-    }
-    wifi_util_dbg_print(WIFI_CTRL, "[%s %d] vap-index : %d\n", __func__, __LINE__, vap_index);  
-    return vap_index;
-}
-
 int get_sta_vap_index_for_radio(wifi_platform_property_t *wifi_prop, unsigned int radio_index)
 {
     int index;
