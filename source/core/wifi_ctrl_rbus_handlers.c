@@ -3140,16 +3140,20 @@ static int vap_dequeue_add_slot(roguegw_vap_config_t *vap_cfg)
 
 
 /* ================================================================
- * init_roguegw_bus_rows — CHANGED
+ * init_roguegw_bus_rows — non-static so wifi_ctrl.h can declare it.
  *
- * Key changes vs original:
- *  • Lock is released before bus_add_table_row_fn so that
- *    roguegw_addrowhandler (which acquires the lock) cannot deadlock.
- *  • Each valid slot is enqueued in pending_add_queue before the bus
- *    call so addrowhandler can store the per-VAP instance number into
- *    the correct bus_instance[] slot even when the bus is async.
+ * Called TWICE intentionally:
+ *   Call-1: from init_roguegw_function() — bus table not yet
+ *           registered, bus_add_table_row hard-fails, rows not
+ *           created.  Queue is reset at entry so no stale state.
+ *   Call-2: from bus_register_handlers() — bus table IS registered,
+ *           bus_add_table_row succeeds, rows created, bus_instance[]
+ *           filled by addrowhandler.
+ *
+ * The function is idempotent: slots that already have bus_instance!=0
+ * are skipped (they were registered by a previous successful call).
  * ================================================================ */
-static void init_roguegw_bus_rows(void)
+void init_roguegw_bus_rows(void)
 {
     wifi_ctrl_t  *ctrl       = (wifi_ctrl_t *)get_wifictrl_obj();
     wifi_mgr_t   *mgr        = get_wifimgr_obj();
@@ -3160,34 +3164,60 @@ static void init_roguegw_bus_rows(void)
     for (unsigned int r = 0; r < num_radios; r++) {
         unsigned int num_vaps = getNumberVAPsPerRadio(r);
         for (unsigned int v = 0; v < num_vaps; v++) {
-            unsigned int vap_index =
+            unsigned int          vap_index =
                 mgr->radio_config[r].vaps.rdk_vap_array[v].vap_index;
-            unsigned int          ap_inst  = vap_index + 1;
-            roguegw_vap_config_t *vap_cfg  = &g_apply_roguegw_config.config[vap_index];
-            unsigned int          row_count = 0;
+            unsigned int          ap_inst   = vap_index + 1;
+            roguegw_vap_config_t *vap_cfg   =
+                &g_apply_roguegw_config.config[vap_index];
+            unsigned int          row_count  = 0;
 
             char tbl_path[128];
             snprintf(tbl_path, sizeof(tbl_path),
                      "Device.WiFi.AccessPoint.%u.RogueKnownGateway.", ap_inst);
 
+            /*
+             * Reset the add-slot FIFO before (re-)registering.
+             * On the first call (bus not ready) bus_add_table_row
+             * hard-fails; addrowhandler never fires so the queued slot
+             * is never dequeued.  Resetting here prevents duplicate
+             * entries on the second call.
+             */
+            pthread_mutex_lock(&g_apply_roguegw_config.lock);
+            vap_cfg->pending_add_head = 0;
+            vap_cfg->pending_add_tail = 0;
+            pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
             for (int s = 0; s < MAX_KNOWN_APS; s++) {
-                if (!vap_cfg->known_ap_table[s].valid)
+
+                pthread_mutex_lock(&g_apply_roguegw_config.lock);
+
+                if (!vap_cfg->known_ap_table[s].valid) {
+                    vap_cfg->bus_instance[s] = 0;
+                    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
                     continue;
+                }
 
                 /*
-                 * Enqueue the slot index BEFORE calling bus_add_table_row
-                 * so addrowhandler (sync or async) knows which slot maps
-                 * to the instance number it assigns.
+                 * Skip slots that already have a valid bus instance —
+                 * they were registered by a prior successful call.
                  */
-                pthread_mutex_lock(&g_apply_roguegw_config.lock);
+                if (vap_cfg->bus_instance[s] != 0) {
+                    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d slot=%d already has inst=%u — skip\n",
+                        __func__, __LINE__, s, vap_cfg->bus_instance[s]);
+                    row_count++;
+                    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+                    continue;
+                }
+
+                /* Enqueue BEFORE releasing the lock */
                 vap_enqueue_add_slot(vap_cfg, s);
                 pthread_mutex_unlock(&g_apply_roguegw_config.lock);
 
                 /*
-                 * Call WITHOUT the lock — addrowhandler must acquire the
-                 * lock to store the instance number, and if bus_add_table_row
-                 * calls addrowhandler synchronously we would deadlock if we
-                 * held the lock here.
+                 * Call WITHOUT the lock — addrowhandler must acquire it
+                 * to store the instance number.  Holding it here
+                 * deadlocks on a synchronous bus implementation.
                  */
                 uint32_t    inst = 0;
                 bus_error_t berr = get_bus_descriptor()->bus_add_table_row_fn(
@@ -3195,15 +3225,24 @@ static void init_roguegw_bus_rows(void)
 
                 if (berr != bus_error_success) {
                     /*
-                     * Log the error but do NOT dequeue — the bus may still
-                     * fire addrowhandler asynchronously (as seen in the logs
-                     * where bus_add_table_row returned err=20 yet
-                     * addrowhandler fired 13 ms later and the row was
-                     * created successfully).
+                     * Hard failure (e.g. table not registered yet).
+                     * Remove the entry we just enqueued so state stays
+                     * clean.  The next call (from bus_register_handlers)
+                     * will retry after the table is registered.
                      */
+                    pthread_mutex_lock(&g_apply_roguegw_config.lock);
+                    /* Undo enqueue by rewinding the tail */
+                    if (vap_cfg->pending_add_tail != vap_cfg->pending_add_head) {
+                        vap_cfg->pending_add_tail =
+                            (vap_cfg->pending_add_tail + MAX_KNOWN_APS - 1)
+                            % MAX_KNOWN_APS;
+                    }
+                    pthread_mutex_unlock(&g_apply_roguegw_config.lock);
+
                     wifi_util_error_print(WIFI_CTRL,
-                        "%s:%d startup bus_add_table_row FAILED "
-                        "path=%s slot=%d err=%d\n",
+                        "%s:%d bus_add_table_row FAILED "
+                        "path=%s slot=%d err=%d "
+                        "(bus table not ready yet — will retry)\n",
                         __func__, __LINE__, tbl_path, s, berr);
                 } else {
                     row_count++;
@@ -5650,6 +5689,11 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
     if (rc != bus_error_success) {
         wifi_util_error_print(WIFI_CTRL, "%s bus: bus_regDataElements failed\n", __FUNCTION__);
     }
+
+    wifi_util_info_print(WIFI_CTRL,
+        "%s:%d creating known-AP bus rows after bus registration\n",
+        __func__, __LINE__);
+    init_roguegw_bus_rows();
 
     wifi_util_info_print(WIFI_CTRL, "%s bus: bus event register:[%s]:%s\r\n", __FUNCTION__,
         WIFI_STA_2G_VAP_CONNECT_STATUS, WIFI_STA_5G_VAP_CONNECT_STATUS);
