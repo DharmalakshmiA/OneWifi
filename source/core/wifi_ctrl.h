@@ -182,16 +182,56 @@ typedef struct {
     bssid_t                     bssid;
 }__attribute__((packed)) wifi_sta_conn_info_t;
 
-typedef struct {
-    known_ap_entry_t known_ap_table[MAX_KNOWN_APS];
-    unsigned int     vap_index;        /* which VAP this table belongs to */
-    bool             is_pending;
-    bool             is_committed;
-    unsigned int     bus_row_count;
-} pending_roguegw_config_t;
+/* ================================================================
+ * STRUCT — update roguegw_vap_config_t in your header file
+ * ================================================================
+ * 
+ *
+ * NOTE: init_roguegw_function() does memset(..., 0, ...) so all new
+ * fields are zero-initialised automatically. No extra init needed.
+ * ================================================================ */
 
+  typedef struct {
+      known_ap_entry_t known_ap_table[MAX_KNOWN_APS];
+
+      uint32_t         bus_instance[MAX_KNOWN_APS];
+          /*Per-slot bus-assigned instance number.
+          bus_instance[s] == 0 means no bus row exists for slot s yet.
+          AP17 slot-0 gets inst=1, slot-1 gets inst=2, independent of
+          other AccessPoint tables (per-VAP counter, not global).*/
+
+      uint32_t         pending_remove_inst[MAX_KNOWN_APS];
+        /*Instance numbers queued for bus_remove_table_row in apply.
+          Populated in roguegw_remove_knownap BEFORE table compaction
+          so we retain the correct inst even after the slot is shifted.*/
+
+      unsigned int     pending_remove_count;
+         /*How many entries are in pending_remove_inst[]. */
+
+      int              pending_add_queue[MAX_KNOWN_APS];
+        /*  FIFO of slot indices waiting for a bus instance assignment.
+          apply enqueues a slot just before calling bus_add_table_row;
+          addrowhandler dequeues it and stores the assigned inst.
+          Handles the async bus (addrowhandler fires 13 ms after
+          bus_add_table_row returns) without relying on the out-param.*/
+
+      unsigned int     pending_add_head;
+      unsigned int     pending_add_tail;
+          //FIFO head/tail for pending_add_queue (circular, size MAX_KNOWN_APS).
+
+      uint32_t         next_bus_inst;
+         /* Per-VAP monotonically increasing counter.
+          AP17 always starts at 0, so its first row gets inst=1.
+          Completely independent from other APs' counters.
+          Never decremented — instance numbers are never reused.*/
+
+      unsigned int     vap_index;
+      unsigned int     bus_row_count;
+      bool             is_pending;
+      bool             is_committed;
+  } roguegw_vap_config_t;
 typedef struct {
-    pending_roguegw_config_t config[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];
+    roguegw_vap_config_t config[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];
     pthread_mutex_t          lock;
 } apply_roguegw_config_t;
 
