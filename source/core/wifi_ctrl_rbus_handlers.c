@@ -5585,7 +5585,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
         { WIFI_ACCESSPOINT_ROGUEKNOWNGW_APPLY, bus_element_type_property,
     { NULL, apply_roguegw_config, NULL, NULL, NULL, NULL },
     slow_speed, ZERO_TABLE,
-    { bus_data_type_boolean, false, 0, 0, 0, NULL }
+    { bus_data_type_string, false, 0, 0, 0, NULL }
 },
         { WIFI_ACCESSPOINT_DEV_CONNECTED,                 bus_element_type_event,
          { NULL, NULL, NULL, NULL, eventSubHandler, NULL },                                                                  slow_speed, ZERO_TABLE,
@@ -5693,8 +5693,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
     wifi_util_info_print(WIFI_CTRL,
         "%s:%d creating known-AP bus rows after bus registration\n",
         __func__, __LINE__);
-    init_roguegw_bus_rows();
-
+    init_roguegw_function();
     wifi_util_info_print(WIFI_CTRL, "%s bus: bus event register:[%s]:%s\r\n", __FUNCTION__,
         WIFI_STA_2G_VAP_CONNECT_STATUS, WIFI_STA_5G_VAP_CONNECT_STATUS);
     return;
