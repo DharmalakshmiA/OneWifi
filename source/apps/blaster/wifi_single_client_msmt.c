@@ -1936,9 +1936,10 @@ void stream_client_msmt_data(bool ActiveMsmtFlag)
             return;
         }
 
+	wifi_util_info_print(WIFI_BLASTER,"%s:%d Blaster status %s\n", __func__, __LINE__, active_msmt_status_to_str(act_monitor->status));
         if (ctrl->network_mode == rdk_dev_mode_type_gw) {
             upload_single_client_active_msmt_data(sta);
-        } else if (act_monitor->status != ACTIVE_MSMT_STATUS_SUCCEED && ctrl->network_mode == rdk_dev_mode_type_ext) {
+        } else if (act_monitor->status == ACTIVE_MSMT_STATUS_SUCCEED && ctrl->network_mode == rdk_dev_mode_type_ext) {
             pod_upload_single_client_active_msmt_data(sta);
         }
     }
