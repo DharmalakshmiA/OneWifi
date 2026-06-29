@@ -1447,8 +1447,8 @@ static int em_publish_failed_connection(const wifi_em_failed_conn_t *fc)
     int n;
     bus_error_t rc;
 
-    to_mac_str(fc->bssid,   bssid_str);
-    to_mac_str(fc->sta_mac, sta_str);
+    to_mac_str((uint8_t *)fc->bssid,   bssid_str);
+    to_mac_str((uint8_t *)fc->sta_mac, sta_str);
 
     n = snprintf(json_buf, sizeof(json_buf),
         "{\"bssid\":\"%s\",\"sta_mac\":\"%s\",\"status\":%u,\"reason\":%u}",
