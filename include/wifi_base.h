@@ -92,6 +92,7 @@ extern "C" {
 #define WIFI_LINK_QUALITY_DATA      "Device.WiFi.LinkQualityData"
 #define WIFI_LINK_QUALITY_FLAGS     "Device.WiFi.LinkQualityFlags"
 #define WIFI_IGNITE_STATUS "Device.WiFi.EndPoint.1.LinkQualityStatus"
+#define WIFI_LINK_QUALITY_GW      "Device.WiFi.LQGateWay"
 
 #ifndef MAX_NUM_MLD_LINKS
 #define MAX_NUM_MLD_LINKS 15
@@ -535,9 +536,40 @@ typedef struct {
 } link_report_t;
 
 typedef struct {
+    unsigned long cli_PacketsSent;
+    unsigned long cli_PacketsReceived;
+    unsigned long cli_RetransCount;
+    unsigned long long cli_RxRetries;
+    int cli_SNR;
+    unsigned int   cli_MaxDownlinkRate;
+    unsigned int cli_MaxUplinkRate;
+    unsigned int cli_LastDataDownlinkRate;
+    unsigned int cli_LastDataUplinkRate;
+    bool cli_PowerSaveMode;
+} dev_stats_t;
+
+typedef struct {
     size_t link_count;
     link_report_t *links;
 } report_batch_t;
+
+typedef struct {
+    mac_addr_str_t mac_str;
+    mac_addr_str_t ap_mac_str;
+    unsigned int vap_index;
+    unsigned int radio_index;
+    int channel_utilization;
+    dev_stats_t dev;
+    struct timespec total_connected_time;
+    struct timespec total_disconnected_time;
+    int event;
+    unsigned int status_code;
+    int dhcp_event;
+    int dhcp_msg_type;
+    char dhcp_hostname[256];
+    char dhcp_vendor_class[256];
+    char dhcp_param_list[512];
+} stats_arg_t;
 
 typedef struct {
     unsigned int rss_check_interval; //minutes
@@ -584,7 +616,9 @@ typedef struct {
     bool wpa3_compatibility_enable;
     bool memwraptool_app_rfc;
     bool csi_analytics_enabled_rfc;
-    bool link_quality_rfc;
+    bool wei_wc_rfc;
+    bool wei_sc_rfc;
+    bool wei_gc_rfc;
     bool xfi_tel_enable_rfc;
     bool multiap_rfc;
 } wifi_rfc_dml_parameters_t;
