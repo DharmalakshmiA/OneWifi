@@ -24,6 +24,7 @@
 #include "wifi_hal.h"
 #include "wifi_hal_ap.h"
 #include "wifi_mgr.h"
+#include "wifi_linkquality.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -3414,10 +3415,46 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
 
     return rc;
 }
-  
+
+static void em_handle_lq_stats_event(wifi_app_t *app, linkquality_data_t *data, int num_devs)
+{
+    if (!data || num_devs <= 0) return;
+
+    /* Publish all stats as a flat stats_arg_t array — no serialization overhead.
+     * The receiver (WEI agent) has access to wifi_base.h and casts raw_buff
+     * directly to stats_arg_t[]. */
+    static stats_arg_t stats_buf[BSS_MAX_NUM_STATIONS];
+    if (num_devs > BSS_MAX_NUM_STATIONS) {
+        num_devs = BSS_MAX_NUM_STATIONS;
+    }
+    for (int i = 0; i < num_devs; i++) {
+        stats_buf[i] = data[i].stats;
+    }
+
+    raw_data_t rdata;
+    memset(&rdata, 0, sizeof(raw_data_t));
+    rdata.data_type      = bus_data_type_bytes;
+    rdata.raw_data.bytes = (void *)stats_buf;
+    rdata.raw_data_len   = (unsigned int)(num_devs * sizeof(stats_arg_t));
+
+    int rc = get_bus_descriptor()->bus_event_publish_fn(
+        &app->ctrl->handle, WIFI_EM_STA_LQ_DATA, &rdata);
+    if (rc != bus_error_success) {
+        wifi_util_error_print(WIFI_EM,
+            "%s:%d: bus_event_publish_fn StaLQData failed rc=%d\n",
+            __func__, __LINE__, rc);
+    }
+}
+
 int em_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
+    case wifi_event_type_exec:
+        if (event->sub_type == wifi_event_exec_timeout && event->u.core_data.msg) {
+            em_handle_lq_stats_event(app, (linkquality_data_t *)event->u.core_data.msg,
+                                     event->u.core_data.len);
+        }
+        break;
     case wifi_event_type_hal_ind:
         handle_em_hal_event(app, event->sub_type, event->u.core_data.msg);
         break;

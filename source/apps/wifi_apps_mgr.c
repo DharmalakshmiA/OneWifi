@@ -256,6 +256,8 @@ int apps_mgr_link_quality_event(wifi_apps_mgr_t *apps_mgr, wifi_event_type_t typ
 
     app->desc.event_fn(app, event);
 
+    apps_mgr_event(apps_mgr, event);
+
     destroy_wifi_event(event);
 
     return RETURN_OK;

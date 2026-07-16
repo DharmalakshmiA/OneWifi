@@ -788,7 +788,10 @@ int link_quality_init(wifi_app_t *app, unsigned int create_flag)
     bus_data_element_t dataElements[] = {
         { WIFI_QUALITY_LINKREPORT, bus_element_type_method,
             { NULL, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-            { bus_data_type_string, false, 0, 0, 0, NULL } } ,
+            { bus_data_type_string, false, 0, 0, 0, NULL } },
+        { WIFI_EM_STA_CAFFINITY_STATS, bus_element_type_method,
+            { NULL, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+            { bus_data_type_string, false, 0, 0, 0, NULL } },
     };
 
     if (app_init(app, create_flag) != 0) {
