@@ -64,6 +64,7 @@
 #include <netinet/icmp6.h>
 #include <netinet/ip6.h>
 #include "wifi_events.h"
+#include "wifi_linkquality.h"
 #include "common/ieee802_11_defs.h"
 #include "const.h"
 #include "pktgen.h"
@@ -4098,12 +4099,21 @@ int vapstatus_callback(int apIndex, wifi_vapstatus_t status)
     hash_map_t *temp_sta_map = NULL;
     sta_data_t *sta          = NULL;
     sta_key_t  sta_key;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_rfc_dml_parameters_t *rfc_param = get_ctrl_rfc_parameters();
+    bool link_quality_measurement = false;
 
     wifi_util_dbg_print(WIFI_MON,"%s called for %d and status %d \n",__func__, apIndex, status);
     g_monitor_module.bssid_data[apIndex].ap_params.ap_status = status;
 
     if (status != wifi_vapstatus_down) {
         return 0;
+    }
+
+    if (rfc_param != NULL && (rfc_param->wei_wc_rfc || rfc_param->wei_sc_rfc || rfc_param->wei_gc_rfc
+            || (ctrl != NULL && (ctrl->network_mode == rdk_dev_mode_type_em_node
+            || ctrl->network_mode == rdk_dev_mode_type_em_colocated_node)))) {
+        link_quality_measurement = true;
     }
 
     pthread_mutex_lock(&g_monitor_module.data_lock);
@@ -4131,6 +4141,15 @@ int vapstatus_callback(int apIndex, wifi_vapstatus_t status)
         while (sta != NULL) {
             to_sta_key(sta->sta_mac, sta_key);
             send_wifi_disconnect_event_to_ctrl(sta->sta_mac, apIndex);
+            if (ctrl != NULL && link_quality_measurement && !is_zero_mac(sta->sta_mac)) {
+                linkquality_data_t *remove_link_data = (linkquality_data_t *) malloc (sizeof(linkquality_data_t));
+                if (remove_link_data != NULL) {
+                    memset(remove_link_data, 0, sizeof(linkquality_data_t));
+                    to_sta_key(sta->sta_mac, remove_link_data->stats.mac_str);
+                    wifi_util_info_print(WIFI_MON, "%s:%d: vap down, removing link quality stats for sta mac=%s on ap:%d\n", __func__, __LINE__, remove_link_data->stats.mac_str, apIndex);
+                    apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_hal_ind, wifi_event_exec_stop, remove_link_data, 0);
+                }
+            }
             wifi_util_info_print(WIFI_MON, "%s:%d ClientMac:%s disconnected from ap:%d\n", __func__, __LINE__, sta_key, apIndex);
             sta = hash_map_get_next(temp_sta_map, sta);
         }
@@ -4815,7 +4834,9 @@ int init_wifi_monitor()
     wifi_hal_radiusFallback_failover_callback_register(radius_fallback_and_failover_callback);
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     wifi_hal_apStatusCode_callback_register(ap_status_code);
+#if 0 /* wifi_hal_eapol_timeouts_callback_register not yet available in HAL */
 	wifi_hal_eapol_timeouts_callback_register(eapol_timeout_type);
+#endif
     wifi_hal_handshake_callback_register(handle_handshake_status);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, &g_monitor_module.interop_id, reset_interop_sta_data, NULL, (get_chan_util_upload_period() * 1000), 0, FALSE);

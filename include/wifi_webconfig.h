@@ -142,6 +142,8 @@ typedef enum {
     webconfig_subdoc_type_em_channel_stats,
     webconfig_subdoc_type_em_sta_link_metrics,
     webconfig_subdoc_type_em_ap_metrics_report,
+    webconfig_subdoc_type_em_unassoc_sta_link_metrics,
+    webconfig_subdoc_type_nasta_query,
 #endif
     webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_link_report,
