@@ -132,12 +132,7 @@ static int em_get_radio_index_from_mac(mac_addr_t ruuid)
 
     for (unsigned int i = 0; i < num_of_radios; i++) {
         vap_map = (wifi_vap_info_map_t *)get_wifidb_vap_map(i);
-<<<<<<< HEAD
         for (unsigned int j = 0; j < vap_map->num_vaps; j++) {
-=======
-
-        for (int j = 0; vap_map && j < vap_map->num_vaps; j++) {
->>>>>>> develop
             to_mac_str(vap_map->vap_array[j].u.bss_info.bssid, bss_str);
             //wifi_util_dbg_print(WIFI_EM, "%s:%d comparing ruuid[%s] with bss mac: %s\n", __func__, __LINE__, rad_str, bss_str);
             if (memcmp(ruuid, vap_map->vap_array[j].u.bss_info.bssid, sizeof(mac_addr_t)) == 0) {
@@ -386,12 +381,8 @@ static int prepare_sta_lins_metrics_data(per_sta_metrics_t *data, wifi_associate
     to_mac_str(stats->associated_dev3.cli_MACAddress, key);
     cli_data = hash_map_get(client_type_info.sta_client_type.client_type_map, key);
     if (cli_data != NULL) {
-<<<<<<< HEAD
-        memcpy(data->client_type, cli_data->client_type, sizeof(cli_data->client_type));
-=======
         strncpy((char *)data->client_type, (const char *)cli_data->client_type, sizeof(data->client_type) - 1);
         data->client_type[sizeof(data->client_type) - 1] = '\0';
->>>>>>> develop
     }
 
     data->assoc_sta_link_metrics.num_bssid = 1; // must be changed for STA multiple associations
@@ -2066,11 +2057,7 @@ cleanup:
     // Cleanup allocated memory
     if (data != NULL) {
         for (int j = 0; j < req_radio_count; j++) {
-<<<<<<< HEAD
-            for (unsigned int i = 0; i < radio->vaps.num_vaps; i++) {
-=======
-            for (int i = 0; i < radio->vaps.num_vaps && i < MAX_NUM_VAP_PER_RADIO; i++) {
->>>>>>> develop
+            for (unsigned int i = 0; i < radio->vaps.num_vaps && i < MAX_NUM_VAP_PER_RADIO; i++) {
                 vap_report = &data->u.decoded.em_ap_metrics_report.radio_reports[j].vap_reports[i];
                 if (vap_report->sta_link_metrics != NULL) {
                     free(vap_report->sta_link_metrics);
@@ -2341,15 +2328,11 @@ static void ap_report_cache_init()
 
     for (unsigned int i = 0; i < num_of_radios; i++) {
         vap_map = (wifi_vap_info_map_t *)get_wifidb_vap_map(i);
-<<<<<<< HEAD
-        for (unsigned int j = 0; j < vap_map->num_vaps; j++) {
-=======
         if (!vap_map) {
             continue;
         }
 
-        for (int j = 0; j < vap_map->num_vaps; j++) {
->>>>>>> develop
+        for (unsigned int j = 0; j < vap_map->num_vaps; j++) {
             vap_info = &vap_map->vap_array[j];
             if (vap_info == NULL) {
                 wifi_util_dbg_print(WIFI_EM, "%s:%d NULL VAP\r\n", __func__, __LINE__);
