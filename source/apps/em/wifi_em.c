@@ -1791,7 +1791,8 @@ static int ap_report_push_cb(em_ap_report_callback_arg_t *args)
     wifi_vap_info_t *vap_info = NULL;
     wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     raw_data_t rdata;
-    unsigned int j = 0, k = 0, cnt = 0;
+    unsigned int j = 0, k = 0;
+    int cnt = 0;
     int cache_vap_index = -1;
     mac_addr_str_t radio_str;
     em_config_t *em_config = &args->app->data.u.em_data.em_config;
