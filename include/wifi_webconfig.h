@@ -148,7 +148,6 @@ typedef enum {
     webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_link_report,
     webconfig_subdoc_type_ignite,
-    webconfig_subdoc_type_nasta_query,
     webconfig_subdoc_type_max
 } webconfig_subdoc_type_t;
 
