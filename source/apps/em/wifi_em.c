@@ -788,7 +788,7 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
             assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_TxFrames, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_RxRetries, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_RxErrors);
         
             // send to agent
-            get_radio_channel_utilization(radio_index, channel_utilization);
+            get_radio_channel_utilization(radio_index, &channel_utilization);
             wifi_util_dbg_print(WIFI_EM, "Channel utilization: %d\n", channel_utilization);
 
             wei_data_t wei_data;
@@ -1889,7 +1889,7 @@ int em_client_diag_config_to_monitor_queue(wifi_app_t *app, wifi_monitor_data_t 
 #endif
     radio_count = app->data.u.em_data.em_config.radio_metrics_policies.radio_count;
 
-    for (i = 0; i < radio_count; i++) {
+    for (i = 0; i < (unsigned int)radio_count; i++) {
         data[i].u.mon_stats_config.data_type = mon_stats_type_associated_device_stats;
 
         if (em_client_assoc_stats[data[i].u.mon_stats_config.args.radio_index].req_stats_vap_mask ==
@@ -1917,7 +1917,7 @@ int em_client_diag_config_to_monitor_queue(wifi_app_t *app, wifi_monitor_data_t 
             data[i].u.mon_stats_config.args.app_info = app_etype;
             if (app_etype == em_app_event_type_assoc_dev_stats_periodic) {
                 interval = app->data.u.em_data.em_config.ap_metric_policy.interval * 1000;
-            } else if (app_etype == em_app_event_type_assoc_dev_stats_wei_data) {
+            } else if (app_etype == em_app_event_type_wei_data) {
                 interval = 5 * 1000;
             }
             data[i].u.mon_stats_config.interval_ms = interval;
@@ -2089,7 +2089,7 @@ static int ap_report_push_cb(em_ap_report_callback_arg_t *args)
                 stats = hash_map_get_first(
                     em_ap_metrics_report_cache.radio_report[radio_index].ap_data[cache_vap_index].client_stats_map);
                 cnt = 0;
-                while ((stats != NULL) && (cnt < vap_report->sta_cnt)) {
+                while ((stats != NULL) && (cnt < (unsigned int)vap_report->sta_cnt)) {
                     prepare_sta_lins_metrics_data(&vap_report->sta_link_metrics[cnt], stats,
                         vap_info->vap_index);
                     stats = hash_map_get_next(
@@ -2122,7 +2122,7 @@ static int ap_report_push_cb(em_ap_report_callback_arg_t *args)
                 stats = hash_map_get_first(
                     em_ap_metrics_report_cache.radio_report[radio_index].ap_data[cache_vap_index].client_stats_map);
                 cnt = 0;
-                while ((stats != NULL) && (cnt < vap_report->sta_cnt)) {
+                while ((stats != NULL) && (cnt < (unsigned int)vap_report->sta_cnt)) {
                     prepare_sta_traffic_stats_data(&vap_report->sta_traffic_stats[cnt], stats);
                     stats = hash_map_get_next(
                         em_ap_metrics_report_cache.radio_report[radio_index].ap_data[cache_vap_index].client_stats_map, stats);
@@ -2169,7 +2169,7 @@ static int ap_report_push_cb(em_ap_report_callback_arg_t *args)
 
                 stats = hash_map_get_first(
                     em_ap_metrics_report_cache.radio_report[radio_index].ap_data[cache_vap_index].client_stats_map);
-                while ((stats != NULL) && (cnt < vap_report->sta_cnt)) {
+                while ((stats != NULL) && (cnt < (unsigned int)vap_report->sta_cnt)) {
                     prepare_sta_traffic_stats_data(&vap_report->sta_traffic_stats[cnt], stats);
                     prepare_sta_lins_metrics_data(&vap_report->sta_link_metrics[cnt], stats,
                         vap_info->vap_index);
@@ -3528,11 +3528,11 @@ bus_error_t set_disconn_scan_none_state(char *name, raw_data_t *p_data, bus_user
 void config_data_for_wei(wifi_app_t *app)
 {
     wifi_monitor_data_t *data = NULL;
-    int ret = RETURN_ERR;
     int radio_count = 3; // todo: Replace with actual radio count from configuration. Assuming 3 radios for now
     int i = 0;
     unsigned int vapArrayIndex = 0;
     wifi_event_route_t route;
+    wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     em_route(&route);
 
 
@@ -3541,7 +3541,7 @@ void config_data_for_wei(wifi_app_t *app)
     data = (wifi_monitor_data_t *)malloc(radio_count * sizeof(wifi_monitor_data_t));
     if (data == NULL) {
         wifi_util_error_print(WIFI_EM, "%s:%d data allocation failed\r\n", __func__, __LINE__);
-        return RETURN_ERR;
+        return;
     }
     memset(data, 0, radio_count * sizeof(wifi_monitor_data_t));
 
@@ -3550,7 +3550,7 @@ void config_data_for_wei(wifi_app_t *app)
         data[i].u.mon_stats_config.inst = wifi_app_inst_easymesh;
 
         data[i].u.mon_stats_config.data_type = mon_stats_type_associated_device_stats;
-        data[i].u.mon_stats_config.args.app_info = em_app_event_type_assoc_dev_stats_wei_data;
+        data[i].u.mon_stats_config.args.app_info = em_app_event_type_wei_data;
         data[i].u.mon_stats_config.interval_ms = 5 * 1000;
         data[i].u.mon_stats_config.start_immediately = true;
 
