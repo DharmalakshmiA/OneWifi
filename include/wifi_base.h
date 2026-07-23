@@ -1668,7 +1668,7 @@ typedef struct {
     // char dhcp_param_list[512];
 } wei_data_t;
 
-#endif // EM_APP
+//#endif // EM_APP
 
 #ifdef __cplusplus
 }
