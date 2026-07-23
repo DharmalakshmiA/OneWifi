@@ -483,6 +483,13 @@ static int em_sta_stats_publish(wifi_app_t *app, client_assoc_data_t *stats, int
     return RETURN_OK;
 }
 
+static inline char *to_sta_key (mac_addr_t mac, sta_key_t key)
+{
+    snprintf(key, STA_KEY_LEN, "%02x:%02x:%02x:%02x:%02x:%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return (char *)key;
+}
+
 static int handle_ready_client_stats(wifi_app_t *app, client_assoc_data_t *stats, size_t stats_num,
     unsigned int vap_mask, unsigned int radio_index, unsigned int vap_index, int app_etype,
     int sta_sze)
@@ -695,6 +702,7 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
     int vap_index = provider_response->args.vap_index;
     wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     char vap_name[32];
+    sta_key_t sta_key,;
 
     wifi_util_info_print(WIFI_EM, "%s:%d: provider_response is for radio index: %d and vap index: %d\n",
          __func__, __LINE__, radio_index, vap_index);
@@ -739,7 +747,7 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
         //     radio_index, vap_index, provider_response->args.app_info,
         //     provider_response->stat_array_size);
 
-        for (unsigned int count = 0; count < sta_size; count++) {
+        for (unsigned int count = 0; count < provider_response->stat_array_size; count++) {
             wifi_util_dbg_print(WIFI_EM, "cli_MACAddress: %s\ncli_MLDAddr: %s\ncli_MLDEnable: %d\ncli_AuthenticationState: %d\n"
             "cli_LastDataDownlinkRate: %d\ncli_LastDataUplinkRate: %d\ncli_SignalStrength: %d\n"
             "cli_Retransmissions: %d\ncli_Active: %d\ncli_OperatingStandard: %s\n"
