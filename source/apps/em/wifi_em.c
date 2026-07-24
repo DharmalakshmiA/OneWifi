@@ -727,7 +727,7 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
         return RETURN_ERR;
     }
 
-    client_assoc_stats_t assoc_stats = {0};
+    em_client_assoc_stats_t  assoc_stats = {0};
 
     memcpy(assoc_stats.client_assoc_data[vap_array_index].assoc_stats,
         provider_response->stat_pointer, (sizeof(sta_data_t) * provider_response->stat_array_size));
