@@ -481,6 +481,13 @@ static int em_sta_stats_publish(wifi_app_t *app, client_assoc_data_t *stats, int
     free(data);
 }
 
+static inline char *to_sta_key (mac_addr_t mac, sta_key_t key)
+{
+    snprintf(key, STA_KEY_LEN, "%02x:%02x:%02x:%02x:%02x:%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return (char *)key;
+}
+
 static int handle_ready_client_stats(wifi_app_t *app, client_assoc_data_t *stats, size_t stats_num,
     unsigned int vap_mask, unsigned int radio_index, unsigned int vap_index, int app_etype,
     int sta_sze)
@@ -564,7 +571,6 @@ static int handle_ready_client_stats(wifi_app_t *app, client_assoc_data_t *stats
                         break;
 
                     case em_app_event_type_assoc_dev_stats_periodic:
-                    // case em_app_event_type_wei_data:
                         em_client_stats_store(radio_index, tmp_vap_index, stat_array_size,
                             &sta_data->dev_stats, &sta_data->timestamp);
                         break;
@@ -687,11 +693,14 @@ int assoc_client_response(wifi_app_t *app, wifi_provider_response_t *provider_re
 static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_response_t *provider_response)
 {
     // Implementation of the function goes here
+    (void)app;
     int vap_array_index = 0;
     int radio_index = provider_response->args.radio_index;
     int vap_index = provider_response->args.vap_index;
     wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     char vap_name[32];
+    sta_key_t sta_key, mld_sta_key;
+    int channel_utilization;
 
     wifi_util_info_print(WIFI_EM, "%s:%d: provider_response is for radio index: %d and vap index: %d\n",
          __func__, __LINE__, radio_index, vap_index);
@@ -736,7 +745,14 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
         //     radio_index, vap_index, provider_response->args.app_info,
         //     provider_response->stat_array_size);
 
-        for (unsigned int count = 0; count < sta_size; count++) {
+        wifi_vap_info_t *vap_info = getVapInfo(vap_index);
+        if (vap_info == NULL) {
+            wifi_util_error_print(WIFI_EM, "%s:%d: getVapInfo failed for vap_index : %d\r\n",
+                __func__, __LINE__, vap_index);
+            return RETURN_ERR;
+        }
+
+        for (unsigned int count = 0; count < provider_response->stat_array_size; count++) {
             wifi_util_dbg_print(WIFI_EM, "cli_MACAddress: %s\ncli_MLDAddr: %s\ncli_MLDEnable: %d\ncli_AuthenticationState: %d\n"
             "cli_LastDataDownlinkRate: %d\ncli_LastDataUplinkRate: %d\ncli_SignalStrength: %d\n"
             "cli_Retransmissions: %d\ncli_Active: %d\ncli_OperatingStandard: %s\n"
@@ -768,28 +784,29 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
             assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_TxFrames, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_RxRetries, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].dev_stats.cli_RxErrors);
         
             // send to agent
-            get_radio_channel_utilization(radio_index, channel_utilization);
+            get_radio_channel_utilization(radio_index, &channel_utilization);
             wifi_util_dbg_print(WIFI_EM, "Channel utilization: %d\n", channel_utilization);
 
             wei_data_t wei_data;
+            sta_data_t *sta_data = &assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count];
 
-            memcpy(wei_data.mac_str, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].sta_mac, sizeof(mac_addr_str_t));
-            memcpy(wei_data.ap_mac_str, assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].bssid, sizeof(mac_addr_str_t));
+            memcpy(wei_data.sta_mac, sta_data->sta_mac, sizeof(mac_addr_str_t));
+            // memcpy(wei_data.ap_mac, sta_data->bssid, sizeof(mac_addr_str_t));
             wei_data.vap_index = vap_array_index;
             wei_data.radio_index = radio_index;
             wei_data.channel_utilization = channel_utilization;
-            wei_data.dev.cli_PacketsSent = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_PacketsSent;
-            wei_data.dev.cli_PacketsReceived = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_PacketsReceived;
-            wei_data.dev.cli_RetransCount = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_RetransCount;
-            wei_data.dev.cli_RxRetries = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_RxRetries;
-            wei_data.dev.cli_SNR = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_SNR;
-            wei_data.dev.cli_MaxDownlinkRate = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_MaxDownlinkRate;
-            wei_data.dev.cli_MaxUplinkRate = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_MaxUplinkRate;
-            wei_data.dev.cli_LastDataDownlinkRate = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_LastDataDownlinkRate;
-            wei_data.dev.cli_LastDataUplinkRate = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_LastDataUplinkRate;
-            wei_data.dev.cli_PowerSaveMode = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].cli_PowerSaveMode;
-            wei_data.total_connected_time = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].total_connected_time;
-            wei_data.total_disconnected_time = assoc_stats.client_assoc_data[vap_array_index].assoc_stats[count].total_disconnected_time;
+            wei_data.dev.cli_PacketsSent = sta_data->dev_stats.cli_PacketsSent;
+            wei_data.dev.cli_PacketsReceived = sta_data->dev_stats.cli_PacketsReceived;
+            wei_data.dev.cli_RetransCount = sta_data->dev_stats.cli_RetransCount;
+            wei_data.dev.cli_RxRetries = sta_data->dev_stats.cli_RxRetries;
+            wei_data.dev.cli_SNR = sta_data->dev_stats.cli_SNR;
+            wei_data.dev.cli_MaxDownlinkRate = sta_data->dev_stats.cli_MaxDownlinkRate;
+            wei_data.dev.cli_MaxUplinkRate = sta_data->dev_stats.cli_MaxUplinkRate;
+            wei_data.dev.cli_LastDataDownlinkRate = sta_data->dev_stats.cli_LastDataDownlinkRate;
+            wei_data.dev.cli_LastDataUplinkRate = sta_data->dev_stats.cli_LastDataUplinkRate;
+            // wei_data.dev.cli_PowerSaveMode = sta_data->dev_stats.cli_PowerSaveMode;
+            wei_data.total_connected_time = sta_data->total_connected_time;
+            wei_data.total_disconnected_time = sta_data->total_disconnected_time;
             
             // Publish the whole wei_data_t
             wifi_ctrl_t *wifi_ctrl = get_wifictrl_obj();
@@ -806,6 +823,7 @@ static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_respons
             snprintf(path, sizeof(path), WIFI_EM_WEI_DATA);
             get_bus_descriptor()->bus_event_publish_fn(&wifi_ctrl->handle, path, &rdata);
             free(rdata.raw_data.bytes);
+        }
 
         assoc_stats.assoc_stats_vap_presence_mask = 0;
     }
@@ -1559,7 +1577,7 @@ int handle_monitor_provider_response(wifi_app_t *app, wifi_event_t *event)
         ret = vap_stats_response(provider_response);
         break;
     case em_app_event_type_wei_data:
-        ret = wei_assoc_client_data_response(provider_response);
+        ret = wei_assoc_client_data_response(app, provider_response);
         break;
     default:
         wifi_util_error_print(WIFI_EM, "%s:%d: event not handle[%d]\r\n", __func__, __LINE__,
@@ -1885,7 +1903,7 @@ int client_diag_config_to_monitor_queue(wifi_app_t *app, wifi_monitor_data_t *da
             data[i].u.mon_stats_config.args.app_info = app_etype;
             if (app_etype == em_app_event_type_assoc_dev_stats_periodic) {
                 interval = app->data.u.em_data.em_config.ap_metric_policy.interval * 1000;
-            } else if (app_etype == em_app_event_type_assoc_dev_stats_wei_data) {
+            } else if (app_etype == em_app_event_type_wei_data) {
                 interval = 5 * 1000;
             }
             data[i].u.mon_stats_config.interval_ms = interval;
@@ -3501,6 +3519,7 @@ void config_data_for_wei(wifi_app_t *app)
     int i = 0;
     unsigned int vapArrayIndex = 0;
     wifi_event_route_t route;
+    wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     em_route(&route);
 
 
@@ -3509,7 +3528,7 @@ void config_data_for_wei(wifi_app_t *app)
     data = (wifi_monitor_data_t *)malloc(radio_count * sizeof(wifi_monitor_data_t));
     if (data == NULL) {
         wifi_util_error_print(WIFI_EM, "%s:%d data allocation failed\r\n", __func__, __LINE__);
-        return RETURN_ERR;
+        return;
     }
     memset(data, 0, radio_count * sizeof(wifi_monitor_data_t));
 
@@ -3518,7 +3537,7 @@ void config_data_for_wei(wifi_app_t *app)
         data[i].u.mon_stats_config.inst = wifi_app_inst_easymesh;
 
         data[i].u.mon_stats_config.data_type = mon_stats_type_associated_device_stats;
-        data[i].u.mon_stats_config.args.app_info = em_app_event_type_assoc_dev_stats_wei_data;
+        data[i].u.mon_stats_config.args.app_info = em_app_event_type_wei_data;
         data[i].u.mon_stats_config.interval_ms = 5 * 1000;
         data[i].u.mon_stats_config.start_immediately = true;
 
