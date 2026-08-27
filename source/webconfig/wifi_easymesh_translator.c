@@ -19,6 +19,7 @@
  **************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -257,6 +258,9 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
     //debug_external_protos(&webconfig_easymesh_data, __func__, __LINE__);
     webconfig_easymesh_free_decoded(&webconfig_easymesh_data);
     webconfig_data_free(&webconfig_easymesh_data);
+    /* Return freed arena pages to the OS to keep RSS low after the
+       transient JSON/cJSON decode allocations are released. */
+    malloc_trim(0);
     return webconfig_error_none;
 }
 
