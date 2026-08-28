@@ -244,7 +244,19 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
 {
     webconfig_easymesh_data.u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
     webconfig_easymesh_data.descriptor = webconfig_data_descriptor_translate_to_easymesh;
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before decode em\n", __func__, __LINE__);
 
+       if (webconfig_decode(config, &webconfig_easymesh_data, str) != webconfig_error_none) {
+        //        *data = NULL;
+            wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode failed\n", __func__, __LINE__);
+            webconfig_easymesh_free_decoded(&webconfig_easymesh_data);
+            /* note: webconfig_data_free is called internally by webconfig_decode on error */
+            return webconfig_error_decode;
+        }
+
+    } else {
     if (webconfig_decode(config, &webconfig_easymesh_data, str) != webconfig_error_none) {
         //        *data = NULL;
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode failed\n", __func__, __LINE__);
@@ -252,12 +264,21 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
         /* note: webconfig_data_free is called internally by webconfig_decode on error */
         return webconfig_error_decode;
     }
+}
 
     wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode subdoc type %d sucessfully\n", __func__, __LINE__, webconfig_easymesh_data.type);
     *type = webconfig_easymesh_data.type;
     //debug_external_protos(&webconfig_easymesh_data, __func__, __LINE__);
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before freeing the decode\n", __func__, __LINE__);
+    }
     webconfig_easymesh_free_decoded(&webconfig_easymesh_data);
     webconfig_data_free(&webconfig_easymesh_data);
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: after freeing the decode\n", __func__, __LINE__);
+    }
     /* Return freed arena pages to the OS to keep RSS low after the
        transient JSON/cJSON decode allocations are released. */
     malloc_trim(0);

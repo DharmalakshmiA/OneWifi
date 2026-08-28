@@ -69,11 +69,19 @@ webconfig_error_t webconfig_encode(webconfig_t *config, webconfig_subdoc_data_t 
 webconfig_error_t webconfig_decode(webconfig_t *config, webconfig_subdoc_data_t *data, const char *str)
 {
     webconfig_error_t ret = webconfig_error_none;
-
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before calloc\n", __func__, __LINE__);
+    }
     data->u.encoded.raw = (webconfig_subdoc_encoded_raw_t)calloc(strlen(str) + 1, sizeof(char));
     if (data->u.encoded.raw == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d Failed to allocate memory.\n", __func__,__LINE__);
         return webconfig_error_decode;
+    }
+
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: after calloc\n", __func__, __LINE__);
     }
 
     strcpy(data->u.encoded.raw, str);
@@ -185,160 +193,171 @@ bool validate_subdoc_data(webconfig_t *config, webconfig_subdoc_data_t *data)
 }
 
 webconfig_error_t webconfig_set(webconfig_t *config,
-                               webconfig_subdoc_data_t *data)
+		webconfig_subdoc_data_t *data)
 {
-    webconfig_subdoc_t  *doc;
-    webconfig_error_t err = RETURN_OK;
+	webconfig_subdoc_t  *doc;
+	webconfig_error_t err = RETURN_OK;
 
-    wifi_util_error_print(WIFI_WEBCONFIG,
-        "PAVI ENTER webconfig_set config=%p data=%p\n",
-        config, data);
+	wifi_util_error_print(WIFI_WEBCONFIG,
+			"PAVI ENTER webconfig_set config=%p data=%p\n",
+			config, data);
 
-    if (validate_subdoc_data(config, data) == false) {
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "%s:%d: Invalid data .. not parsable\n",
-            __func__, __LINE__);
-        return webconfig_error_invalid_subdoc;
-    }
+	if (validate_subdoc_data(config, data) == false) {
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"%s:%d: Invalid data .. not parsable\n",
+				__func__, __LINE__);
+		return webconfig_error_invalid_subdoc;
+	}
 
-    doc = &config->subdocs[data->type];
+	doc = &config->subdocs[data->type];
 
-    wifi_util_error_print(WIFI_WEBCONFIG,
-        "PAVI doc=%p type=%d name=%s\n",
-        doc, doc->type, doc->name);
+	wifi_util_error_print(WIFI_WEBCONFIG,
+			"PAVI doc=%p type=%d name=%s\n",
+			doc, doc->type, doc->name);
 
-    if (doc->access_check_subdoc(config, data) != webconfig_error_none) {
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "%s:%d: invalid access for subdocument type:%d in entity:%d\n",
-            __func__, __LINE__, doc->type, config->initializer);
-        return webconfig_error_not_permitted;
-    }
+	if (doc->access_check_subdoc(config, data) != webconfig_error_none) {
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"%s:%d: invalid access for subdocument type:%d in entity:%d\n",
+				__func__, __LINE__, doc->type, config->initializer);
+		return webconfig_error_not_permitted;
+	}
 
-    /* STRUCT LAYOUT DEBUG (critical for your issue) */
-    wifi_util_error_print(WIFI_WEBCONFIG,
-        "PAVI BEFORE: data=%p sizeof(*data)=%zu desc=%d raw=%p raw_off=%zu\n",
-        data,
-        sizeof(*data),
-        data->descriptor,
-        data->u.encoded.raw,
-        offsetof(webconfig_subdoc_data_t, u.encoded.raw));
+	/* STRUCT LAYOUT DEBUG (critical for your issue) */
+	wifi_util_error_print(WIFI_WEBCONFIG,
+			"PAVI BEFORE: data=%p sizeof(*data)=%zu desc=%d raw=%p raw_off=%zu\n",
+			data,
+			sizeof(*data),
+			data->descriptor,
+			data->u.encoded.raw,
+			offsetof(webconfig_subdoc_data_t, u.encoded.raw));
 
-    if ((data->descriptor & webconfig_data_descriptor_decoded)
-            == webconfig_data_descriptor_decoded) {
+	if ((data->descriptor & webconfig_data_descriptor_decoded)
+			== webconfig_data_descriptor_decoded) {
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI path=DECODED descriptor=%d\n", data->descriptor);
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI path=DECODED descriptor=%d\n", data->descriptor);
 
-        /* Step 1: translate */
-        err = doc->translate_to_subdoc(config, data);
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument translation failed\n",
-                __func__, __LINE__);
-            goto exit;
-        }
+		/* Step 1: translate */
+		err = doc->translate_to_subdoc(config, data);
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument translation failed\n",
+					__func__, __LINE__);
+			goto exit;
+		}
 
-        /* Step 2: encode */
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI before encode raw=%p\n",
-            data->u.encoded.raw);
+		/* Step 2: encode */
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI before encode raw=%p\n",
+				data->u.encoded.raw);
 
-        err = doc->encode_subdoc(config, data);
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument encode failed\n",
-                __func__, __LINE__);
-            goto exit;
-        }
+		err = doc->encode_subdoc(config, data);
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument encode failed\n",
+					__func__, __LINE__);
+			goto exit;
+		}
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI AFTER encode raw=%p\n",
-            data->u.encoded.raw);
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI AFTER encode raw=%p\n",
+				data->u.encoded.raw);
 
-        /* Step 3: APPLY (important debug point) */
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI BEFORE APPLY data=%p raw=%p desc=%d\n",
-            data,
-            data->u.encoded.raw,
-            data->descriptor);
+		/* Step 3: APPLY (important debug point) */
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI BEFORE APPLY data=%p raw=%p desc=%d\n",
+				data,
+				data->u.encoded.raw,
+				data->descriptor);
 
-        data->descriptor = webconfig_data_descriptor_encoded;
+		data->descriptor = webconfig_data_descriptor_encoded;
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI APPLY CALL data=%p raw=%p desc=%d fn=%p\n",
-            data,
-            data->u.encoded.raw,
-            data->descriptor,
-            config->apply_data);
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI APPLY CALL data=%p raw=%p desc=%d fn=%p\n",
+				data,
+				data->u.encoded.raw,
+				data->descriptor,
+				config->apply_data);
 
-        /* ***** KEY CALL ***** */
-        err = config->apply_data(doc, data);
+		/* ***** KEY CALL ***** */
+		err = config->apply_data(doc, data);
 
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument apply failed\n",
-                __func__, __LINE__);
-            err = webconfig_error_apply;
-            goto exit;
-        }
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument apply failed\n",
+					__func__, __LINE__);
+			err = webconfig_error_apply;
+			goto exit;
+		}
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI AFTER APPLY data=%p raw=%p desc=%d\n",
-            data,
-            data->u.encoded.raw,
-            data->descriptor);
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI AFTER APPLY data=%p raw=%p desc=%d\n",
+				data,
+				data->u.encoded.raw,
+				data->descriptor);
 
-    }
-    else if ((data->descriptor & webconfig_data_descriptor_encoded)
-                == webconfig_data_descriptor_encoded) {
+	}
+	else if ((data->descriptor & webconfig_data_descriptor_encoded)
+			== webconfig_data_descriptor_encoded) {
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI path=ENCODED descriptor=%d\n", data->descriptor);
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI path=ENCODED descriptor=%d\n", data->descriptor);
 
-        err = doc->decode_subdoc(config, data);
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument decode failed\n",
-                __func__, __LINE__);
-            goto exit;
-        }
+		err = doc->decode_subdoc(config, data);
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument decode failed\n",
+					__func__, __LINE__);
+			goto exit;
+		}
 
-        err = doc->translate_from_subdoc(config, data);
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument translation failed\n",
-                __func__, __LINE__);
-            goto exit;
-        }
+		if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+			sleep(10);
+			wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before translate\n", __func__, __LINE__);
+		}
+		err = doc->translate_from_subdoc(config, data);
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument translation failed\n",
+					__func__, __LINE__);
+			goto exit;
+		}
+		if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+			sleep(10);
+			wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d:After translate\n", __func__, __LINE__);
+		}
+		data->descriptor = webconfig_data_descriptor_decoded;
 
-        data->descriptor = webconfig_data_descriptor_decoded;
+		wifi_util_error_print(WIFI_WEBCONFIG,
+				"PAVI APPLY (encoded path) data=%p raw=%p desc=%d\n",
+				data, data->u.encoded.raw, data->descriptor);
 
-        wifi_util_error_print(WIFI_WEBCONFIG,
-            "PAVI APPLY (encoded path) data=%p raw=%p desc=%d\n",
-            data, data->u.encoded.raw, data->descriptor);
-
-        err = config->apply_data(doc, data);
-        if (err != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG,
-                "%s:%d: Subdocument apply failed\n",
-                __func__, __LINE__);
-            err = webconfig_error_apply;
-            goto exit;
-        }
-    }
+		err = config->apply_data(doc, data);
+		if (err != webconfig_error_none) {
+			wifi_util_error_print(WIFI_WEBCONFIG,
+					"%s:%d: Subdocument apply failed\n",
+					__func__, __LINE__);
+			err = webconfig_error_apply;
+			goto exit;
+		}
+		if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+			sleep(10);
+			wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: After apply\n", __func__, __LINE__);
+		}
+	}
 
 exit:
 
-    wifi_util_error_print(WIFI_WEBCONFIG,
-        "PAVI EXIT data=%p final raw=%p desc=%d err=%d\n",
-        data,
-        data->u.encoded.raw,
-        data->descriptor,
-        err);
+	wifi_util_error_print(WIFI_WEBCONFIG,
+			"PAVI EXIT data=%p final raw=%p desc=%d err=%d\n",
+			data,
+			data->u.encoded.raw,
+			data->descriptor,
+			err);
 
-    data->descriptor = 0;
+	data->descriptor = 0;
 
-    return err;
+	return err;
 }
 
 static webconfig_error_t translate_to_proto(webconfig_subdoc_type_t type, webconfig_subdoc_data_t *data)

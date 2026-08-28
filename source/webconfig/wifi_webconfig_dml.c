@@ -346,8 +346,15 @@ webconfig_error_t decode_dml_subdoc(webconfig_t *config, webconfig_subdoc_data_t
     wifi_platform_property_t *wifi_prop;
     int num_vaps;
     char *str;
-
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before cjson print\n", __func__, __LINE__);
+    }
     str = cJSON_Print(json);
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: After cjson print\n", __func__, __LINE__);
+    }
     json_param_obscure(str, "Passphrase");
     json_param_obscure(str, "WpsConfigPin");
     json_param_obscure(str, "RadiusSecret");
@@ -703,5 +710,9 @@ webconfig_error_t decode_dml_subdoc(webconfig_t *config, webconfig_subdoc_data_t
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: decode success\n", __func__, __LINE__);
     cJSON_Delete(json);
 
+    if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
+       sleep(10);
+       wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Decode end\n", __func__, __LINE__);
+    }
     return webconfig_error_none;
 }
