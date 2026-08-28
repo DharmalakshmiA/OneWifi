@@ -19,7 +19,6 @@
  **************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -244,6 +243,7 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
 {
     webconfig_easymesh_data.u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
     webconfig_easymesh_data.descriptor = webconfig_data_descriptor_translate_to_easymesh;
+    wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: Easymesh subdoc length=%zu\n", __func__, __LINE__, str ? strlen(str) : 0);
     if (access("/nvram/em_agent_onewifi", F_OK) != 0) {
        sleep(10);
        wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: Before decode em\n", __func__, __LINE__);
@@ -279,9 +279,6 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
        sleep(10);
        wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: after freeing the decode\n", __func__, __LINE__);
     }
-    /* Return freed arena pages to the OS to keep RSS low after the
-       transient JSON/cJSON decode allocations are released. */
-    malloc_trim(0);
     return webconfig_error_none;
 }
 
