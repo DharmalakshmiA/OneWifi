@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <netinet/in.h>
 #include <ifaddrs.h>  // Include the header file for struct ifaddrs
 #include <netinet/in.h>
@@ -279,6 +280,10 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
        sleep(10);
        wifi_util_error_print(WIFI_WEBCONFIG,"[DL Sleep]%s:%d: after freeing the decode\n", __func__, __LINE__);
     }
+    /* Decoded data lives in a ~3.4MB static (.bss); drop its faulted pages back
+       to the OS now that decode+translate+free are done. Re-zero-faults on the
+       next decode. */
+    madvise(&webconfig_easymesh_data, sizeof(webconfig_easymesh_data), MADV_DONTNEED);
     return webconfig_error_none;
 }
 
