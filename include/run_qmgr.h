@@ -110,7 +110,7 @@ typedef void (*qmgr_report_score_cb_t)(const char *str, double score,double thre
 typedef int (*qmgr_max_snr_cb_t)(int radio_index,int score);
 
 /* Registration function (called from C main) */
-void qmgr_register_batch_callback(qmgr_report_batch_cb_t cb);
+//void qmgr_register_batch_callback(qmgr_report_batch_cb_t cb);
 void qmgr_register_score_callback(qmgr_report_score_cb_t cb);
 void qmgr_register_max_snr_callback(qmgr_max_snr_cb_t cb);
 
