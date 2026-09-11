@@ -48,6 +48,7 @@
 #include "schema_gen.h"
 #include "webconfig_external_proto.h"
 #include "common/ieee802_11_defs.h"
+#include "bus_common.h"
 
 /* subdoc scratch is heap-allocated per call (calloc/free) so its ~3.4MB is
    returned to the OS (munmap, >mmap threshold) after each decode/encode instead
@@ -284,6 +285,38 @@ webconfig_error_t webconfig_easymesh_encode(webconfig_t *config,
         *str = NULL;
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh subdoc alloc failed\n", __func__, __LINE__);
         return webconfig_error_encode;
+    }
+    /* This struct starts fully zeroed, so the per-radio/per-VAP EM translators have no
+       radios[]/num_radios/hal_cap to work with unless we fetch them here. Rather than caching
+       a snapshot from a prior decode, fetch the live DML subdoc via bus GET and decode it
+       (without setting any translate_from_* bit, so only the native fields get populated -
+       no EM translation runs again). */
+    if (data != NULL && data->bus_desc != NULL && data->bus_hdl != NULL) {
+        wifi_bus_desc_t *bus_desc = (wifi_bus_desc_t *)data->bus_desc;
+        bus_handle_t *bus_hdl = (bus_handle_t *)data->bus_hdl;
+        raw_data_t dml_data;
+
+        memset(&dml_data, 0, sizeof(dml_data));
+        if (bus_desc->bus_data_get_fn(bus_hdl, WIFI_WEBCONFIG_INIT_DML_DATA, &dml_data) == bus_error_success) {
+            webconfig_subdoc_data_t *dml_subdoc = calloc(1, sizeof(*dml_subdoc));
+            if (dml_subdoc != NULL) {
+                if (webconfig_decode(config, dml_subdoc, (char *)dml_data.raw_data.bytes) == webconfig_error_none) {
+                    memcpy(webconfig_easymesh_data->u.decoded.radios, dml_subdoc->u.decoded.radios,
+                        sizeof(webconfig_easymesh_data->u.decoded.radios));
+                    webconfig_easymesh_data->u.decoded.num_radios = dml_subdoc->u.decoded.num_radios;
+                    memcpy(&webconfig_easymesh_data->u.decoded.hal_cap, &dml_subdoc->u.decoded.hal_cap,
+                        sizeof(webconfig_easymesh_data->u.decoded.hal_cap));
+                } else {
+                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: DML decode for radios failed\n", __func__, __LINE__);
+                }
+                webconfig_easymesh_free_decoded(dml_subdoc);
+                webconfig_data_free(dml_subdoc);
+                free(dml_subdoc);
+            }
+            free(dml_data.raw_data.bytes);
+        } else {
+            wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: bus get for radios failed\n", __func__, __LINE__);
+        }
     }
     webconfig_easymesh_data->u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
     webconfig_easymesh_data->descriptor = webconfig_data_descriptor_translate_from_easymesh;

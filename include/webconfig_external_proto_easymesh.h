@@ -54,6 +54,13 @@ typedef struct {
 
     void *m2ctrl_radioconfig;
     void *policy_config;
+
+    /* Set by the caller (e.g. refresh_onewifi_subdoc) so webconfig_easymesh_encode() can
+     * fetch the live radios[]/num_radios/hal_cap via bus GET instead of caching state.
+     * Actual types are wifi_bus_desc_t* / bus_handle_t*; kept opaque here to avoid pulling
+     * bus headers into this proto header. NULL when not applicable (e.g. decode-only paths). */
+    void *bus_desc;
+    void *bus_hdl;
     // descriptors to access data model
     ext_proto_get_num_radio_t   get_num_radio;
     ext_proto_set_num_radio_t   set_num_radio;
