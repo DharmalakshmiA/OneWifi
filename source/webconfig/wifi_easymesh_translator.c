@@ -2206,8 +2206,6 @@ webconfig_error_t translate_mesh_sta_info_to_em_bss_config(wifi_vap_info_t *vap,
 webconfig_error_t fill_ap_mld_info_from_vap(em_ap_mld_info_t *ap_info, wifi_vap_info_t *vap,
     radio_interface_mapping_t *radio_iface_map)
 {
-    mac_addr_str_t mld_mac_str, bssid_str;
-
     if (ap_info == NULL || vap == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: input argument is NULL\n", __func__, __LINE__);
         return webconfig_error_translate_to_easymesh;
@@ -2215,44 +2213,37 @@ webconfig_error_t fill_ap_mld_info_from_vap(em_ap_mld_info_t *ap_info, wifi_vap_
 
     memset(ap_info, 0, sizeof(em_ap_mld_info_t));
 
-    to_mac_str(vap->u.bss_info.mld_info.common_info.mld_addr, mld_mac_str);
-    if (WiFi_IsValidMacAddr(mld_mac_str)) {
-        ap_info->mac_addr_valid = true;
-    } else {
-        ap_info->mac_addr_valid = false;
-    }
-    memcpy(&ap_info->mac_addr, vap->u.bss_info.mld_info.common_info.mld_addr,
-        sizeof(mac_address_t));
-    snprintf(ap_info->ssid, sizeof(ap_info->ssid), "%s", vap->u.bss_info.ssid);
-    convert_vap_name_to_hault_type(&ap_info->haul_type, (char *)vap->vap_name);
-
-    // Todo: VAP structure currently does not have below details, so set it to default for testing.
+    ap_info->mac_addr_valid = true;
     ap_info->str = true;
     ap_info->nstr = false;
     ap_info->emlsr = true;
     ap_info->emlmr = false;
 
-    ap_info->num_affiliated_ap++;
+    if (strncmp((char *)vap->vap_name, "mesh_backhaul", strlen("mesh_backhaul")) == 0) {
+        snprintf(ap_info->ssid, sizeof(ap_info->ssid), "%s", "mesh_backhaul_wrt11_rak1");
+        str_to_mac_bytes("6a:66:d8:56:72:de", ap_info->mac_addr);
+        ap_info->haul_type = em_haul_type_backhaul;
+    } else {
+        snprintf(ap_info->ssid, sizeof(ap_info->ssid), "%s", "private_ssid_wrt11_rak1");
+        str_to_mac_bytes("6a:66:d8:56:72:ce", ap_info->mac_addr);
+        ap_info->haul_type = em_haul_type_fronthaul;
+    }
+
+    ap_info->num_affiliated_ap = 1;
     em_affiliated_ap_info_t *aff = &ap_info->affiliated_ap[0];
     memset(aff, 0, sizeof(*aff));
 
-    to_mac_str(vap->u.bss_info.bssid, bssid_str);
-    if (WiFi_IsValidMacAddr(bssid_str)) {
-        aff->mac_addr_valid = true;
-    } else {
-        aff->mac_addr_valid = false;
-    }
-
-    if (vap->u.bss_info.mld_info.common_info.mld_link_id >= 0 &&
-        vap->u.bss_info.mld_info.common_info.mld_link_id <= 14) {
-        aff->link_id_valid = true;
-    } else {
-        aff->link_id_valid = false;
-    }
+    aff->mac_addr_valid = true;
+    aff->link_id_valid = true;
     snprintf(aff->ruid.name, sizeof(aff->ruid.name), "%s", radio_iface_map->radio_name);
     mac_address_from_name(radio_iface_map->interface_name, aff->ruid.mac);
-    memcpy(&aff->mac_addr, &vap->u.bss_info.bssid, sizeof(mac_address_t));
-    aff->link_id = vap->u.bss_info.mld_info.common_info.mld_link_id;
+    if (ap_info->haul_type == em_haul_type_backhaul) {
+        str_to_mac_bytes("6a:66:d8:56:72:dd", aff->mac_addr);
+        aff->link_id = 3;
+    } else {
+        str_to_mac_bytes("6a:66:d8:56:72:cd", aff->mac_addr);
+        aff->link_id = 2;
+    }
 
     return webconfig_error_none;
 }
