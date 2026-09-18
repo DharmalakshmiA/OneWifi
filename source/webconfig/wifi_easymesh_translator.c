@@ -2210,7 +2210,7 @@ webconfig_error_t fill_ap_mld_info_from_vap(em_ap_mld_info_t *ap_info, wifi_vap_
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: input argument is NULL\n", __func__, __LINE__);
         return webconfig_error_translate_to_easymesh;
     }
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Filling AP-MLD details\n", __func__, __LINE__);
     memset(ap_info, 0, sizeof(em_ap_mld_info_t));
 
     ap_info->mac_addr_valid = true;
@@ -2422,19 +2422,20 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
                 // fill_bsta_info_from_vap(&bsta_info, vap, radio_iface_map);
                 // proto->update_bsta_info(proto->data_model, bsta_info);
             } else {
-                if (vap->u.bss_info.mld_info.common_info.mld_enable == true) {
-                    em_ap_mld_info_t ap_info;
-                    ret = fill_ap_mld_info_from_vap(&ap_info, vap, radio_iface_map);
-                    if (ret == webconfig_error_none) {
-                        proto->update_ap_mld_info(proto->data_model, &ap_info);
-                        wifi_util_dbg_print(WIFI_WEBCONFIG,
-                            "%s:%d: AP MLD info updated successfully for vap %s\n", __func__,
-                            __LINE__, vap->vap_name);
-                    }
-                } else {
+                //if (vap->u.bss_info.mld_info.common_info.mld_enable == true);
+		    em_ap_mld_info_t ap_info;
+		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__)
+		    ret = fill_ap_mld_info_from_vap(&ap_info, vap, radio_iface_map);
+		    if (ret == webconfig_error_none) {
+			    proto->update_ap_mld_info(proto->data_model, &ap_info);
+			    wifi_util_dbg_print(WIFI_WEBCONFIG,
+					    "%s:%d: AP MLD info updated successfully for vap %s\n", __func__,
+					    __LINE__, vap->vap_name);
+		    }
+                /*} else {
                     wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: AP MLD is not enabled on vap %s\n",
                         __func__, __LINE__, vap->vap_name);
-                }
+                }*/
             }
         }
     }
@@ -2711,8 +2712,9 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
                 // fill_bsta_info_from_vap(&bsta_info, vap, radio_iface_map);
                 // proto->update_bsta_info(proto->data_model, bsta_info);
             } else {
-                if (vap->u.bss_info.mld_info.common_info.mld_enable == true) {
+               // if (vap->u.bss_info.mld_info.common_info.mld_enable == true) {
                     em_ap_mld_info_t ap_info;
+		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__)
                     ret = fill_ap_mld_info_from_vap(&ap_info, vap, radio_iface_map);
                     if (ret == webconfig_error_none) {
                         proto->update_ap_mld_info(proto->data_model, &ap_info);
@@ -2720,10 +2722,10 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
                             "%s:%d: AP MLD info updated successfully for vap %s\n", __func__,
                             __LINE__, vap->vap_name);
                     }
-                } else {
+               /* } else {
                     wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: AP MLD is not enabled on vap %s\n",
                         __func__, __LINE__, vap->vap_name);
-                }
+                }*/
             }
         }
     }
