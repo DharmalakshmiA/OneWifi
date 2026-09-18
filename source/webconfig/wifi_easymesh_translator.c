@@ -2424,7 +2424,7 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
             } else {
                 //if (vap->u.bss_info.mld_info.common_info.mld_enable == true);
 		    em_ap_mld_info_t ap_info;
-		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__)
+		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__);
 		    ret = fill_ap_mld_info_from_vap(&ap_info, vap, radio_iface_map);
 		    if (ret == webconfig_error_none) {
 			    proto->update_ap_mld_info(proto->data_model, &ap_info);
@@ -2714,7 +2714,7 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
             } else {
                // if (vap->u.bss_info.mld_info.common_info.mld_enable == true) {
                     em_ap_mld_info_t ap_info;
-		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__)
+		    		wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__);
                     ret = fill_ap_mld_info_from_vap(&ap_info, vap, radio_iface_map);
                     if (ret == webconfig_error_none) {
                         proto->update_ap_mld_info(proto->data_model, &ap_info);
