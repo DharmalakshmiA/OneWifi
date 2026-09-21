@@ -2230,19 +2230,19 @@ webconfig_error_t fill_ap_mld_info_from_vap(em_ap_mld_info_t *ap_info, wifi_vap_
     }
 
     ap_info->num_affiliated_ap = 3;
-    const char *affiliated_bssids[3];
+    char affiliated_bssids[3][18];
     unsigned char affiliated_link_ids[3];
     if (ap_info->haul_type == em_haul_type_backhaul) {
-        affiliated_bssids[0] = "6a:66:d8:56:72:dd";
-        affiliated_bssids[1] = "6a:66:d8:56:72:de";
-        affiliated_bssids[2] = "6a:66:d8:56:72:df";
+        snprintf(affiliated_bssids[0], sizeof(affiliated_bssids[0]), "%s", "6a:66:d8:56:72:dd");
+        snprintf(affiliated_bssids[1], sizeof(affiliated_bssids[1]), "%s", "6a:66:d8:56:72:de");
+        snprintf(affiliated_bssids[2], sizeof(affiliated_bssids[2]), "%s", "6a:66:d8:56:72:df");
         affiliated_link_ids[0] = 2;
         affiliated_link_ids[1] = 1;
         affiliated_link_ids[2] = 0;
     } else {
-        affiliated_bssids[0] = "6a:66:d8:56:72:cd";
-        affiliated_bssids[1] = "6a:66:d8:56:72:ce";
-        affiliated_bssids[2] = "6a:66:d8:56:72:cf";
+        snprintf(affiliated_bssids[0], sizeof(affiliated_bssids[0]), "%s", "6a:66:d8:56:72:cd");
+        snprintf(affiliated_bssids[1], sizeof(affiliated_bssids[1]), "%s", "6a:66:d8:56:72:ce");
+        snprintf(affiliated_bssids[2], sizeof(affiliated_bssids[2]), "%s", "6a:66:d8:56:72:cf");
         affiliated_link_ids[0] = 2;
         affiliated_link_ids[1] = 1;
         affiliated_link_ids[2] = 0;
