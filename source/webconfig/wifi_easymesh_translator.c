@@ -2229,21 +2229,47 @@ webconfig_error_t fill_ap_mld_info_from_vap(em_ap_mld_info_t *ap_info, wifi_vap_
         ap_info->haul_type = em_haul_type_fronthaul;
     }
 
-    ap_info->num_affiliated_ap = 1;
-    em_affiliated_ap_info_t *aff = &ap_info->affiliated_ap[0];
-    memset(aff, 0, sizeof(*aff));
-
-    aff->mac_addr_valid = true;
-    aff->link_id_valid = true;
-    snprintf(aff->ruid.name, sizeof(aff->ruid.name), "%s", radio_iface_map->radio_name);
-    mac_address_from_name(radio_iface_map->interface_name, aff->ruid.mac);
+    ap_info->num_affiliated_ap = 3;
+    const char *affiliated_bssids[3];
+    unsigned char affiliated_link_ids[3];
     if (ap_info->haul_type == em_haul_type_backhaul) {
-        str_to_mac_bytes("6a:66:d8:56:72:dd", aff->mac_addr);
-        aff->link_id = 3;
+        affiliated_bssids[0] = "6a:66:d8:56:72:dd";
+        affiliated_bssids[1] = "6a:66:d8:56:72:de";
+        affiliated_bssids[2] = "6a:66:d8:56:72:df";
+        affiliated_link_ids[0] = 2;
+        affiliated_link_ids[1] = 1;
+        affiliated_link_ids[2] = 0;
     } else {
-        str_to_mac_bytes("6a:66:d8:56:72:cd", aff->mac_addr);
-        aff->link_id = 2;
+        affiliated_bssids[0] = "6a:66:d8:56:72:cd";
+        affiliated_bssids[1] = "6a:66:d8:56:72:ce";
+        affiliated_bssids[2] = "6a:66:d8:56:72:cf";
+        affiliated_link_ids[0] = 2;
+        affiliated_link_ids[1] = 1;
+        affiliated_link_ids[2] = 0;
     }
+
+    for (unsigned int i = 0; i < ap_info->num_affiliated_ap; i++) {
+        em_affiliated_ap_info_t *aff = &ap_info->affiliated_ap[i];
+        memset(aff, 0, sizeof(*aff));
+        aff->mac_addr_valid = true;
+        aff->link_id_valid = true;
+        snprintf(aff->ruid.name, sizeof(aff->ruid.name), "%s", radio_iface_map->radio_name);
+        mac_address_from_name(radio_iface_map->interface_name, aff->ruid.mac);
+        str_to_mac_bytes(affiliated_bssids[i], aff->mac_addr);
+        aff->link_id = affiliated_link_ids[i];
+
+        wifi_util_dbg_print(WIFI_WEBCONFIG,
+            "%s:%d: AP MLD affiliated AP[%u] vap=%s bssid=%s link_id=%u ruid=%s\n",
+            __func__, __LINE__, i, vap->vap_name, affiliated_bssids[i],
+            aff->link_id, aff->ruid.name);
+    }
+
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+        "%s:%d: AP MLD vap=%s haul_type=%d ssid=%s mld_mac=%02x:%02x:%02x:%02x:%02x:%02x num_affiliated_ap=%u\n",
+        __func__, __LINE__, vap->vap_name, ap_info->haul_type, ap_info->ssid,
+        ap_info->mac_addr[0], ap_info->mac_addr[1], ap_info->mac_addr[2],
+        ap_info->mac_addr[3], ap_info->mac_addr[4], ap_info->mac_addr[5],
+        ap_info->num_affiliated_ap);
 
     return webconfig_error_none;
 }
@@ -2421,7 +2447,8 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
                 // em_bsta_info_t *bsta_info;
                 // fill_bsta_info_from_vap(&bsta_info, vap, radio_iface_map);
                 // proto->update_bsta_info(proto->data_model, bsta_info);
-            } else {
+                } else if (is_vap_private(wifi_prop, vap->vap_index) == TRUE ||
+                    is_vap_mesh_backhaul(wifi_prop, vap->vap_index) == TRUE) {
                 //if (vap->u.bss_info.mld_info.common_info.mld_enable == true);
 		    em_ap_mld_info_t ap_info;
 		    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__);
@@ -2436,6 +2463,10 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
                     wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: AP MLD is not enabled on vap %s\n",
                         __func__, __LINE__, vap->vap_name);
                 }*/
+            } else {
+                wifi_util_dbg_print(WIFI_WEBCONFIG,
+                    "%s:%d: Skipping AP MLD update for unsupported vap %s\n",
+                    __func__, __LINE__, vap->vap_name);
             }
         }
     }
@@ -2711,7 +2742,8 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
                 // em_bsta_info_t *bsta_info;
                 // fill_bsta_info_from_vap(&bsta_info, vap, radio_iface_map);
                 // proto->update_bsta_info(proto->data_model, bsta_info);
-            } else {
+                } else if (is_vap_private(wifi_prop, vap->vap_index) == TRUE ||
+                    is_vap_mesh_backhaul(wifi_prop, vap->vap_index) == TRUE) {
                // if (vap->u.bss_info.mld_info.common_info.mld_enable == true) {
                     em_ap_mld_info_t ap_info;
 		    		wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: About to fill the ap-mld details\n", __func__, __LINE__);
@@ -2726,6 +2758,10 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
                     wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: AP MLD is not enabled on vap %s\n",
                         __func__, __LINE__, vap->vap_name);
                 }*/
+            } else {
+                wifi_util_dbg_print(WIFI_WEBCONFIG,
+                    "%s:%d: Skipping AP MLD update for unsupported vap %s\n",
+                    __func__, __LINE__, vap->vap_name);
             }
         }
     }
