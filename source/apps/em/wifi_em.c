@@ -735,6 +735,152 @@ int em_assoc_client_response(wifi_app_t *app, wifi_provider_response_t *provider
     return RETURN_OK;
 }
 
+static int wei_assoc_client_data_response(wifi_app_t *app, wifi_provider_response_t *provider_response)
+{
+    // Implementation of the function goes here
+    (void)app;
+    int vap_array_index = 0;
+    int radio_index = provider_response->args.radio_index;
+    int vap_index = provider_response->args.vap_index;
+    wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
+    char vap_name[32];
+    sta_key_t sta_key, mld_sta_key;
+    int channel_utilization;
+
+    wifi_util_info_print(WIFI_EM, "%s:%d: provider_response is for radio index: %d and vap index: %d\n",
+         __func__, __LINE__, radio_index, vap_index);
+
+    if (provider_response->stat_array_size <= 0) {
+        wifi_util_error_print(WIFI_EM, "%s:%d: provider_response is NULL\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    if (convert_vap_index_to_name(&wifi_mgr->hal_cap.wifi_prop, vap_index, vap_name) != RETURN_OK) {
+        wifi_util_error_print(WIFI_EM,
+            "%s:%d: convert_vap_index_to_name failed for vap_index : %d\r\n", __func__, __LINE__,
+            vap_index);
+        return RETURN_ERR;
+    }
+
+    vap_array_index = convert_vap_name_to_array_index(&wifi_mgr->hal_cap.wifi_prop, vap_name);
+    if (vap_array_index == -1) {
+        wifi_util_error_print(WIFI_EM,
+            "%s:%d: convert_vap_name_to_array_index failed for vap_name: %s\r\n", __func__,
+            __LINE__, vap_name);
+        return RETURN_ERR;
+    }
+
+    // em_client_assoc_stats_t assoc_stats = {0};
+
+    sta_data_t *sta_assoc_stats = (sta_data_t *)provider_response->stat_pointer;
+    // memcpy(assoc_stats.client_assoc_data[vap_array_index].assoc_stats,
+    //     provider_response->stat_pointer, (sizeof(sta_data_t) * provider_response->stat_array_size));
+    // assoc_stats.client_assoc_data[vap_array_index].stat_array_size =
+    //     provider_response->stat_array_size;
+    // assoc_stats.assoc_stats_vap_presence_mask |= (1 << vap_index);
+
+    wifi_util_dbg_print(WIFI_EM, "%s:%d: vap_index : %d client array size : %d \r\n", __func__,
+        __LINE__, vap_index, provider_response->stat_array_size);
+
+    wifi_vap_info_t *vap_info = getVapInfo(vap_index);
+    if (vap_info == NULL) {
+        wifi_util_error_print(WIFI_EM, "%s:%d: getVapInfo failed for vap_index : %d\r\n",
+            __func__, __LINE__, vap_index);
+        return RETURN_ERR;
+    }
+
+    for (unsigned int count = 0; count < provider_response->stat_array_size; count++) {
+        stats_arg_t wei_data = {0};
+        sta_data_t *sta_data = &sta_assoc_stats[count];
+
+        wifi_util_dbg_print(WIFI_EM, "%s:%d: sta_data's cli assoc status for a mlo client: 0x%x cli_Active %d\n", __func__, __LINE__, sta_data->assoc_link, sta_data->dev_stats.cli_Active);
+
+        if (sta_data->dev_stats.cli_Active == false) {
+            wifi_util_dbg_print(WIFI_EM, "%s:%d: STA is not associated\n", __func__, __LINE__);
+            continue;
+        }
+
+        wifi_util_dbg_print(WIFI_EM, "cli_MACAddress: %s\ncli_MLDAddr: %s\ncli_MLDEnable: %d\n"
+            "cli_LastDataDownlinkRate: %d\ncli_LastDataUplinkRate: %d\n"
+            "cli_PacketsSent: %lu\ncli_PacketsReceived: %lu\ncli_RxRetries: %lu\n"
+            "cli_RetransCount: %lu\n"
+            "cli_SNR: %d\n cli_MaxUplinkRate: %d\n", 
+            to_sta_key(sta_data->dev_stats.cli_MACAddress, sta_key),
+            to_sta_key(sta_data->dev_stats.cli_MLDAddr, mld_sta_key), sta_data->dev_stats.cli_MLDEnable,
+            sta_data->dev_stats.cli_LastDataDownlinkRate,
+            sta_data->dev_stats.cli_LastDataUplinkRate,  sta_data->dev_stats.cli_PacketsSent,
+            sta_data->dev_stats.cli_PacketsReceived,
+            sta_data->dev_stats.cli_RxRetries, sta_data->dev_stats.cli_RetransCount,
+            sta_data->dev_stats.cli_SNR, sta_data->dev_stats.cli_MaxUplinkRate);
+
+        // send to agent
+        get_radio_channel_utilization(radio_index, &channel_utilization);
+        wifi_util_dbg_print(WIFI_EM, "Channel utilization: %d\n", channel_utilization);
+
+        mac_addr_str_t mac_str;
+        to_mac_str(sta_data->sta_mac, mac_str);
+        memcpy(wei_data.mac_str, mac_str, sizeof(mac_addr_str_t));
+        // to_mac_str(sta_data->bssid, mac_str);
+        // memcpy(wei_data.ap_mac_str, mac_str, sizeof(mac_addr_str_t));
+        wei_data.vap_index = vap_array_index;
+        wei_data.radio_index = radio_index;
+        wei_data.channel_utilization = channel_utilization;
+        wei_data.dev.cli_PacketsSent = sta_data->dev_stats.cli_PacketsSent;
+        wei_data.dev.cli_PacketsReceived = sta_data->dev_stats.cli_PacketsReceived;
+        wei_data.dev.cli_RetransCount = sta_data->dev_stats.cli_RetransCount;
+        wei_data.dev.cli_RxRetries = sta_data->dev_stats.cli_RxRetries;
+        wei_data.dev.cli_SNR = sta_data->dev_stats.cli_SNR;
+        wei_data.dev.cli_MaxDownlinkRate = sta_data->dev_stats.cli_MaxDownlinkRate;//
+        wei_data.dev.cli_MaxUplinkRate = sta_data->dev_stats.cli_MaxUplinkRate;
+        wei_data.dev.cli_LastDataDownlinkRate = sta_data->dev_stats.cli_LastDataDownlinkRate;
+        wei_data.dev.cli_LastDataUplinkRate = sta_data->dev_stats.cli_LastDataUplinkRate;
+        // wei_data.dev.cli_PowerSaveMode = sta_data->dev_stats.cli_PowerSaveMode;
+        wei_data.total_connected_time = sta_data->total_connected_time;
+        wei_data.total_disconnected_time = sta_data->total_disconnected_time;
+
+        wifi_util_dbg_print(WIFI_EM, "cli_MaxDownlinkRate: %llu\n", (unsigned long long)wei_data.dev.cli_MaxDownlinkRate);
+        wifi_util_dbg_print(WIFI_EM, "total_connected_time: %llds\n", (long long)wei_data.total_connected_time.tv_sec);
+        wifi_util_dbg_print(WIFI_EM, "total_disconnected_time: %llds\n", (long long)wei_data.total_disconnected_time.tv_sec);
+
+        // Publish the whole stats_arg_t
+        wifi_ctrl_t *wifi_ctrl = get_wifictrl_obj();
+        wifi_bus_desc_t *bus_desc = get_bus_descriptor();
+
+        if (wifi_ctrl && bus_desc && bus_desc->bus_event_publish_fn) {
+            raw_data_t rdata = {0};
+            rdata.data_type = bus_data_type_bytes;
+            rdata.raw_data.bytes = (uint8_t *)&wei_data;
+            rdata.raw_data_len = sizeof(stats_arg_t);
+
+            bus_error_t pub_ret = bus_desc->bus_event_publish_fn(&wifi_ctrl->handle, WIFI_EM_WEI_DATA, &rdata);
+
+            if (pub_ret == bus_error_success) {
+                // Log successful publication with STA MAC, Radio, and VAP context
+                wifi_util_info_print(WIFI_EM, 
+                    "[WEI_DATA] SUCCESS: Published metrics to agent on [%s] | STA: %02x:%02x:%02x:%02x:%02x:%02x | Radio: %d | VAP: %d | ChUtil: %d%%\n",
+                    WIFI_EM_WEI_DATA,
+                    wei_data.mac_str[0], wei_data.mac_str[1], wei_data.mac_str[2],
+                    wei_data.mac_str[3], wei_data.mac_str[4], wei_data.mac_str[5],
+                    wei_data.radio_index, wei_data.vap_index, wei_data.channel_utilization);
+            } else {
+                // Log explicit publish failure return code from RBus
+                wifi_util_error_print(WIFI_EM, 
+                    "[WEI_DATA] ERROR: bus_event_publish_fn failed on [%s] with status code: %d\n",
+                    WIFI_EM_WEI_DATA, pub_ret);
+            }
+        } else {
+            wifi_util_error_print(WIFI_EM, 
+                "[WEI_DATA] ERROR: Publish skipped! ctrl: %p, bus_desc: %p\n",
+                wifi_ctrl, bus_desc);
+        }
+    }
+    
+    //remove
+    // assoc_stats.assoc_stats_vap_presence_mask = 0;
+
+    return RETURN_OK;
+}
+
 static void config_em_neighbour_scan(wifi_monitor_data_t *data, unsigned int radioIndex)
 {
     wifi_event_route_t route;
