@@ -54,6 +54,10 @@ typedef struct {
 
     void *m2ctrl_radioconfig;
     void *policy_config;
+
+    void *bus_desc;
+    void *bus_hdl;
+
     // descriptors to access data model
     ext_proto_get_num_radio_t   get_num_radio;
     ext_proto_set_num_radio_t   set_num_radio;

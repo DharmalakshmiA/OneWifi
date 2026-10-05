@@ -238,16 +238,24 @@ static void webconfig_easymesh_free_decoded(webconfig_subdoc_data_t *data)
 }
 
 static webconfig_error_t webconfig_easymesh_load_dml_state(webconfig_t *config,
-    webconfig_subdoc_data_t *data)
+    webconfig_subdoc_data_t *data, const webconfig_external_easymesh_t *proto)
 {
-    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    wifi_bus_desc_t *bus_desc = get_bus_descriptor();
+    wifi_bus_desc_t *bus_desc;
+    bus_handle_t *bus_hdl;
     raw_data_t dml_data;
     webconfig_subdoc_data_t *dml_subdoc = NULL;
     bus_error_t bus_status;
 
-    if (config == NULL || data == NULL || ctrl == NULL || bus_desc == NULL ||
-        bus_desc->bus_data_get_fn == NULL || bus_desc->bus_data_free_fn == NULL) {
+    if (config == NULL || data == NULL || proto == NULL || proto->bus_desc == NULL ||
+        proto->bus_hdl == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Invalid DML bus context\n",
+            __func__, __LINE__);
+        return webconfig_error_decode;
+    }
+
+    bus_desc = (wifi_bus_desc_t *)proto->bus_desc;
+    bus_hdl = (bus_handle_t *)proto->bus_hdl;
+    if (bus_desc->bus_data_get_fn == NULL || bus_desc->bus_data_free_fn == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Invalid DML state context\n",
             __func__, __LINE__);
         return webconfig_error_decode;
@@ -256,7 +264,7 @@ static webconfig_error_t webconfig_easymesh_load_dml_state(webconfig_t *config,
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Requesting DML state for data=%p\n",
         __func__, __LINE__, data);
     memset(&dml_data, 0, sizeof(dml_data));
-    bus_status = bus_desc->bus_data_get_fn(&ctrl->handle, WIFI_WEBCONFIG_GET_DML_DATA,
+    bus_status = bus_desc->bus_data_get_fn(bus_hdl, WIFI_WEBCONFIG_GET_DML_DATA,
         &dml_data);
     if (bus_status != bus_error_success || dml_data.data_type != bus_data_type_string ||
         dml_data.raw_data.bytes == NULL) {
@@ -320,7 +328,7 @@ webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str
         return webconfig_error_decode;
     }
 
-    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data) !=
+    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data, data) !=
         webconfig_error_none) {
         free(webconfig_easymesh_data);
         return webconfig_error_decode;
@@ -369,7 +377,7 @@ webconfig_error_t webconfig_easymesh_encode(webconfig_t *config,
     wifi_util_info_print(WIFI_WEBCONFIG,
         "%s:%d: Loading DML state before EasyMesh encode translation\n",
         __func__, __LINE__);
-    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data) !=
+    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data, data) !=
         webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG,
             "%s:%d: Failed to load DML state for EasyMesh encode\n",
