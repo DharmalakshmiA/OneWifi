@@ -47,10 +47,9 @@
 #include "schema.h"
 #include "schema_gen.h"
 #include "webconfig_external_proto.h"
+#include "bus_common.h"
 #include "common/ieee802_11_defs.h"
 
-// static member to store the subdoc
-static webconfig_subdoc_data_t  webconfig_easymesh_data;
 /* global pointer to webconfig subdoc encoded data to avoid memory loss when passing data to  */
 static char *webconfig_easymesh_raw_data_ptr = NULL;
 
@@ -238,27 +237,119 @@ static void webconfig_easymesh_free_decoded(webconfig_subdoc_data_t *data)
     webconfig_easymesh_free_assoc_maps(data);
 }
 
+static webconfig_error_t webconfig_easymesh_load_dml_state(webconfig_t *config,
+    webconfig_subdoc_data_t *data)
+{
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_bus_desc_t *bus_desc = get_bus_descriptor();
+    raw_data_t dml_data;
+    webconfig_subdoc_data_t *dml_subdoc = NULL;
+    bus_error_t bus_status;
+
+    if (config == NULL || data == NULL || ctrl == NULL || bus_desc == NULL ||
+        bus_desc->bus_data_get_fn == NULL || bus_desc->bus_data_free_fn == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Invalid DML state context\n",
+            __func__, __LINE__);
+        return webconfig_error_decode;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Requesting DML state for data=%p\n",
+        __func__, __LINE__, data);
+    memset(&dml_data, 0, sizeof(dml_data));
+    bus_status = bus_desc->bus_data_get_fn(&ctrl->handle, WIFI_WEBCONFIG_GET_DML_DATA,
+        &dml_data);
+    if (bus_status != bus_error_success || dml_data.data_type != bus_data_type_string ||
+        dml_data.raw_data.bytes == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "%s:%d: DML bus GET failed status=%d type=%d bytes=%p\n",
+            __func__, __LINE__, bus_status, dml_data.data_type, dml_data.raw_data.bytes);
+        if (dml_data.raw_data.bytes != NULL) {
+            bus_desc->bus_data_free_fn(&dml_data);
+        }
+        return webconfig_error_decode;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: DML state received length=%u\n",
+        __func__, __LINE__, dml_data.raw_data_len);
+    dml_subdoc = calloc(1, sizeof(*dml_subdoc));
+    if (dml_subdoc == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: DML decode allocation failed\n",
+            __func__, __LINE__);
+        bus_desc->bus_data_free_fn(&dml_data);
+        return webconfig_error_decode;
+    }
+
+    if (webconfig_decode(config, dml_subdoc, (char *)dml_data.raw_data.bytes) !=
+        webconfig_error_none) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: DML state decode failed\n",
+            __func__, __LINE__);
+        /* webconfig_decode releases framework-owned decoded allocations on error. */
+        free(dml_subdoc);
+        bus_desc->bus_data_free_fn(&dml_data);
+        return webconfig_error_decode;
+    }
+
+    memcpy(data->u.decoded.radios, dml_subdoc->u.decoded.radios,
+        sizeof(data->u.decoded.radios));
+    data->u.decoded.num_radios = dml_subdoc->u.decoded.num_radios;
+    memcpy(&data->u.decoded.hal_cap, &dml_subdoc->u.decoded.hal_cap,
+        sizeof(data->u.decoded.hal_cap));
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d: DML state loaded radios=%u into data=%p\n",
+        __func__, __LINE__, data->u.decoded.num_radios, data);
+
+    webconfig_data_free(dml_subdoc);
+    free(dml_subdoc);
+    bus_desc->bus_data_free_fn(&dml_data);
+    return webconfig_error_none;
+}
+
 // webconfig_easymesh_decode() will convert the onewifi structures to easymesh structures
 webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str,
         webconfig_external_easymesh_t *data,
         webconfig_subdoc_type_t *type)
 {
-    webconfig_easymesh_data.u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
-    webconfig_easymesh_data.descriptor = webconfig_data_descriptor_translate_to_easymesh;
+    webconfig_subdoc_data_t *webconfig_easymesh_data = calloc(1, sizeof(*webconfig_easymesh_data));
 
-    if (webconfig_decode(config, &webconfig_easymesh_data, str) != webconfig_error_none) {
-        //        *data = NULL;
-        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode failed\n", __func__, __LINE__);
-        webconfig_easymesh_free_decoded(&webconfig_easymesh_data);
-        /* note: webconfig_data_free is called internally by webconfig_decode on error */
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Start EasyMesh decode input=%p\n",
+        __func__, __LINE__, str);
+    if (webconfig_easymesh_data == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: EasyMesh decode allocation failed\n",
+            __func__, __LINE__);
+        free(webconfig_easymesh_data);
         return webconfig_error_decode;
     }
 
-    wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode subdoc type %d sucessfully\n", __func__, __LINE__, webconfig_easymesh_data.type);
-    *type = webconfig_easymesh_data.type;
+    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data) !=
+        webconfig_error_none) {
+        free(webconfig_easymesh_data);
+        return webconfig_error_decode;
+    }
+
+    webconfig_easymesh_data->u.decoded.external_protos = data;
+    webconfig_easymesh_data->descriptor = webconfig_data_descriptor_translate_to_easymesh;
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d: Decoding EasyMesh payload with radios=%u descriptor=%d\n",
+        __func__, __LINE__, webconfig_easymesh_data->u.decoded.num_radios,
+        webconfig_easymesh_data->descriptor);
+
+    if (webconfig_decode(config, webconfig_easymesh_data, str) != webconfig_error_none) {
+        //        *data = NULL;
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode failed\n", __func__, __LINE__);
+        webconfig_easymesh_free_decoded(webconfig_easymesh_data);
+        /* note: webconfig_data_free is called internally by webconfig_decode on error */
+        free(webconfig_easymesh_data);
+        return webconfig_error_decode;
+    }
+
+    wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: Easymesh decode subdoc type %d sucessfully\n", __func__, __LINE__, webconfig_easymesh_data->type);
+    *type = webconfig_easymesh_data->type;
     //debug_external_protos(&webconfig_easymesh_data, __func__, __LINE__);
-    webconfig_easymesh_free_decoded(&webconfig_easymesh_data);
-    webconfig_data_free(&webconfig_easymesh_data);
+    webconfig_easymesh_free_decoded(webconfig_easymesh_data);
+    webconfig_data_free(webconfig_easymesh_data);
+    free(webconfig_easymesh_data);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: EasyMesh decode complete\n",
+        __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -270,13 +361,35 @@ webconfig_error_t webconfig_easymesh_encode(webconfig_t *config,
 {
     wifi_util_info_print(WIFI_WEBCONFIG,"%s:%d: Easymesh encode subdoc type %d\n", __func__, __LINE__, type);
 
-    webconfig_easymesh_data.u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
-    webconfig_easymesh_data.descriptor = webconfig_data_descriptor_translate_from_easymesh;
+    webconfig_subdoc_data_t *webconfig_easymesh_data = calloc(1, sizeof(*webconfig_easymesh_data));
+    if (webconfig_easymesh_data == NULL) {
+        *str = NULL;
+        return webconfig_error_encode;
+    }
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d: Loading DML state before EasyMesh encode translation\n",
+        __func__, __LINE__);
+    if (webconfig_easymesh_load_dml_state(config, webconfig_easymesh_data) !=
+        webconfig_error_none) {
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "%s:%d: Failed to load DML state for EasyMesh encode\n",
+            __func__, __LINE__);
+        *str = NULL;
+        free(webconfig_easymesh_data);
+        return webconfig_error_encode;
+    }
+    webconfig_easymesh_data->u.decoded.external_protos = (webconfig_external_easymesh_t *)data;
+    webconfig_easymesh_data->descriptor = webconfig_data_descriptor_translate_from_easymesh;
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d: Calling webconfig_encode type=%d radios=%u descriptor=%d\n",
+        __func__, __LINE__, type, webconfig_easymesh_data->u.decoded.num_radios,
+        webconfig_easymesh_data->descriptor);
     // debug_external_protos(&webconfig_ovsdb_data, __func__, __LINE__);
 
-    if (webconfig_encode(config, &webconfig_easymesh_data, type) != webconfig_error_none) {
+    if (webconfig_encode(config, webconfig_easymesh_data, type) != webconfig_error_none) {
         *str = NULL;
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Easymesh encode failed\n", __func__, __LINE__);
+        free(webconfig_easymesh_data);
         return webconfig_error_encode;
     }
 
@@ -284,9 +397,12 @@ webconfig_error_t webconfig_easymesh_encode(webconfig_t *config,
         free(webconfig_easymesh_raw_data_ptr);
         webconfig_easymesh_raw_data_ptr = NULL;
     }
-    webconfig_easymesh_raw_data_ptr = webconfig_easymesh_data.u.encoded.raw;
+    webconfig_easymesh_raw_data_ptr = webconfig_easymesh_data->u.encoded.raw;
 
     *str = webconfig_easymesh_raw_data_ptr;
+    free(webconfig_easymesh_data);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: EasyMesh encode complete raw=%p\n",
+        __func__, __LINE__, (void *)*str);
     return webconfig_error_none;
 }
 // sets the default values in em_bss_info_t Easymesh structure
@@ -3880,7 +3996,10 @@ webconfig_error_t  translate_to_easymesh_tables(webconfig_subdoc_type_t type, we
         return webconfig_error_invalid_subdoc;
     }
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: subdoc_type:%d\n", __func__, __LINE__, type);
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d: Begin EasyMesh translation type=%d data=%p radios=%u hal_radios=%u\n",
+        __func__, __LINE__, type, data, data->u.decoded.num_radios,
+        data->u.decoded.hal_cap.wifi_prop.numRadios);
     switch (type) {
         case webconfig_subdoc_type_private:
             if (translate_vap_object_to_easymesh_bss_info(data, "private_ssid") != webconfig_error_none) {

@@ -1215,6 +1215,49 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data, bus_u
     return bus_error_success;
 }
 
+bus_error_t webconfig_get_dml_data(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    (void)event_name;
+    (void)user_data;
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    webconfig_subdoc_data_t *data = NULL;
+    bus_error_t status = bus_error_general;
+    uint32_t str_size;
+
+    if (ctrl == NULL || p_data == NULL) {
+        return bus_error_invalid_input;
+    }
+
+    data = calloc(1, sizeof(*data));
+    if (data == NULL) {
+        return bus_error_out_of_resources;
+    }
+
+    webconfig_init_subdoc_data(data);
+    if (encode_dml_subdoc(&ctrl->webconfig, data) != webconfig_error_none ||
+        data->u.encoded.raw == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d direct DML encode failed\n", __func__, __LINE__);
+        goto done;
+    }
+
+    str_size = (uint32_t)strlen(data->u.encoded.raw) + 1;
+    p_data->raw_data.bytes = malloc(str_size);
+    if (p_data->raw_data.bytes == NULL) {
+        status = bus_error_out_of_resources;
+        goto done;
+    }
+
+    memcpy(p_data->raw_data.bytes, data->u.encoded.raw, str_size);
+    p_data->data_type = bus_data_type_string;
+    p_data->raw_data_len = str_size;
+    status = bus_error_success;
+
+done:
+    webconfig_data_free(data);
+    free(data);
+    return status;
+}
+
 bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     (void)user_data;
@@ -4817,6 +4860,9 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
                                 { WIFI_WEBCONFIG_INIT_DML_DATA, bus_element_type_method,
                                     { webconfig_get_dml_subdoc, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+                                    { bus_data_type_string, false, 0, 0, 0, NULL } },
+                                { WIFI_WEBCONFIG_GET_DML_DATA, bus_element_type_method,
+                                    { webconfig_get_dml_data, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_string, false, 0, 0, 0, NULL } },
                                 { WIFI_WEBCONFIG_GET_ASSOC, bus_element_type_method,
                                     { get_assoc_clients_data, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
