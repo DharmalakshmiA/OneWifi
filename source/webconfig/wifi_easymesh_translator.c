@@ -244,18 +244,31 @@ static webconfig_error_t webconfig_easymesh_load_dml_state(webconfig_t *config,
     webconfig_subdoc_data_t *dml_subdoc = NULL;
     bus_error_t bus_status;
 
+    wifi_util_dbg_print(WIFI_WEBCONFIG,
+        "%s:%d: DML context config=%p data=%p proto=%p data_model=%p bus_desc=%p bus_hdl=%p\n",
+        __func__, __LINE__, (void *)config, (void *)data, (void *)proto,
+        proto != NULL ? proto->data_model : NULL,
+        proto != NULL ? proto->bus_desc : NULL,
+        proto != NULL ? proto->bus_hdl : NULL);
     if (config == NULL || data == NULL || proto == NULL || proto->bus_desc == NULL ||
         proto->bus_hdl == NULL) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Invalid DML bus context\n",
-            __func__, __LINE__);
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "%s:%d: Invalid DML bus context config=%p data=%p proto=%p data_model=%p bus_desc=%p bus_hdl=%p\n",
+            __func__, __LINE__, (void *)config, (void *)data, (void *)proto,
+            proto != NULL ? proto->data_model : NULL,
+            proto != NULL ? proto->bus_desc : NULL,
+            proto != NULL ? proto->bus_hdl : NULL);
         return webconfig_error_decode;
     }
 
     bus_desc = (wifi_bus_desc_t *)proto->bus_desc;
     bus_hdl = (bus_handle_t *)proto->bus_hdl;
+    
     if (bus_desc->bus_data_get_fn == NULL || bus_desc->bus_data_free_fn == NULL) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Invalid DML state context\n",
-            __func__, __LINE__);
+        wifi_util_error_print(WIFI_WEBCONFIG,
+            "%s:%d: Invalid DML state context desc=%p hdl=%p get=%p free=%p\n",
+            __func__, __LINE__, (void *)bus_desc, (void *)bus_hdl,
+            (void *)bus_desc->bus_data_get_fn, (void *)bus_desc->bus_data_free_fn);
         return webconfig_error_decode;
     }
 
