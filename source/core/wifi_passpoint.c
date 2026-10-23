@@ -845,7 +845,7 @@ INT WiFi_SetANQPConfig(uint8_t vapIndex, char *JSON_STR)
         apIns = 0;
     }
 
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);//ONE_WIFI
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);//ONE_WIFI
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -928,7 +928,7 @@ INT WiFi_SaveANQPCfg(uint8_t vapIndex)
     char *buffer = NULL;
     int len = 0;
 
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(vapIndex - 1);//ONE_WIFI
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(vapIndex - 1);//ONE_WIFI
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, vapIndex);
@@ -1026,7 +1026,7 @@ INT CosaDmlWiFi_InitANQPConfig(PCOSA_DML_WIFI_AP_CFG pCfg_t)
 void WiFi_UpdateANQPVenueInfo(uint8_t vapIndex)
 {
     int apIns = vapIndex - 1;
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1055,7 +1055,7 @@ INT WiFi_SetHS2Config(uint8_t vapIndex, char *JSON_STR)
         wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index. Setting to 1\n", __func__, __LINE__);
         apIns = 0;
     }
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1143,7 +1143,7 @@ INT WiFi_SetHS2Status(uint8_t vapIndex, BOOL bValue, BOOL setToPSM)
         wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index. Return\n", __func__, __LINE__);
         return RETURN_ERR;
     }
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns - 1);//ONE_WIFI
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns - 1);//ONE_WIFI
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1181,7 +1181,7 @@ INT WiFi_SaveHS2Cfg(uint8_t vapIndex)
     int len = 0;
 
     apIns = vapIndex;
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns - 1);//ONE_WIFI
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns - 1);//ONE_WIFI
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1238,7 +1238,7 @@ INT WiFi_GetWANMetrics(uint8_t vapIndex, char *WANMetrics, UINT WANMetrics_lengt
         apIns = 0;
     }
 
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1287,7 +1287,7 @@ void WiFi_GetHS2Stats(uint8_t vapIndex)
         wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index.\n", __func__, __LINE__);
         return;
     }
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);//ONE_WIFI
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);//ONE_WIFI
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1350,7 +1350,7 @@ INT WiFi_SaveInterworkingWebconfig( wifi_interworking_t *interworking_data, int 
         return RETURN_ERR;
     }//ONE_WIFI
     
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(apIns);
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
@@ -1398,7 +1398,7 @@ Description : Populates the vAP object pCfg with default values for
 
 INT WiFi_DefaultInterworkingConfig(uint8_t vapIndex)
 {      	
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(vapIndex);
+    wifi_InterworkingElement_t *pCfg = Get_wifi_object_interworking_element(vapIndex);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, vapIndex);
@@ -1406,27 +1406,27 @@ INT WiFi_DefaultInterworkingConfig(uint8_t vapIndex)
     }
     UINT InstanceNumber = vapIndex;
 
-    pCfg->interworking.interworkingEnabled = 0;
-    pCfg->interworking.asra = 0;
-    pCfg->interworking.esr = 0;
-    pCfg->interworking.uesa = 0;
-    pCfg->interworking.hessOptionPresent = 1;
+    pCfg->interworkingEnabled = 0;
+    pCfg->asra = 0;
+    pCfg->esr = 0;
+    pCfg->uesa = 0;
+    pCfg->hessOptionPresent = 1;
     if((InstanceNumber == 1) || (InstanceNumber == 2))
     {
-        pCfg->interworking.internetAvailable = 1;
+        pCfg->internetAvailable = 1;
     }
-    strcpy(pCfg->interworking.hessid,"11:22:33:44:55:66");
+    strcpy(pCfg->hessid,"11:22:33:44:55:66");
 
     if ( (InstanceNumber == 5) || (InstanceNumber == 6) || (InstanceNumber == 9) || (InstanceNumber == 10) )	//Xfinity hotspot vaps
     {
-         pCfg->interworking.accessNetworkType = 2;
+         pCfg->accessNetworkType = 2;
     } else {
-         pCfg->interworking.accessNetworkType = 0;
+         pCfg->accessNetworkType = 0;
     }//ONE_WIFI
 
-    pCfg->interworking.venueOptionPresent = 1;
-    pCfg->interworking.venueGroup = 0;
-    pCfg->interworking.venueType = 0;//ONE_WIFI
+    pCfg->venueOptionPresent = 1;
+    pCfg->venueGroup = 0;
+    pCfg->venueType = 0;//ONE_WIFI
     return RETURN_OK;
 }
 
@@ -1440,7 +1440,7 @@ Description : Check for Saved Configuration.
 INT WiFi_InitInterworkingElement (uint8_t vapIndex)
 {
 #if defined (FEATURE_SUPPORT_PASSPOINT)
-    wifi_interworking_t *pCfg = Get_wifi_object_interworking_parameter(vapIndex);
+    wifi_InterworkingElement_t *pCfg = Get_wifi_object_interworking_element(vapIndex);
     if(pCfg == NULL)
     {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, vapIndex);
@@ -1457,17 +1457,17 @@ INT WiFi_InitInterworkingElement (uint8_t vapIndex)
         return WiFi_DefaultInterworkingConfig(vapIndex);//ONE_WIFI
     }
     
-    pCfg->interworking.interworkingEnabled = elem.interworking.interworkingEnabled;
-    pCfg->interworking.accessNetworkType = elem.interworking.accessNetworkType;
-    pCfg->interworking.internetAvailable = elem.interworking.internetAvailable;
-    pCfg->interworking.asra = elem.interworking.asra;
-    pCfg->interworking.esr = elem.interworking.esr;
-    pCfg->interworking.uesa = elem.interworking.uesa;
-    pCfg->interworking.venueOptionPresent = elem.interworking.venueOptionPresent;
-    pCfg->interworking.venueGroup = elem.interworking.venueGroup;
-    pCfg->interworking.venueType = elem.interworking.venueType;
-    pCfg->interworking.hessOptionPresent = elem.interworking.hessOptionPresent;
-    strcpy(pCfg->interworking.hessid,elem.interworking.hessid);//ONE_WIFI
+    pCfg->interworkingEnabled = elem.interworking.interworkingEnabled;
+    pCfg->accessNetworkType = elem.interworking.accessNetworkType;
+    pCfg->internetAvailable = elem.interworking.internetAvailable;
+    pCfg->asra = elem.interworking.asra;
+    pCfg->esr = elem.interworking.esr;
+    pCfg->uesa = elem.interworking.uesa;
+    pCfg->venueOptionPresent = elem.interworking.venueOptionPresent;
+    pCfg->venueGroup = elem.interworking.venueGroup;
+    pCfg->venueType = elem.interworking.venueType;
+    pCfg->hessOptionPresent = elem.interworking.hessOptionPresent;
+    strcpy(pCfg->hessid,elem.interworking.hessid);//ONE_WIFI
 
 #else
     char cfgFile[64];

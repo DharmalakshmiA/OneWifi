@@ -961,7 +961,7 @@ void callback_Wifi_Interworking_Config(ovsdb_update_monitor_t *mon,
     int vap_index = 0;
     wifi_mgr_t *g_wifidb;
     g_wifidb = get_wifimgr_obj();
-    wifi_interworking_t *l_interworking_cfg = NULL;
+    wifi_InterworkingElement_t *l_interworking_cfg = NULL;
 
     wifi_util_dbg_print(WIFI_DB,"%s:%d\n", __func__, __LINE__);
 
@@ -991,13 +991,13 @@ void callback_Wifi_Interworking_Config(ovsdb_update_monitor_t *mon,
             return;
         }
 
-        l_interworking_cfg = Get_wifi_object_interworking_parameter(vap_index);
+        l_interworking_cfg = Get_wifi_object_interworking_element(vap_index);
         if(l_interworking_cfg == NULL)
         {
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid Get_wifi_object_interworking_parameter \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
-        wifidb_init_interworking_config_default(vap_index,l_interworking_cfg->interworking);
+        wifidb_init_interworking_config_default(vap_index,l_interworking_cfg);
     }
     else if ((mon->mon_type == OVSDB_UPDATE_NEW) || (mon->mon_type == OVSDB_UPDATE_MODIFY))
     {
@@ -1015,25 +1015,25 @@ void callback_Wifi_Interworking_Config(ovsdb_update_monitor_t *mon,
             return;
         }
 
-        l_interworking_cfg = Get_wifi_object_interworking_parameter(i);
+        l_interworking_cfg = Get_wifi_object_interworking_element(i);
         if(l_interworking_cfg == NULL)
         {
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid Get_wifi_object_interworking_parameter \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
         pthread_mutex_lock(&g_wifidb->data_cache_lock);
-        l_interworking_cfg->interworking.interworkingEnabled = new_rec->enable;
-        l_interworking_cfg->interworking.accessNetworkType = new_rec->access_network_type;
-        l_interworking_cfg->interworking.internetAvailable = new_rec->internet;
-        l_interworking_cfg->interworking.asra = new_rec->asra;
-        l_interworking_cfg->interworking.esr = new_rec->esr;
-        l_interworking_cfg->interworking.uesa = new_rec->uesa;
-        l_interworking_cfg->interworking.hessOptionPresent = new_rec->hess_option_present;
+        l_interworking_cfg->interworkingEnabled = new_rec->enable;
+        l_interworking_cfg->accessNetworkType = new_rec->access_network_type;
+        l_interworking_cfg->internetAvailable = new_rec->internet;
+        l_interworking_cfg->asra = new_rec->asra;
+        l_interworking_cfg->esr = new_rec->esr;
+        l_interworking_cfg->uesa = new_rec->uesa;
+        l_interworking_cfg->hessOptionPresent = new_rec->hess_option_present;
         if (strlen(new_rec->hessid) != 0) {
-            strncpy(l_interworking_cfg->interworking.hessid, new_rec->hessid, sizeof(l_interworking_cfg->interworking.hessid)-1);
+            strncpy(l_interworking_cfg->hessid, new_rec->hessid, sizeof(l_interworking_cfg->hessid)-1);
         }
-        l_interworking_cfg->interworking.venueGroup = new_rec->venue_group;
-        l_interworking_cfg->interworking.venueType = new_rec->venue_type;
+        l_interworking_cfg->venueGroup = new_rec->venue_group;
+        l_interworking_cfg->venueType = new_rec->venue_type;
         wifi_util_dbg_print(WIFI_DB,"%s:%d: Update Wifi_Interworking_Config table vap_name=%s Enable=%d access_network_type=%d internet=%d asra=%d esr=%d uesa=%d hess_present=%d hessid=%s venue_group=%d venue_type=%d",__func__, __LINE__,new_rec->vap_name,new_rec->enable,new_rec->access_network_type,new_rec->internet,new_rec->asra,new_rec->esr,new_rec->uesa,new_rec->hess_option_present,new_rec->hessid,new_rec->venue_group,new_rec->venue_type); 
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         vap_index = convert_vap_name_to_index(&g_wifidb->hal_cap.wifi_prop, new_rec->vap_name);
@@ -1593,8 +1593,9 @@ void callback_Wifi_Passpoint_Config(ovsdb_update_monitor_t *mon,
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid vap name \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
-        wifi_interworking_t *l_interworking_cfg = Get_wifi_object_interworking_parameter(i);
-        if(l_interworking_cfg == NULL) {
+        wifi_InterworkingElement_t *l_elem = Get_wifi_object_interworking_element(i);
+        wifi_radio_interworking_t *l_payload = Get_wifi_radio_interworking_payload(i);
+        if(l_elem == NULL || l_payload == NULL) {
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid Get_wifi_object_interworking_parameter \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
@@ -1617,8 +1618,18 @@ void callback_Wifi_Passpoint_Config(ovsdb_update_monitor_t *mon,
         cJSON_AddItemToObject(cpass_o, "OperatorFriendlyNameANQPElement", op_f_o);
         cJSON_AddItemToObject(cpass_o, "ConnectionCapabilityListANQPElement", cc_o);
         pthread_mutex_lock(&g_wifidb->data_cache_lock);
-        l_interworking_cfg->passpoint.capabilityInfoLength = 0;
-        webconfig_error_t ret = decode_passpoint_object(cpass_o, l_interworking_cfg);
+        webconfig_error_t ret = webconfig_error_decode;
+        wifi_interworking_t *l_interworking_cfg = calloc(1, sizeof(wifi_interworking_t));
+        if (l_interworking_cfg != NULL) {
+            l_interworking_cfg->interworking = *l_elem;
+            l_interworking_cfg->anqp = l_payload->anqp;
+            l_interworking_cfg->passpoint = l_payload->passpoint;
+            l_interworking_cfg->roamingConsortium = l_payload->roamingConsortium;
+            l_interworking_cfg->passpoint.capabilityInfoLength = 0;
+            ret = decode_passpoint_object(cpass_o, l_interworking_cfg);
+            l_payload->passpoint = l_interworking_cfg->passpoint;
+            free(l_interworking_cfg);
+        }
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         if(ret == webconfig_error_none) {
             wifi_util_dbg_print(WIFI_DB, "%s:%d  updated cache\n", __func__, __LINE__);
@@ -1659,8 +1670,9 @@ void callback_Wifi_Anqp_Config(ovsdb_update_monitor_t *mon,
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid vap name \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
-        wifi_interworking_t *l_interworking_cfg = Get_wifi_object_interworking_parameter(i);
-        if(l_interworking_cfg == NULL) {
+        wifi_InterworkingElement_t *l_elem = Get_wifi_object_interworking_element(i);
+        wifi_radio_interworking_t *l_payload = Get_wifi_radio_interworking_payload(i);
+        if(l_elem == NULL || l_payload == NULL) {
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid Get_wifi_object_interworking_parameter \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
@@ -1692,10 +1704,18 @@ void callback_Wifi_Anqp_Config(ovsdb_update_monitor_t *mon,
         cJSON_AddItemToObject(canqp_o, "VenueNameANQPElement", ven_o);
         cJSON_AddItemToObject(canqp_o, "3GPPCellularANQPElement", gpp_o);
         pthread_mutex_lock(&g_wifidb->data_cache_lock);
-        l_interworking_cfg->anqp.capabilityInfoLength = 0;
-        webconfig_error_t ret = webconfig_error_none;
-        ret = decode_anqp_object(canqp_o, l_interworking_cfg);
-
+        webconfig_error_t ret = webconfig_error_decode;
+        wifi_interworking_t *l_interworking_cfg = calloc(1, sizeof(wifi_interworking_t));
+        if (l_interworking_cfg != NULL) {
+            l_interworking_cfg->interworking = *l_elem;
+            l_interworking_cfg->anqp = l_payload->anqp;
+            l_interworking_cfg->passpoint = l_payload->passpoint;
+            l_interworking_cfg->roamingConsortium = l_payload->roamingConsortium;
+            l_interworking_cfg->anqp.capabilityInfoLength = 0;
+            ret = decode_anqp_object(canqp_o, l_interworking_cfg);
+            l_payload->anqp = l_interworking_cfg->anqp;
+            free(l_interworking_cfg);
+        }
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         if(ret == webconfig_error_none) {
             wifi_util_dbg_print(WIFI_DB, "%s:%d  updated cache\n", __func__, __LINE__);
@@ -4407,7 +4427,7 @@ int get_wifi_interworking_config(char *vap_name, wifi_InterworkingElement_t *con
 {
     int i = 0;
     wifi_mgr_t *g_wifidb;
-    wifi_interworking_t *l_interworking_cfg = NULL;
+    wifi_InterworkingElement_t *l_interworking_cfg = NULL;
 
     if(config == NULL)
     {
@@ -4423,14 +4443,14 @@ int get_wifi_interworking_config(char *vap_name, wifi_InterworkingElement_t *con
         return -1;
     }
 
-    l_interworking_cfg = Get_wifi_object_interworking_parameter(i);
+    l_interworking_cfg = Get_wifi_object_interworking_element(i);
     if(l_interworking_cfg == NULL)
     {
         wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid Get_wifi_object_interworking_parameter \n",__func__, __LINE__,vap_name);
         return -1;
     }
     pthread_mutex_lock(&g_wifidb->data_cache_lock);
-    memcpy(config, &l_interworking_cfg->interworking, sizeof(wifi_InterworkingElement_t));
+    memcpy(config, l_interworking_cfg, sizeof(wifi_InterworkingElement_t));
     pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     return 0;
 
