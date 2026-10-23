@@ -716,7 +716,7 @@ void init_wifidb_data(void)
         }
 
         init_vap_config_default(vap_index, vapInfo, rdkVapInfo);
-        init_interworking_config_default(vap_index, &vapInfo->u.bss_info.interworking.interworking);
+        init_interworking_config_default(vap_index, &vapInfo->u.bss_info.interworking);
 	init_gas_config_default(&g_wifidb->global_config.gas_config);
 
     }

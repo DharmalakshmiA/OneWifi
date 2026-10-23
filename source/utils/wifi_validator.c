@@ -812,40 +812,40 @@ int validate_interworking(const cJSON *interworking, wifi_vap_info_t *vap_info, 
         return RETURN_ERR;
     }
     validate_param_bool(interworking, "InterworkingEnable", param);
-    vap_info->u.bss_info.interworking.interworking.interworkingEnabled = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.interworkingEnabled = (param->type & cJSON_True) ? true:false;
 
-    if((!g_interworking_RFC) && (vap_info->u.bss_info.interworking.interworking.interworkingEnabled)) {
+    if((!g_interworking_RFC) && (vap_info->u.bss_info.interworking.interworkingEnabled)) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Interworking cannot be enable when RFC is disabled\n", __func__, __LINE__);	
         strncpy(execRetVal->ErrorMsg, "InterworkingEnable: Cannot Enable Interworking. RFC Disabled",sizeof(execRetVal->ErrorMsg)-1);
         return RETURN_ERR;
     }
 	
     validate_param_integer(interworking, "AccessNetworkType", param);
-    vap_info->u.bss_info.interworking.interworking.accessNetworkType = param->valuedouble;
-    if (vap_info->u.bss_info.interworking.interworking.accessNetworkType > 5) {
+    vap_info->u.bss_info.interworking.accessNetworkType = param->valuedouble;
+    if (vap_info->u.bss_info.interworking.accessNetworkType > 5) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed for AccessNetworkType\n", __func__, __LINE__);	
         strncpy(execRetVal->ErrorMsg, "Invalid Access Network type",sizeof(execRetVal->ErrorMsg)-1);
         return RETURN_ERR;
     }
 	
     validate_param_bool(interworking, "Internet", param);
-    vap_info->u.bss_info.interworking.interworking.internetAvailable = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.internetAvailable = (param->type & cJSON_True) ? true:false;
 
     validate_param_bool(interworking, "ASRA", param);
-    vap_info->u.bss_info.interworking.interworking.asra = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.asra = (param->type & cJSON_True) ? true:false;
 
     validate_param_bool(interworking, "ESR", param);
-    vap_info->u.bss_info.interworking.interworking.esr = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.esr = (param->type & cJSON_True) ? true:false;
 
     validate_param_bool(interworking, "UESA", param);
-    vap_info->u.bss_info.interworking.interworking.uesa = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.uesa = (param->type & cJSON_True) ? true:false;
 
     validate_param_bool(interworking, "HESSOptionPresent", param);
-    vap_info->u.bss_info.interworking.interworking.hessOptionPresent = (param->type & cJSON_True) ? true:false;
+    vap_info->u.bss_info.interworking.hessOptionPresent = (param->type & cJSON_True) ? true:false;
 
     validate_param_string(interworking, "HESSID", param);
-    copy_string(vap_info->u.bss_info.interworking.interworking.hessid,param->valuestring);
-    if (WiFi_IsValidMacAddr(vap_info->u.bss_info.interworking.interworking.hessid) != TRUE) {
+    copy_string(vap_info->u.bss_info.interworking.hessid,param->valuestring);
+    if (WiFi_IsValidMacAddr(vap_info->u.bss_info.interworking.hessid) != TRUE) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed for HESSID\n", __func__, __LINE__);
         strncpy(execRetVal->ErrorMsg, "Invalid HESSID",sizeof(execRetVal->ErrorMsg)-1);
         return RETURN_ERR;
@@ -862,8 +862,8 @@ int validate_interworking(const cJSON *interworking, wifi_vap_info_t *vap_info, 
         return RETURN_ERR;
     }
 
-    vap_info->u.bss_info.interworking.interworking.venueGroup = VenueGroup;
-    vap_info->u.bss_info.interworking.interworking.venueType = VenueType;
+    vap_info->u.bss_info.interworking.venueGroup = VenueGroup;
+    vap_info->u.bss_info.interworking.venueType = VenueType;
 
     validate_param_object(interworking, "ANQP",anqp);
 

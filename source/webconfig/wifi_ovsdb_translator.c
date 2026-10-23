@@ -912,8 +912,8 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         default_vap_info->u.bss_info.enabled = false;
         default_vap_info->u.bss_info.bssMaxSta = 75;
         default_vap_info->u.bss_info.inum_sta = 0;
-        snprintf(default_vap_info->u.bss_info.interworking.interworking.hessid,
-            sizeof(default_vap_info->u.bss_info.interworking.interworking.hessid),
+        snprintf(default_vap_info->u.bss_info.interworking.hessid,
+            sizeof(default_vap_info->u.bss_info.interworking.hessid),
             "11:22:33:44:55:66");
         convert_radio_index_to_freq_band(&hal_cap->wifi_prop, radioIndx, &band);
         default_vap_info->u.bss_info.mbo_enabled = true;
@@ -928,9 +928,9 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         snprintf((char *)default_vap_info->u.bss_info.interworking.passpoint.hs2Parameters,
             sizeof(default_vap_info->u.bss_info.interworking.passpoint.hs2Parameters), "%s" , str);
 
-        default_vap_info->u.bss_info.interworking.interworking.venueOptionPresent = 1;
-        default_vap_info->u.bss_info.interworking.interworking.venueGroup = 0;
-        default_vap_info->u.bss_info.interworking.interworking.venueType = 0;
+        default_vap_info->u.bss_info.interworking.venueOptionPresent = 1;
+        default_vap_info->u.bss_info.interworking.venueGroup = 0;
+        default_vap_info->u.bss_info.interworking.venueType = 0;
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
     defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) ||                         \
     defined(_SR213_PRODUCT_REQ_) || defined(_WNXL11BWL_PRODUCT_REQ_) || defined(_SCXF11BFL_PRODUCT_REQ_) || \

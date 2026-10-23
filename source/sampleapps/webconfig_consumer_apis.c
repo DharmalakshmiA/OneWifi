@@ -2831,7 +2831,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2852,7 +2852,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2870,7 +2870,7 @@ void set_test_data_vaps()
 
     vap->u.bss_info.security.mode = wifi_security_mode_none;
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2891,7 +2891,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2917,7 +2917,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.u.radius.s_port = 22;
     strcpy((char *)vap->u.bss_info.security.u.radius.s_ip, "192.20.1.9");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2944,7 +2944,7 @@ void set_test_data_vaps()
     strcpy((char *)vap->u.bss_info.security.u.radius.s_ip, "192.20.1.9");
 
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -2965,7 +2965,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3012,7 +3012,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test2webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3033,7 +3033,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3051,7 +3051,7 @@ void set_test_data_vaps()
 
     vap->u.bss_info.security.mode = wifi_security_mode_none;
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3072,7 +3072,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3098,7 +3098,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.u.radius.s_port = 22;
     strcpy((char *)vap->u.bss_info.security.u.radius.s_ip, "192.20.1.9");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3124,7 +3124,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.u.radius.s_port = 22;
     strcpy((char *)vap->u.bss_info.security.u.radius.s_ip, "192.20.1.9");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 
@@ -3145,7 +3145,7 @@ void set_test_data_vaps()
     vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
     strcpy(vap->u.bss_info.security.u.key.key, "test1webconf");
 
-    strcpy(vap->u.bss_info.interworking.interworking.hessid, "11:22:33:44:55:66");
+    strcpy(vap->u.bss_info.interworking.hessid, "11:22:33:44:55:66");
 
     strcpy(vap->u.bss_info.beaconRateCtl, "12345");
 

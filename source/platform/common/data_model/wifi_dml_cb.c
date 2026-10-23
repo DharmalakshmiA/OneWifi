@@ -1582,7 +1582,7 @@ bool accesspoint_get_param_bool_value(void *obj_ins_context, char *param_name, b
 #endif
     } else if (STR_CMP(param_name, "X_RDKCENTRAL-COM_InterworkingServiceEnable")) {
 #if defined(FEATURE_SUPPORT_INTERWORKING)
-        *output_value = pcfg->u.bss_info.interworking.interworking.interworkingEnabled;
+        *output_value = pcfg->u.bss_info.interworking.interworkingEnabled;
 #else
         *output_value = false;
 #endif
@@ -1951,11 +1951,11 @@ bool accesspoint_set_param_bool_value(void *obj_ins_context, char *param_name, b
             return false;
         }
     } else if (STR_CMP(param_name, "X_RDKCENTRAL-COM_InterworkingServiceEnable")) {
-        if (p_dm_vap_info->u.bss_info.interworking.interworking.interworkingEnabled ==
+        if (p_dm_vap_info->u.bss_info.interworking.interworkingEnabled ==
             output_value) {
             return true;
         }
-        p_dm_vap_info->u.bss_info.interworking.interworking.interworkingEnabled = output_value;
+        p_dm_vap_info->u.bss_info.interworking.interworkingEnabled = output_value;
         set_dml_cache_vap_config_changed(instance_number - 1);
     } else if (STR_CMP(param_name, "X_RDKCENTRAL-COM_InterworkingApplySettings")) {
         if (output_value == true) {
