@@ -42,7 +42,7 @@ extern int wifidb_update_wifi_security_config(char *vap_name, wifi_vap_security_
 extern int wifidb_get_gas_config(UINT advertisement_id, wifi_GASConfiguration_t *gas_info);
 extern int wifidb_update_gas_config(UINT advertisement_id, wifi_GASConfiguration_t *gas_info);
 extern int update_wifi_vap_info(char *vap_name,wifi_vap_info_t *config,rdk_wifi_vap_info_t *rdk_config);
-extern int update_wifi_interworking_config(char *vap_name, wifi_interworking_t *config);
+extern int update_wifi_interworking_config(char *vap_name, wifi_InterworkingElement_t *config);
 extern int update_wifi_global_config(wifi_global_param_t *config);
 extern int wifidb_update_wifi_passpoint_config(char *vap_name, wifi_interworking_t *config);
 extern int wifidb_update_wifi_anqp_config(char *vap_name, wifi_interworking_t *config);
@@ -934,7 +934,7 @@ int update_wifi_vap_info(char *vap_name,wifi_vap_info_t *config,rdk_wifi_vap_inf
     return 0;
 }
 
-int update_wifi_interworking_config(char *vap_name, wifi_interworking_t *config)
+int update_wifi_interworking_config(char *vap_name, wifi_InterworkingElement_t *config)
 {
     return 0;
 }

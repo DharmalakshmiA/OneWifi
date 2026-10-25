@@ -77,7 +77,9 @@ void WiFi_GetGasConfig(char *pString);
 INT WiFi_SetANQPConfig(uint8_t vapIndex, char *JSON_STR);
 INT WiFi_SaveANQPCfg(uint8_t vapIndex);
 INT WiFi_GetWANMetrics(uint8_t vapIndex, char *WANMetrics, UINT WANMetrics_length);
+INT WiFi_GetWANMetricsFromConfig(const wifi_HS2_WANMetrics_t *metrics, char *WANMetrics, UINT WANMetrics_length);
 void WiFi_GetHS2Stats(uint8_t vapIndex);
+void WiFi_GetHS2StatsFromConfig(uint8_t vapIndex, wifi_radio_interworking_t *pCfg);
 INT WiFi_SetHS2Config(uint8_t vapIndex, char *JSON_STR);
 INT WiFi_SaveHS2Cfg(uint8_t vapIndex);
 #if defined (DUAL_CORE_XB3)

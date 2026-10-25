@@ -894,6 +894,20 @@ WiFi_SetParamBoolValue
                 return FALSE;
             }
             last_vap_change = AnscGetTickInSeconds();
+            if (is_radio_interworking_config_changed) {
+                is_radio_config_changed = TRUE;
+                if (push_radio_dml_cache_to_one_wifidb() == RETURN_ERR) {
+                    wifi_util_dbg_print(WIFI_DMCLI,
+                        "%s:%d ApplyAccessPointSettings radio push failed\n", __func__, __LINE__);
+                    return FALSE;
+                }
+                is_radio_interworking_config_changed = false;
+                radio_reset_count++;
+                last_radio_change = AnscGetTickInSeconds();
+                if (g_update_wifi_region) {
+                    push_global_config_dml_cache_to_one_wifidb();
+                }
+            }
             return TRUE;
         }
         return TRUE;
@@ -8472,21 +8486,26 @@ void get_security_modes_supported(int vap_index, int *mode)
     wifi_vap_info_t *vap_info;
     BOOL passpoint_enabled;
 
-    radio_index = getRadioIndexFromAp((unsigned int)vap_index);
-    if (convert_radio_index_to_freq_band(&get_webconfig_dml()->hal_cap.wifi_prop, radio_index,
-        &band) != RETURN_OK) {
-        wifi_util_error_print(WIFI_DMCLI, "%s:%d failed to convert radio index %u to band\n",
-            __func__, __LINE__, radio_index);
-        return;
-    }
-
     vap_info = get_dml_cache_vap_info(vap_index);
     if (vap_info == NULL) {
         wifi_util_error_print(WIFI_DMCLI, "%s:%d failed to get vap info for index %d\n",
             __func__, __LINE__, vap_index);
         return;
     }
-    passpoint_enabled = vap_info->u.bss_info.interworking.passpoint.enable;
+    radio_index = vap_info->radio_index;
+    if (convert_radio_index_to_freq_band(&get_webconfig_dml()->hal_cap.wifi_prop, radio_index,
+        &band) != RETURN_OK) {
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d failed to convert radio index %u to band\n",
+            __func__, __LINE__, radio_index);
+        return;
+    }
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vap_info);
+    if (radio_cfg == NULL) {
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d failed to get radio config for index %d\n",
+            __func__, __LINE__, radio_index);
+        return;
+    }
+    passpoint_enabled = radio_cfg->interworking_payload.passpoint.enable;
 
     if (band == WIFI_FREQUENCY_6_BAND) {
         *mode = passpoint_enabled ? COSA_DML_WIFI_SECURITY_WPA3_Enterprise :
@@ -20421,30 +20440,25 @@ InterworkingService_GetParamStringValue
         return FALSE;
     }
 
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
-    if (pcfg == NULL)
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vap_pcfg);
+    if (radio_cfg == NULL)
     {
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
         return FALSE;
-    }
-
-    if (isVapSTAMesh(vap_pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,vap_pcfg->vap_name);
-        return TRUE;
     }
 
     /* check the parameter name and return the corresponding value */
     if( AnscEqualString(ParamName, "Parameters", TRUE))
     {
         /* collect value */
-        if(pcfg->anqp.anqpParameters[0] != '\0')
+        if(radio_cfg->interworking_payload.anqp.anqpParameters[0] != '\0')
         {
-            if( AnscSizeOfString((char *)pcfg->anqp.anqpParameters) < *pUlSize)
+            if( AnscSizeOfString((char *)radio_cfg->interworking_payload.anqp.anqpParameters) < *pUlSize)
             {
-                AnscCopyString(pValue, (char *)pcfg->anqp.anqpParameters);
+                AnscCopyString(pValue, (char *)radio_cfg->interworking_payload.anqp.anqpParameters);
                 return 0;
             }else{
-                *pUlSize = AnscSizeOfString((char *)pcfg->anqp.anqpParameters)+1;
+                *pUlSize = AnscSizeOfString((char *)radio_cfg->interworking_payload.anqp.anqpParameters)+1;
                 return 1;
             }
         }
@@ -20509,14 +20523,17 @@ InterworkingService_SetParamStringValue
         return FALSE;
     }
 
-    if (isVapSTAMesh(pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,pcfg->vap_name);
-        return TRUE;
+    if (!isVapHotspotSecure(pcfg->vap_index)) {
+        return FALSE;
     }
-
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vapInfo);
+    if (radio_cfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
+        return FALSE;
+    }
     if( AnscEqualString(ParamName, "Parameters", TRUE))
     {
-        if( AnscEqualString((char*)vapInfo->u.bss_info.interworking.anqp.anqpParameters, (char*) pString, TRUE)){
+        if( AnscEqualString((char*)radio_cfg->interworking_payload.anqp.anqpParameters, (char*) pString, TRUE)){
             return TRUE;
         }else{
             cJSON *p_root = cJSON_Parse(pString);
@@ -20524,9 +20541,9 @@ InterworkingService_SetParamStringValue
                 wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Invalid json for vap %s\n", __FUNCTION__,__LINE__,pcfg->vap_name);
                 return FALSE;
             }
-            if (strnlen(pString, sizeof(vapInfo->u.bss_info.interworking.anqp.anqpParameters)) < sizeof(vapInfo->u.bss_info.interworking.anqp.anqpParameters))
+            if (strnlen(pString, sizeof(radio_cfg->interworking_payload.anqp.anqpParameters)) < sizeof(radio_cfg->interworking_payload.anqp.anqpParameters))
             {
-                AnscCopyString((char*)vapInfo->u.bss_info.interworking.anqp.anqpParameters,(char*)pString);
+                AnscCopyString((char*)radio_cfg->interworking_payload.anqp.anqpParameters,(char*)pString);
             }
             else
             {
@@ -20535,7 +20552,7 @@ InterworkingService_SetParamStringValue
                 return FALSE;
             }
             cJSON_Delete(p_root);
-            set_dml_cache_vap_config_changed(instance_number - 1);
+            is_radio_interworking_config_changed = true;
             return TRUE;
         }
     }
@@ -20600,25 +20617,21 @@ Passpoint_GetParamBoolValue
         return FALSE;
     }
 
-    if (isVapSTAMesh(vap_pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,vap_pcfg->vap_name);
-        return TRUE;
-    }
-
-    wifi_interworking_t *interworking_pcfg = &vap_pcfg->u.bss_info.interworking;
-    if (interworking_pcfg == NULL)
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vap_pcfg);
+    if (radio_cfg == NULL)
     {
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
         return FALSE;
     }
 
     if (AnscEqualString(ParamName, "Capability", TRUE)) {
+        *pBool = isVapHotspotSecure(vap_pcfg->vap_index);
         return TRUE;
     }
 
     if (AnscEqualString(ParamName, "Enable", TRUE)) {
                 //WiFi_SetHS2Status(vap_pcfg->vap_index, false, true);
-	*pBool = interworking_pcfg->passpoint.enable;
+	*pBool = radio_cfg->interworking_payload.passpoint.enable;
         return TRUE;
     }
     return FALSE;
@@ -20680,13 +20693,8 @@ Passpoint_GetParamStringValue
         return FALSE;
     }
 
-    if (isVapSTAMesh(vap_pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,vap_pcfg->vap_name);
-        return TRUE;
-    }
-
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
-    if (pcfg == NULL)
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vap_pcfg);
+    if (radio_cfg == NULL)
     {
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
         return FALSE;
@@ -20695,14 +20703,14 @@ Passpoint_GetParamStringValue
         /* check the parameter name and return the corresponding value */
     if( AnscEqualString(ParamName, "Parameters", TRUE))
     {
-        if(pcfg->passpoint.hs2Parameters[0] != '\0')
+        if(radio_cfg->interworking_payload.passpoint.hs2Parameters[0] != '\0')
         {
-            if( AnscSizeOfString((char *)pcfg->passpoint.hs2Parameters) < *pUlSize)
+            if( AnscSizeOfString((char *)radio_cfg->interworking_payload.passpoint.hs2Parameters) < *pUlSize)
             {
-                AnscCopyString(pValue, (char *)pcfg->passpoint.hs2Parameters);
+                AnscCopyString(pValue, (char *)radio_cfg->interworking_payload.passpoint.hs2Parameters);
                 return 0;
             } else {
-                *pUlSize = AnscSizeOfString((char *)pcfg->passpoint.hs2Parameters)+1;
+                *pUlSize = AnscSizeOfString((char *)radio_cfg->interworking_payload.passpoint.hs2Parameters)+1;
                 return 1;
             }	    
 	}
@@ -20712,7 +20720,8 @@ Passpoint_GetParamStringValue
     if( AnscEqualString(ParamName, "WANMetrics", TRUE))
     {
         char WANMetricsInfo[256] = {0};
-        WiFi_GetWANMetrics((vap_pcfg->vap_index + 1), WANMetricsInfo, sizeof(WANMetricsInfo));
+        WiFi_GetWANMetricsFromConfig(&radio_cfg->interworking_payload.passpoint.wanMetricsInfo,
+            WANMetricsInfo, sizeof(WANMetricsInfo));
         /* collect value */
 	if( AnscSizeOfString(WANMetricsInfo) < *pUlSize)
         {
@@ -20727,14 +20736,19 @@ Passpoint_GetParamStringValue
 
     if( AnscEqualString(ParamName, "Stats", TRUE))
     {
-        WiFi_GetHS2Stats((vap_pcfg->vap_index + 1));
+        radio_cfg = find_radio_config_by_index(isVapHotspotSecure(vap_pcfg->vap_index) ?
+            vap_pcfg->radio_index : 0);
+        if (radio_cfg == NULL) {
+            return -1;
+        }
+        WiFi_GetHS2StatsFromConfig((vap_pcfg->vap_index + 1), &radio_cfg->interworking_payload);
         /* collect value */
-        if( AnscSizeOfString((char *)pcfg->anqp.passpointStats) < *pUlSize)
+        if( AnscSizeOfString((char *)radio_cfg->interworking_payload.anqp.passpointStats) < *pUlSize)
         {
-            AnscCopyString(pValue, (char *)pcfg->anqp.passpointStats);
+            AnscCopyString(pValue, (char *)radio_cfg->interworking_payload.anqp.passpointStats);
             return 0;
         }else{
-            *pUlSize = AnscSizeOfString((char *)pcfg->anqp.passpointStats)+1;
+            *pUlSize = AnscSizeOfString((char *)radio_cfg->interworking_payload.anqp.passpointStats)+1;
             return 1;
         }
         return 0;
@@ -20796,17 +20810,20 @@ Passpoint_SetParamBoolValue
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Unable to get VAP info for instance_number:%d\n", __FUNCTION__,__LINE__,instance_number);
         return FALSE;
     }
-    if (isVapSTAMesh(pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,pcfg->vap_name);
-        return TRUE;
+    if (!isVapHotspotSecure(pcfg->vap_index)) {
+        return FALSE;
     }
-
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vapInfo);
+    if (radio_cfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
+        return FALSE;
+    }
     //Check RFC value. Return FALSE if not enabled
     char *strValue = NULL;
     int retPsmGet = CCSP_SUCCESS;
 
     if( AnscEqualString(ParamName, "Enable", TRUE)) {
-        if(bValue == vapInfo->u.bss_info.interworking.passpoint.enable){
+        if(bValue == radio_cfg->interworking_payload.passpoint.enable){
             CcspTraceWarning(("Passpoint value Already configured. Return Success\n"));
             return TRUE;
         }
@@ -20822,8 +20839,8 @@ Passpoint_SetParamBoolValue
             CcspTraceWarning(("Cannot Enable Passpoint. Interworking Disabled\n"));
             return FALSE;
         }
-	vapInfo->u.bss_info.interworking.passpoint.enable = bValue;
-	set_dml_cache_vap_config_changed(instance_number - 1);
+	radio_cfg->interworking_payload.passpoint.enable = bValue;
+    is_radio_interworking_config_changed = true;
 	return TRUE;
     }
     return FALSE;
@@ -20883,14 +20900,17 @@ Passpoint_SetParamStringValue
         return FALSE;
     }
 
-    if (isVapSTAMesh(pcfg->vap_index)) {
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,pcfg->vap_name);
-        return TRUE;
+    if (!isVapHotspotSecure(pcfg->vap_index)) {
+        return FALSE;
     }
-
+    rdk_wifi_radio_t *radio_cfg = get_dml_cache_interworking_radio_config(vapInfo);
+    if (radio_cfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
+        return FALSE;
+    }
     if( AnscEqualString(ParamName, "Parameters", TRUE))
     {
-        if( AnscEqualString((char*)vapInfo->u.bss_info.interworking.passpoint.hs2Parameters, pString, TRUE)){
+        if( AnscEqualString((char*)radio_cfg->interworking_payload.passpoint.hs2Parameters, pString, TRUE)){
             return TRUE;
         }else {
              cJSON *p_root = cJSON_Parse(pString);
@@ -20898,9 +20918,9 @@ Passpoint_SetParamStringValue
                 wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Invalid json for vap %s\n", __FUNCTION__,__LINE__,pcfg->vap_name);
                 return FALSE;
             }
-            if (strnlen(pString, sizeof(vapInfo->u.bss_info.interworking.passpoint.hs2Parameters)) < sizeof(vapInfo->u.bss_info.interworking.passpoint.hs2Parameters))
+            if (strnlen(pString, sizeof(radio_cfg->interworking_payload.passpoint.hs2Parameters)) < sizeof(radio_cfg->interworking_payload.passpoint.hs2Parameters))
             {
-                AnscCopyString((char*)vapInfo->u.bss_info.interworking.passpoint.hs2Parameters,pString);
+                AnscCopyString((char*)radio_cfg->interworking_payload.passpoint.hs2Parameters,pString);
             }
             else
             {
@@ -20909,7 +20929,7 @@ Passpoint_SetParamStringValue
                 return FALSE;
             }
             cJSON_Delete(p_root);
-	    set_dml_cache_vap_config_changed(instance_number - 1);
+            is_radio_interworking_config_changed = true;
             return TRUE;
         }
     }

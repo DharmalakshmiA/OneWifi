@@ -7524,10 +7524,9 @@ int update_wifi_vap_info(char *vap_name,wifi_vap_info_t *config,rdk_wifi_vap_inf
   Description : Wrapper API for wifidb_update_wifi_interworking_config
  *************************************************************************************
 **************************************************************************************/
-int update_wifi_interworking_config(char *vap_name, wifi_interworking_t *config)
+int update_wifi_interworking_config(char *vap_name, wifi_InterworkingElement_t *config)
 {
     int ret = 0;
-    wifi_InterworkingElement_t configure;
 
     if(config == NULL)
     {
@@ -7535,8 +7534,7 @@ int update_wifi_interworking_config(char *vap_name, wifi_interworking_t *config)
         return -1;
     }
 
-    configure = config->interworking;
-    ret = wifidb_update_wifi_interworking_config(vap_name, &configure);
+    ret = wifidb_update_wifi_interworking_config(vap_name, config);
     if(ret == 0)
     {
         wifidb_print("%s:%d Updated WIFI DB. interworking Config updated successful. \n",__func__, __LINE__);

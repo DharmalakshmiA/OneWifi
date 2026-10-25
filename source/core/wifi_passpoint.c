@@ -1227,118 +1227,111 @@ INT WiFi_SaveHS2Cfg(uint8_t vapIndex)
     return RETURN_OK;
 }
 
+INT WiFi_GetWANMetricsFromConfig(const wifi_HS2_WANMetrics_t *metrics, char *WANMetrics, UINT WANMetrics_length)
+{
+    if (metrics == NULL || WANMetrics == NULL || WANMetrics_length == 0) {
+        return RETURN_ERR;
+    }
+    memset(WANMetrics, 0, WANMetrics_length);
+    cJSON *passPointCfg = cJSON_CreateObject();
+    if (passPointCfg == NULL) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "Failed to create JSON\n");
+        return RETURN_ERR;
+    }
+    cJSON *mainEntry = cJSON_AddObjectToObject(passPointCfg, "WANMetrics");
+    if (mainEntry == NULL) {
+        cJSON_Delete(passPointCfg);
+        return RETURN_ERR;
+    }
+    cJSON_AddNumberToObject(mainEntry, "WANInfo", metrics->wanInfo);
+    cJSON_AddNumberToObject(mainEntry, "DownlinkSpeed", metrics->downLinkSpeed);
+    cJSON_AddNumberToObject(mainEntry, "UplinkSpeed", metrics->upLinkSpeed);
+    cJSON_AddNumberToObject(mainEntry, "DownlinkLoad", metrics->downLinkLoad);
+    cJSON_AddNumberToObject(mainEntry, "UplinkLoad", metrics->upLinkLoad);
+    cJSON_AddNumberToObject(mainEntry, "LMD", metrics->lmd);
+    cJSON_bool printed = cJSON_PrintPreallocated(passPointCfg, WANMetrics, WANMetrics_length, false);
+    cJSON_Delete(passPointCfg);
+    return printed ? RETURN_OK : RETURN_ERR;
+}
 INT WiFi_GetWANMetrics(uint8_t vapIndex, char *WANMetrics, UINT WANMetrics_length)
 {
-    cJSON *mainEntry = NULL;
-    int apIns; 
-
-    apIns = vapIndex -1;
-    if((apIns < 0) || (apIns > 15)){
+    int apIns = vapIndex - 1;
+    if (apIns < 0 || apIns > 15) {
         wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index. Setting to 1\n", __func__, __LINE__);
         apIns = 0;
     }
-
     wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
-    if(pCfg == NULL)
-    {
+    if (pCfg == NULL) {
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
-	return RETURN_ERR;
-    }
-#if 0
-    //memset(&pCfg->IEEE80211uCfg.PasspointCfg.WANMetrics, 0, sizeof(pCfg->IEEE80211uCfg.PasspointCfg.WANMetrics));
-//    memset(&pCfg->passpoint.wanMetricsInfo, 0, sizeof(pCfg->passpoint.wanMetricsInfo));//ONE_WIFI
-#else
-      memset(WANMetrics, 0, WANMetrics_length);
-#endif//ONE_WIFI
-    cJSON *passPointCfg = cJSON_CreateObject();
-    if (NULL == passPointCfg) {
-        wifi_util_dbg_print(WIFI_PASSPOINT,"Failed to create JSON\n");
         return RETURN_ERR;
     }
-
-    mainEntry = cJSON_AddObjectToObject(passPointCfg,"WANMetrics");
-
-    cJSON_AddNumberToObject(mainEntry,"WANInfo",pCfg->passpoint.wanMetricsInfo.wanInfo); 
-    cJSON_AddNumberToObject(mainEntry,"DownlinkSpeed",pCfg->passpoint.wanMetricsInfo.downLinkSpeed); 
-    cJSON_AddNumberToObject(mainEntry,"UplinkSpeed",pCfg->passpoint.wanMetricsInfo.upLinkSpeed);
-    cJSON_AddNumberToObject(mainEntry,"DownlinkLoad",pCfg->passpoint.wanMetricsInfo.downLinkLoad); 
-    cJSON_AddNumberToObject(mainEntry,"UplinkLoad",pCfg->passpoint.wanMetricsInfo.upLinkLoad);
-    cJSON_AddNumberToObject(mainEntry,"LMD",pCfg->passpoint.wanMetricsInfo.lmd); 
-
-#if 0
-    //cJSON_PrintPreallocated(passPointCfg, (char *)&pCfg->IEEE80211uCfg.PasspointCfg.WANMetrics, sizeof(pCfg->IEEE80211uCfg.PasspointCfg.WANMetrics),false); //ONE_WIFI TBD -N
-#else
-    cJSON_PrintPreallocated(passPointCfg, (char *)WANMetrics, WANMetrics_length, false);
-#endif//ONE_WIFI
-    cJSON_Delete(passPointCfg);
-    return RETURN_OK;
+    return WiFi_GetWANMetricsFromConfig(&pCfg->passpoint.wanMetricsInfo, WANMetrics, WANMetrics_length);
 }
 
-void WiFi_GetHS2Stats(uint8_t vapIndex)
+void WiFi_GetHS2StatsFromConfig(uint8_t vapIndex, wifi_radio_interworking_t *pCfg)
 {
     cJSON *mainEntry = NULL;
     cJSON *statsParam = NULL;
     cJSON *statsList = NULL;
     cJSON *statsEntry = NULL;
-    int apIns; 
-
-    apIns = vapIndex -1;
-    if((apIns < 0) || (apIns > 15)){
-        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index.\n", __func__, __LINE__);
+    int apIns = vapIndex - 1;
+    if (apIns < 0 || apIns > 15 || pCfg == NULL) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP or interworking config.\n", __func__, __LINE__);
         return;
     }
-    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);//ONE_WIFI
-    if(pCfg == NULL)
-    {
-        wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
-	return;
-    }
-
-    cJSON *passPointStats = cJSON_Parse((const char *) pCfg->anqp.passpointStats);
-    if (NULL == passPointStats) {
-        wifi_util_dbg_print(WIFI_PASSPOINT,"Failed to parse JSON\n");
+    cJSON *passPointStats = cJSON_Parse((const char *)pCfg->anqp.passpointStats);
+    if (passPointStats == NULL) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "Failed to parse JSON\n");
         return;
     }
-
-    mainEntry = cJSON_GetObjectItem(passPointStats,"PassPointStats");
-    if(NULL == mainEntry){
-        wifi_util_dbg_print(WIFI_PASSPOINT,"PassPointStats entry is NULL\n");
+    mainEntry = cJSON_GetObjectItem(passPointStats, "PassPointStats");
+    if (mainEntry == NULL) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "PassPointStats entry is NULL\n");
         cJSON_Delete(passPointStats);
         return;
     }
-  
-    //Set EAP stats to zero. TBD
     cJSON_AddNumberToObject(mainEntry, "EAPOLStartSuccess", 0);
     cJSON_AddNumberToObject(mainEntry, "EAPOLStartFailed", 0);
     cJSON_AddNumberToObject(mainEntry, "EAPOLStartTimeouts", 0);
     cJSON_AddNumberToObject(mainEntry, "EAPOLStartRetries", 0);
     cJSON_AddNumberToObject(mainEntry, "EAPOLSuccessSent", 0);
     cJSON_AddNumberToObject(mainEntry, "EAPFailedSent", 0);
-  
     statsList = cJSON_GetObjectItem(mainEntry, "ANQPResponse");
-
     cJSON_ArrayForEach(statsEntry, statsList) {
-        if(NULL != (statsParam = cJSON_GetObjectItem(statsEntry,"EntryType"))){
-            switch((int)statsParam->valuedouble){
+        if ((statsParam = cJSON_GetObjectItem(statsEntry, "EntryType")) != NULL) {
+            switch ((int)statsParam->valuedouble) {
                 case 1:
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Sent"),g_interworking_data[apIns].anqp.realmRespCount);
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Failed"),g_interworking_data[apIns].anqp.realmFailedCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Sent"), pCfg->anqp.realmRespCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Failed"), pCfg->anqp.realmFailedCount);
                     break;
                 case 2:
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Sent"),g_interworking_data[apIns].anqp.domainRespCount);
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Failed"),g_interworking_data[apIns].anqp.domainFailedCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Sent"), pCfg->anqp.domainRespCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Failed"), pCfg->anqp.domainFailedCount);
                     break;
                 case 3:
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Sent"),g_interworking_data[apIns].anqp.gppRespCount);
-                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry,"Failed"),g_interworking_data[apIns].anqp.gppFailedCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Sent"), pCfg->anqp.gppRespCount);
+                    cJSON_SetIntValue(cJSON_GetObjectItem(statsEntry, "Failed"), pCfg->anqp.gppFailedCount);
                     break;
             }
         }
     }
-
-    cJSON_PrintPreallocated(passPointStats, (char *)&pCfg->anqp.passpointStats, sizeof(pCfg->anqp.passpointStats),false);
+    cJSON_PrintPreallocated(passPointStats, (char *)pCfg->anqp.passpointStats,
+        sizeof(pCfg->anqp.passpointStats), false);
     cJSON_Delete(passPointStats);
-    return;
+}
+void WiFi_GetHS2Stats(uint8_t vapIndex)
+{
+    int apIns = vapIndex - 1;
+    if (apIns < 0 || apIns > 15) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index.\n", __func__, __LINE__);
+        return;
+    }
+    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
+    if (pCfg == NULL) {
+        wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
+        return;
+    }
+    WiFi_GetHS2StatsFromConfig(vapIndex, pCfg);
 }
 
 INT WiFi_SaveInterworkingWebconfig( wifi_interworking_t *interworking_data, int apIns)
@@ -1449,25 +1442,25 @@ INT WiFi_InitInterworkingElement (uint8_t vapIndex)
     UINT InstanceNumber = vapIndex;
 
 #if defined(ENABLE_FEATURE_MESHWIFI)        
-    wifi_interworking_t  elem;
-    memset((char *)&elem, 0, sizeof(wifi_interworking_t));
+    wifi_InterworkingElement_t elem;
+    memset((char *)&elem, 0, sizeof(wifi_InterworkingElement_t));
     //Update OVS DB
     if(-1 == get_wifidb_obj()->desc.update_wifi_interworking_cfg_fn(getVAPName(vapIndex - 1), &elem)) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"Failed to Initialize Interwokring Configuration from DB for AP: %d. Setting Default\n",InstanceNumber);
         return WiFi_DefaultInterworkingConfig(vapIndex);//ONE_WIFI
     }
     
-    pCfg->interworkingEnabled = elem.interworking.interworkingEnabled;
-    pCfg->accessNetworkType = elem.interworking.accessNetworkType;
-    pCfg->internetAvailable = elem.interworking.internetAvailable;
-    pCfg->asra = elem.interworking.asra;
-    pCfg->esr = elem.interworking.esr;
-    pCfg->uesa = elem.interworking.uesa;
-    pCfg->venueOptionPresent = elem.interworking.venueOptionPresent;
-    pCfg->venueGroup = elem.interworking.venueGroup;
-    pCfg->venueType = elem.interworking.venueType;
-    pCfg->hessOptionPresent = elem.interworking.hessOptionPresent;
-    strcpy(pCfg->hessid,elem.interworking.hessid);//ONE_WIFI
+    pCfg->interworkingEnabled = elem.interworkingEnabled;
+    pCfg->accessNetworkType = elem.accessNetworkType;
+    pCfg->internetAvailable = elem.internetAvailable;
+    pCfg->asra = elem.asra;
+    pCfg->esr = elem.esr;
+    pCfg->uesa = elem.uesa;
+    pCfg->venueOptionPresent = elem.venueOptionPresent;
+    pCfg->venueGroup = elem.venueGroup;
+    pCfg->venueType = elem.venueType;
+    pCfg->hessOptionPresent = elem.hessOptionPresent;
+    strcpy(pCfg->hessid,elem.hessid);//ONE_WIFI
 
 #else
     char cfgFile[64];

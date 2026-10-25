@@ -31,6 +31,7 @@
 #include "dml_onewifi_api.h"
 #include "wifi_util.h"
 #include "wifi_mgr.h"
+#include "wifi_ctrl.h"
 #include "wifi_stubs.h"
 
 webconfig_dml_t webconfig_dml;
@@ -1125,6 +1126,15 @@ rdk_wifi_radio_t* get_dml_cache_radio_map_param(uint8_t radio_index)
         return NULL;
     }
 }
+rdk_wifi_radio_t *get_dml_cache_interworking_radio_config(const wifi_vap_info_t *vap_info)
+{
+    if (vap_info == NULL) {
+        return NULL;
+    }
+    uint8_t radio_index = isVapHotspotSecure(vap_info->vap_index) ?
+        vap_info->radio_index : 0;
+    return get_dml_cache_radio_map_param(radio_index);
+}
 
 wifi_radio_operationParam_t* get_dml_cache_radio_map(uint8_t radio_index)
 {
@@ -1153,6 +1163,7 @@ wifi_radio_feature_param_t* get_dml_cache_radio_feat_map(uint8_t radio_index)
 }
 
 bool is_radio_config_changed;
+bool is_radio_interworking_config_changed;
 bool g_update_wifi_region;
 
 bool is_dfs_channel_allowed(unsigned int channel)
@@ -1339,6 +1350,7 @@ int push_radio_dml_cache_to_one_wifidb()
 {
     webconfig_subdoc_data_t *data = NULL;
     char *str = NULL;
+    int ret = RETURN_ERR;
 
     if(is_radio_config_changed == FALSE)
     {
@@ -1360,20 +1372,26 @@ int push_radio_dml_cache_to_one_wifidb()
     if (webconfig_encode(&webconfig_dml.webconfig, data, webconfig_subdoc_type_radio) == webconfig_error_none) {
         str = data->u.encoded.raw;
         wifi_util_info_print(WIFI_DMCLI, "%s:  Radio DML cache encoded successfully  \n", __FUNCTION__);
-        push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig, wifi_event_webconfig_set_data_dml, NULL);
+        ret = push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
+            wifi_event_webconfig_set_data_dml, NULL);
     } else {
-        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Webconfig set failed, update data from ctrl queue\n", __func__, __LINE__);
-        request_for_dml_data_resync();
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Radio encode failed, retaining dirty state\n",
+            __func__, __LINE__);
     }
 
-    wifi_util_error_print(WIFI_DMCLI, "%s:  Radio DML cache pushed to queue \n", __FUNCTION__);
-    is_radio_config_changed = FALSE;
+    if (ret == RETURN_OK) {
+        is_radio_config_changed = FALSE;
+        wifi_util_info_print(WIFI_DMCLI, "%s: Radio DML cache pushed to queue\n", __FUNCTION__);
+    } else {
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Radio push failed, retaining dirty state\n",
+            __func__, __LINE__);
+    }
 
     webconfig_data_free(data);
     free(data);
     data = NULL;
 
-    return RETURN_OK;
+    return ret;
 }
 
 int push_acl_list_dml_cache_to_one_wifidb(wifi_vap_info_t *vap_info)
