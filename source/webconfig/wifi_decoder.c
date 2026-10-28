@@ -1879,11 +1879,11 @@ webconfig_error_t decode_vap_common_object(const cJSON *vap, wifi_vap_info_t *va
         vap_info->u.bss_info.wps.methods = param->valuedouble;
         // WpsConfigPin
         decode_param_allow_empty_string(vap, "WpsConfigPin", param);
-        strcpy(vap_info->u.bss_info.wps.pin, param->valuestring);
+        snprintf(vap_info->u.bss_info.wps.pin, sizeof(vap_info->u.bss_info.wps.pin), "%s", param->valuestring);
     }
     // BeaconRateCtl
     decode_param_string(vap, "BeaconRateCtl", param);
-    strcpy(vap_info->u.bss_info.beaconRateCtl, param->valuestring);
+    snprintf(vap_info->u.bss_info.beaconRateCtl, sizeof(vap_info->u.bss_info.beaconRateCtl), "%s", param->valuestring);
 
     // connected_building_enabled params
     decode_param_allow_empty_bool(vap, "Connected_building_enabled", param, connected_value);
@@ -2762,6 +2762,9 @@ webconfig_error_t decode_radio_setup_object(const cJSON *obj_radio_setup, rdk_wi
     decode_param_array(obj_radio_setup, "VapMap", obj_array);
 
     vap_map->num_vaps = cJSON_GetArraySize(obj_array);
+    if (vap_map->num_vaps > MAX_NUM_VAP_PER_RADIO) {
+        return webconfig_error_decode;
+    }
     for (i = 0; i < vap_map->num_vaps; i++) {
         obj = cJSON_GetArrayItem(obj_array, i);
 
@@ -3011,7 +3014,7 @@ webconfig_error_t decode_radio_object(const cJSON *obj_radio, rdk_wifi_radio_t *
 
     // RadioName
     decode_param_string(obj_radio, "RadioName", param);
-    strcpy(radio->name, param->valuestring);
+    snprintf(radio->name, sizeof(radio->name), "%s", param->valuestring);
 
     // FreqBand
     decode_param_integer(obj_radio, "FreqBand", param);
@@ -3808,7 +3811,7 @@ static webconfig_error_t decode_mlo_associated_clients_object(webconfig_subdoc_d
         }
     }
 
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: decoded %u MLO clients for '%s'\n", __func__,
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: decoded %u MLO clients for '%s'\n", __func__,
         __LINE__, size, vap_name);
     return webconfig_error_none;
 }
