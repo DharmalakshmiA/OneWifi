@@ -1163,7 +1163,6 @@ wifi_radio_feature_param_t* get_dml_cache_radio_feat_map(uint8_t radio_index)
 }
 
 bool is_radio_config_changed;
-bool is_radio_interworking_config_changed;
 bool g_update_wifi_region;
 
 bool is_dfs_channel_allowed(unsigned int channel)

@@ -162,6 +162,7 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
     wifi_vap_info_map_t *p_tgt_vap_map, *p_tgt_created_vap_map;
     bool greylist_rfc = false;
     bool rfc_passpoint_enable = false;
+    wifi_radio_interworking_t *payload = NULL;
     wifi_ctrl_t *ctrl;
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
@@ -199,12 +200,16 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
                     sizeof(wifi_vap_info_t));
         p_tgt_vap_map->vap_array[0].u.bss_info.network_initiated_greylist = greylist_rfc;
         p_tgt_vap_map->num_vaps = 1;
+        //DL- Since create_vap doesn't use radio... not doing any passpoint update here---> This will be taken care while adding the code changes which will update the passpoint details to the hal
         if (isVapHotspotSecure(map->vap_array[i].vap_index)) {
-               if ((rfc_passpoint_enable == false) && (p_tgt_vap_map->vap_array[0].u.bss_info.interworking.passpoint.enable == true)) {
-                    wifi_util_error_print(WIFI_CTRL,"%s:: radio_index:%d vap_index:%d Passpoint cannot be enabled when RFC is disabled RFC=%d\n",__FUNCTION__,
-                                                radio_index, map->vap_array[i].vap_index,rfc_passpoint_enable);
-                    p_tgt_vap_map->vap_array[0].u.bss_info.interworking.passpoint.enable = false;
-                }
+            payload = Get_wifi_radio_interworking_payload(map->vap_array[i].vap_index);
+            if ((rfc_passpoint_enable == false) && (payload != NULL) &&
+                (payload->passpoint.enable == true)) {
+                wifi_util_error_print(WIFI_CTRL,"%s:: radio_index:%d vap_index:%d Passpoint cannot be enabled when RFC is disabled RFC=%d\n",__FUNCTION__,
+                                            radio_index, map->vap_array[i].vap_index,rfc_passpoint_enable);
+            }
+        } else {
+            payload = NULL;
         }
         // VAP is enabled in HAL if it is present in VIF_Config and enabled. Absent VAP entries are
         // saved to VAP_Config with exist flag set to 0 and default values.
@@ -247,15 +252,7 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
         get_wifidb_obj()->desc.print_fn("%s: wifi vap create success: radio_index:%d vap_index:%d \n",__FUNCTION__,
                                                 radio_index, map->vap_array[i].vap_index);
         get_wifidb_obj()->desc.print_fn("%s:%d [Stop] Current time:[%llu]\r\n", __func__, __LINE__, get_current_ms_time());
-        wifi_util_error_print(WIFI_CTRL,"%s: passpoint.enable %d\n", __FUNCTION__,map->vap_array[i].u.bss_info.interworking.passpoint.enable);
-        //Storing the config of passpoint in DB as received from blob though RFC is disabled
-        if (isVapHotspotSecure(map->vap_array[i].vap_index)) {
-               if ((rfc_passpoint_enable == false) && (map->vap_array[i].u.bss_info.interworking.passpoint.enable == true)) {
-                   p_tgt_vap_map->vap_array[0].u.bss_info.interworking.passpoint.enable = true;
-                }
-        }
-        wifi_util_error_print(WIFI_CTRL, "%s: p_tgt_vap_map->passpoint.enable %d\n", __FUNCTION__,
-            p_tgt_vap_map->vap_array[0].u.bss_info.interworking.passpoint.enable);
+        // Storing the config of passpoint in DB as received from blob though RFC is disabled
         memcpy((unsigned char *)&map->vap_array[i], (unsigned char *)&p_tgt_vap_map->vap_array[0],
             sizeof(wifi_vap_info_t));
         memcpy((unsigned char *)&p_tgt_created_vap_map->vap_array[i],
@@ -266,10 +263,11 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
             &map->vap_array[i].u.bss_info.interworking);
         get_wifidb_obj()->desc.update_wifi_security_config_fn(map->vap_array[i].vap_name,
             &map->vap_array[i].u.bss_info.security);
-        get_wifidb_obj()->desc.update_wifi_passpoint_cfg_fn(map->vap_array[i].vap_name,
-            &map->vap_array[i].u.bss_info.interworking);
-        get_wifidb_obj()->desc.update_wifi_anqp_cfg_fn(map->vap_array[i].vap_name,
-             &map->vap_array[i].u.bss_info.interworking);
+        if (payload != NULL) {
+            get_wifidb_obj()->desc.update_wifi_passpoint_cfg_fn(map->vap_array[i].vap_name,
+                payload);
+            get_wifidb_obj()->desc.update_wifi_anqp_cfg_fn(map->vap_array[i].vap_name, payload);
+        }
         if (isVapHotspot(map->vap_array[i].vap_index)) {
             get_wifidb_obj()->desc.update_wifi_cac_cfg_fn(p_tgt_vap_map);
         }

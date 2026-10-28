@@ -58,8 +58,8 @@ typedef int (* wifi_db_update_gas_config_fn_t)(UINT advertisement_id, wifi_GASCo
 typedef int (* wifi_db_update_wifi_vap_info_fn_t)(char *vap_name,wifi_vap_info_t *config,rdk_wifi_vap_info_t *rdk_config);
 typedef int (* wifi_db_update_wifi_interworking_cfg_fn_t)(char *vap_name, wifi_InterworkingElement_t *config);
 typedef int (* wifi_db_update_wifi_global_cfg_fn_t)(wifi_global_param_t *config);
-typedef int (* wifi_db_update_wifi_passpoint_cfg_fn_t)(char *vap_name, wifi_interworking_t *config);
-typedef int (* wifi_db_update_wifi_anqp_cfg_fn_t)(char *vap_name, wifi_interworking_t *config);
+typedef int (* wifi_db_update_wifi_passpoint_cfg_fn_t)(char *vap_name, const wifi_radio_interworking_t *config);
+typedef int (* wifi_db_update_wifi_anqp_cfg_fn_t)(char *vap_name, const wifi_radio_interworking_t *config);
 typedef int (* wifi_db_update_wifi_gas_config_fn_t)(UINT advertisement_id, wifi_GASConfiguration_t *gas_info);
 typedef int (* wifi_db_update_wifi_cac_config_fn_t)(wifi_vap_info_map_t *config);
 typedef int (* wifi_db_update_wifi_radio_config_fn_t)(int radio_index, wifi_radio_operationParam_t *config, wifi_radio_feature_param_t *feat_config);

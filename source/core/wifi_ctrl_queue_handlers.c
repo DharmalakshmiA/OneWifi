@@ -4709,6 +4709,13 @@ void update_subdoc_data(webconfig_subdoc_data_t *data, unsigned int num_ssid,
         memcpy(&data->u.decoded.radios[radio_index].vaps.rdk_vap_array[vap_array_index],
             &mgr->radio_config[radio_index].vaps.rdk_vap_array[vap_array_index],
             sizeof(rdk_wifi_vap_info_t));
+
+        // radio level payload is the baseline for a partial ANQP/Passpoint blob
+        if (strncmp(vap_names[i], "hotspot_secure", strlen("hotspot_secure")) == 0) {
+            memcpy(&data->u.decoded.radios[radio_index].interworking_payload,
+                &mgr->radio_config[radio_index].interworking_payload,
+                sizeof(wifi_radio_interworking_t));
+        }
     }
 }
 

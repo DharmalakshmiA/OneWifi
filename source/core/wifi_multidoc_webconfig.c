@@ -1181,8 +1181,10 @@ static int update_xfinity_vap_info(cJSON *blob, webconfig_subdoc_data_t *data, p
             }
             return RETURN_ERR;
         }
-        /* decode interworking object */
-        if (decode_interworking_object(interworking_obj, &vap_info->u.bss_info.interworking) !=
+        /* decode interworking object; ANQP/Passpoint are applied only for hotspot secure */
+        if (decode_interworking_object(interworking_obj, &vap_info->u.bss_info.interworking,
+                (strncmp(vap_info->vap_name, "hotspot_secure", strlen("hotspot_secure")) == 0) ?
+                    &params->radios[radio_index].interworking_payload : NULL) !=
             webconfig_error_none) {
             wifi_util_error_print(WIFI_CTRL,
                 "%s:%d: Interworking objects validation failed for %s\n", __FUNCTION__, __LINE__,

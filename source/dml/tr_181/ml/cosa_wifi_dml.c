@@ -894,20 +894,6 @@ WiFi_SetParamBoolValue
                 return FALSE;
             }
             last_vap_change = AnscGetTickInSeconds();
-            if (is_radio_interworking_config_changed) {
-                is_radio_config_changed = TRUE;
-                if (push_radio_dml_cache_to_one_wifidb() == RETURN_ERR) {
-                    wifi_util_dbg_print(WIFI_DMCLI,
-                        "%s:%d ApplyAccessPointSettings radio push failed\n", __func__, __LINE__);
-                    return FALSE;
-                }
-                is_radio_interworking_config_changed = false;
-                radio_reset_count++;
-                last_radio_change = AnscGetTickInSeconds();
-                if (g_update_wifi_region) {
-                    push_global_config_dml_cache_to_one_wifidb();
-                }
-            }
             return TRUE;
         }
         return TRUE;
@@ -8505,7 +8491,8 @@ void get_security_modes_supported(int vap_index, int *mode)
             __func__, __LINE__, radio_index);
         return;
     }
-    passpoint_enabled = radio_cfg->interworking_payload.passpoint.enable;
+    passpoint_enabled = isVapHotspotSecure(vap_index) &&
+        radio_cfg->interworking_payload.passpoint.enable;
 
     if (band == WIFI_FREQUENCY_6_BAND) {
         *mode = passpoint_enabled ? COSA_DML_WIFI_SECURITY_WPA3_Enterprise :
@@ -12925,7 +12912,7 @@ InterworkingElement_GetParamBoolValue
         return TRUE;
     }
 
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
+    wifi_InterworkingElement_t *pcfg = &vap_pcfg->u.bss_info.interworking;
 
     if (pcfg == NULL)
     {
@@ -12938,12 +12925,12 @@ InterworkingElement_GetParamBoolValue
         /* collect value */
         if(isVapHotspot(vap_pcfg->vap_index))
 	{
-            *pBool = pcfg->interworking.internetAvailable;
+            *pBool = pcfg->internetAvailable;
 	    return TRUE;
 	}
 	else
 	{
-	    *pBool = pcfg->interworking.internetAvailable;
+	    *pBool = pcfg->internetAvailable;
 	    return TRUE;
 	}
     }
@@ -12951,34 +12938,34 @@ InterworkingElement_GetParamBoolValue
     if( AnscEqualString(ParamName, "ASRA", TRUE))
     {
         /* collect value */
-        *pBool = pcfg->interworking.asra;
+        *pBool = pcfg->asra;
         return TRUE;
     }
 
     if( AnscEqualString(ParamName, "ESR", TRUE))
     {
         /* collect value */
-        *pBool = pcfg->interworking.esr;
+        *pBool = pcfg->esr;
         return TRUE;
     }
 
     if( AnscEqualString(ParamName, "UESA", TRUE))
     {
         /* collect value */
-        *pBool = pcfg->interworking.uesa;
+        *pBool = pcfg->uesa;
         return TRUE;
     }
 
    if( AnscEqualString(ParamName, "VenueOptionPresent", TRUE))
      {
-        *pBool = pcfg->interworking.venueOptionPresent;
+        *pBool = pcfg->venueOptionPresent;
         return TRUE;
     }
 
     if( AnscEqualString(ParamName, "HESSOptionPresent", TRUE))
     {
         /* collect value */
-        *pBool = pcfg->interworking.hessOptionPresent;
+        *pBool = pcfg->hessOptionPresent;
         return TRUE;
     }
 
@@ -13081,7 +13068,7 @@ InterworkingElement_GetParamUlongValue
         return TRUE;
     }
 
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
+    wifi_InterworkingElement_t *pcfg = &vap_pcfg->u.bss_info.interworking;
 
     if (pcfg == NULL)
     {
@@ -13092,7 +13079,7 @@ InterworkingElement_GetParamUlongValue
     if( AnscEqualString(ParamName, "AccessNetworkType", TRUE))
     {
         /* collect value */
-        *puLong = pcfg->interworking.accessNetworkType;
+        *puLong = pcfg->accessNetworkType;
         return TRUE;
     }
 
@@ -13158,7 +13145,7 @@ InterworkingElement_GetParamStringValue
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d %s does not support configuration\n", __FUNCTION__,__LINE__,vap_pcfg->vap_name);
         return TRUE;
     }
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
+    wifi_InterworkingElement_t *pcfg = &vap_pcfg->u.bss_info.interworking;
 
     if (pcfg == NULL)
     {
@@ -13169,8 +13156,8 @@ InterworkingElement_GetParamStringValue
     if( AnscEqualString(ParamName, "HESSID", TRUE))
     {
         /* collect value */
-        AnscCopyString(pValue, pcfg->interworking.hessid);
-       *pUlSize = AnscSizeOfString(pcfg->interworking.hessid);
+        AnscCopyString(pValue, pcfg->hessid);
+       *pUlSize = AnscSizeOfString(pcfg->hessid);
         return 0;
     }
     
@@ -13824,7 +13811,7 @@ BOOL InterworkingElement_Venue_GetParamUlongValue
         wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Null pointer get fail\n", __FUNCTION__,__LINE__);
         return FALSE;
     }
-    wifi_interworking_t *pcfg = &vap_pcfg->u.bss_info.interworking;
+    wifi_InterworkingElement_t *pcfg = &vap_pcfg->u.bss_info.interworking;
 
     if (pcfg == NULL)
     {
@@ -13840,14 +13827,14 @@ BOOL InterworkingElement_Venue_GetParamUlongValue
     if( AnscEqualString(ParamName, "Type", TRUE))
     {
         /* collect value */
-        *puLong = pcfg->interworking.venueType;
+        *puLong = pcfg->venueType;
         return TRUE;
     }
 
     if( AnscEqualString(ParamName, "Group", TRUE))
     {
         /* collect value */
-        *puLong = pcfg->interworking.venueGroup;
+        *puLong = pcfg->venueGroup;
         return TRUE;
     }
 
@@ -20552,7 +20539,7 @@ InterworkingService_SetParamStringValue
                 return FALSE;
             }
             cJSON_Delete(p_root);
-            is_radio_interworking_config_changed = true;
+            set_dml_cache_vap_config_changed(instance_number - 1);
             return TRUE;
         }
     }
@@ -20840,7 +20827,7 @@ Passpoint_SetParamBoolValue
             return FALSE;
         }
 	radio_cfg->interworking_payload.passpoint.enable = bValue;
-    is_radio_interworking_config_changed = true;
+    set_dml_cache_vap_config_changed(instance_number - 1);
 	return TRUE;
     }
     return FALSE;
@@ -20929,7 +20916,7 @@ Passpoint_SetParamStringValue
                 return FALSE;
             }
             cJSON_Delete(p_root);
-            is_radio_interworking_config_changed = true;
+            set_dml_cache_vap_config_changed(instance_number - 1);
             return TRUE;
         }
     }
