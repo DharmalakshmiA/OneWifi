@@ -200,7 +200,6 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
                     sizeof(wifi_vap_info_t));
         p_tgt_vap_map->vap_array[0].u.bss_info.network_initiated_greylist = greylist_rfc;
         p_tgt_vap_map->num_vaps = 1;
-        //DL- Since create_vap doesn't use radio... not doing any passpoint update here---> This will be taken care while adding the code changes which will update the passpoint details to the hal
         if (isVapHotspotSecure(map->vap_array[i].vap_index)) {
             payload = Get_wifi_radio_interworking_payload(map->vap_array[i].vap_index);
             if ((rfc_passpoint_enable == false) && (payload != NULL) &&
@@ -228,6 +227,11 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
 #endif /*defined(_WNXL11BWL_PRODUCT_REQ_) && !defined(_PP203X_PRODUCT_REQ_) && !defined(_MERCURY_PRODUCT_REQ_)*/
         enabled = p_tgt_vap_map->vap_array[0].u.bss_info.enabled;
         p_tgt_vap_map->vap_array[0].u.bss_info.enabled &= rdk_vap_info[i].exists;
+        if ((payload != NULL) &&
+            (wifi_hal_setRadioInterworkingPayload(radio_index, payload) != RETURN_OK)) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d: failed to set interworking payload: radio_index:%d vap_index:%d\n",
+                __func__, __LINE__, radio_index, map->vap_array[i].vap_index);
+        }
         if (wifi_hal_createVAP(radio_index, p_tgt_vap_map) != RETURN_OK) {
             wifi_util_error_print(WIFI_CTRL,"%s: wifi vap create failure: radio_index:%d vap_index:%d\n",__FUNCTION__,
                                                 radio_index, map->vap_array[i].vap_index);

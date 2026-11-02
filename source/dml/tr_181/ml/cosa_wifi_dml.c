@@ -20728,7 +20728,7 @@ Passpoint_GetParamStringValue
         if (radio_cfg == NULL) {
             return -1;
         }
-        WiFi_GetHS2StatsFromConfig((vap_pcfg->vap_index + 1), &radio_cfg->interworking_payload);
+        WiFi_GetHS2StatsFromConfig(&radio_cfg->interworking_payload);
         /* collect value */
         if( AnscSizeOfString((char *)radio_cfg->interworking_payload.anqp.passpointStats) < *pUlSize)
         {

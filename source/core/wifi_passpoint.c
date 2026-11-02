@@ -29,6 +29,7 @@
 #include <errno.h>
 #include "wifi_ctrl.h"
 #include "wifi_util.h"//ONE_WIFI
+#include "wifi_validator.h"
 
 #define GAS_CFG_TYPE_SUPPORTED 1
 #define GAS_STATS_FIXED_WINDOW_SIZE 10
@@ -851,7 +852,7 @@ INT WiFi_SetANQPConfig(uint8_t vapIndex, char *JSON_STR)
         wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
 	return RETURN_ERR;
     }
-    wifi_interworking_t anqpData;
+    wifi_radio_interworking_t anqpData;
     wifi_InterworkingElement_t interworking;
     cJSON *mainEntry = NULL;
 
@@ -874,13 +875,12 @@ INT WiFi_SetANQPConfig(uint8_t vapIndex, char *JSON_STR)
         return RETURN_ERR;
     }
    
-    memset((char *)&anqpData,0,sizeof(wifi_interworking_t));
+    memset(&anqpData, 0, sizeof(anqpData));
     (void)memset(&interworking, 0, sizeof(interworking));
     wifi_getApInterworkingElement(apIns,&interworking);
-    (void)memcpy(&anqpData.interworking, &interworking, sizeof(interworking));
 
 #ifndef LINUX_VM_PORT
-    if (validate_anqp(mainEntry, &anqpData, &execRetVal) != 0) {
+    if (validate_anqp(mainEntry, &interworking, &anqpData, &execRetVal) != 0) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed. Error: %s\n", __func__, __LINE__,execRetVal.ErrorMsg);
         cJSON_Delete(passPointCfg);
         return RETURN_ERR;
@@ -1062,7 +1062,7 @@ INT WiFi_SetHS2Config(uint8_t vapIndex, char *JSON_STR)
 	return RETURN_ERR;
     }
     
-    wifi_interworking_t passpointCfg;
+    wifi_radio_interworking_t passpointCfg;
     wifi_InterworkingElement_t interworking;
     cJSON *mainEntry = NULL;
     
@@ -1091,12 +1091,11 @@ INT WiFi_SetHS2Config(uint8_t vapIndex, char *JSON_STR)
     get_wifi_rfc_parameters(RFC_WIFI_PASSPOINT, (bool *)&g_passpoint_RFC);//ONE_WIFI
 #endif
 
-    memset((char *)&passpointCfg,0,sizeof(wifi_interworking_t));
+    memset(&passpointCfg, 0, sizeof(passpointCfg));
     (void)memset(&interworking, 0, sizeof(interworking));
     wifi_getApInterworkingElement(apIns,&interworking);//TBD -A
-    (void)memcpy(&passpointCfg.interworking, &interworking, sizeof(interworking));
 #ifndef LINUX_VM_PORT
-    if (validate_passpoint(mainEntry, &passpointCfg, &execRetVal) != 0) {   
+    if (validate_passpoint(mainEntry, &interworking, &passpointCfg, &execRetVal) != 0) {
        wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed. Error: %s\n", __func__, __LINE__,execRetVal.ErrorMsg);
        cJSON_Delete(passPointObj);
        return RETURN_ERR;
@@ -1253,30 +1252,16 @@ INT WiFi_GetWANMetricsFromConfig(const wifi_HS2_WANMetrics_t *metrics, char *WAN
     cJSON_Delete(passPointCfg);
     return printed ? RETURN_OK : RETURN_ERR;
 }
-INT WiFi_GetWANMetrics(uint8_t vapIndex, char *WANMetrics, UINT WANMetrics_length)
-{
-    int apIns = vapIndex - 1;
-    if (apIns < 0 || apIns > 15) {
-        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index. Setting to 1\n", __func__, __LINE__);
-        apIns = 0;
-    }
-    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
-    if (pCfg == NULL) {
-        wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
-        return RETURN_ERR;
-    }
-    return WiFi_GetWANMetricsFromConfig(&pCfg->passpoint.wanMetricsInfo, WANMetrics, WANMetrics_length);
-}
 
-void WiFi_GetHS2StatsFromConfig(uint8_t vapIndex, wifi_radio_interworking_t *pCfg)
+
+void WiFi_GetHS2StatsFromConfig(wifi_radio_interworking_t *pCfg)
 {
     cJSON *mainEntry = NULL;
     cJSON *statsParam = NULL;
     cJSON *statsList = NULL;
     cJSON *statsEntry = NULL;
-    int apIns = vapIndex - 1;
-    if (apIns < 0 || apIns > 15 || pCfg == NULL) {
-        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP or interworking config.\n", __func__, __LINE__);
+    if (pCfg == NULL) {
+        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid interworking config.\n", __func__, __LINE__);
         return;
     }
     cJSON *passPointStats = cJSON_Parse((const char *)pCfg->anqp.passpointStats);
@@ -1319,20 +1304,7 @@ void WiFi_GetHS2StatsFromConfig(uint8_t vapIndex, wifi_radio_interworking_t *pCf
         sizeof(pCfg->anqp.passpointStats), false);
     cJSON_Delete(passPointStats);
 }
-void WiFi_GetHS2Stats(uint8_t vapIndex)
-{
-    int apIns = vapIndex - 1;
-    if (apIns < 0 || apIns > 15) {
-        wifi_util_dbg_print(WIFI_PASSPOINT, "%s:%d: Invalid AP Index.\n", __func__, __LINE__);
-        return;
-    }
-    wifi_radio_interworking_t *pCfg = Get_wifi_radio_interworking_payload(apIns);
-    if (pCfg == NULL) {
-        wifi_util_dbg_print(WIFI_CTRL, "%s: wrong vapIndex:%d \n", __FUNCTION__, apIns);
-        return;
-    }
-    WiFi_GetHS2StatsFromConfig(vapIndex, pCfg);
-}
+
 
 INT WiFi_SaveInterworkingWebconfig( wifi_interworking_t *interworking_data, int apIns)
 {
