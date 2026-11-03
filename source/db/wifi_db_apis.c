@@ -1602,6 +1602,9 @@ void callback_Wifi_Passpoint_Config(ovsdb_update_monitor_t *mon,
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid vap name \n",__func__, __LINE__,new_rec->vap_name);
             return;
         }
+        if (!isVapHotspotSecure(i)) {
+            return;
+        }
         wifi_InterworkingElement_t *l_elem = Get_wifi_object_interworking_element(i);
         wifi_radio_interworking_t *l_payload = Get_wifi_radio_interworking_payload(i);
         if(l_elem == NULL || l_payload == NULL) {
@@ -1667,6 +1670,9 @@ void callback_Wifi_Anqp_Config(ovsdb_update_monitor_t *mon,
         int i = convert_vap_name_to_index(&g_wifidb->hal_cap.wifi_prop, new_rec->vap_name);
         if(i == -1) {
             wifi_util_dbg_print(WIFI_DB,"%s:%d: %s invalid vap name \n",__func__, __LINE__,new_rec->vap_name);
+            return;
+        }
+        if (!isVapHotspotSecure(i)) {
             return;
         }
         wifi_InterworkingElement_t *l_elem = Get_wifi_object_interworking_element(i);

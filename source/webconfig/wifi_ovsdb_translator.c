@@ -1029,6 +1029,14 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
             sizeof(default_decoded_params->radios[radioIndx].name));
         default_decoded_params->radios[radioIndx].vaps.vap_map.num_vaps =
             decoded_params->hal_cap.wifi_prop.radiocap[i].maxNumberVAPs;
+        wifi_radio_interworking_t *radio_payload =
+            &default_decoded_params->radios[radioIndx].interworking_payload;
+        memset(radio_payload, 0, sizeof(*radio_payload));
+        snprintf((char *)radio_payload->anqp.anqpParameters,
+            sizeof(radio_payload->anqp.anqpParameters), "%s", DEFAULT_ANQP_STR_DATA);
+        snprintf((char *)radio_payload->passpoint.hs2Parameters,
+            sizeof(radio_payload->passpoint.hs2Parameters), "%s",
+            DEFAULT_PASSPOINT_STR_DATA);
     }
 
     default_decoded_params->num_radios = decoded_params->num_radios;
