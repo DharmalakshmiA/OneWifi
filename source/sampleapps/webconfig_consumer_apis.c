@@ -271,6 +271,25 @@ void update_sample_app_subdoc_vap_data(webconfig_consumer_t *consumer, webconfig
                 case webconfig_subdoc_type_xfinity:
                     if (is_vap_hotspot(&params->hal_cap.wifi_prop, recv_vaps->vap_index)) {
                         memcpy(local_vaps, recv_vaps, sizeof(wifi_vap_info_t));
+                        if (strncmp(recv_vaps->vap_name, "hotspot_secure",
+                                strlen("hotspot_secure")) == 0) {
+                            const wifi_radio_interworking_t *decoded_payload =
+                                &params->radios[i].interworking_payload;
+                            wifi_radio_interworking_t *cached_payload =
+                                &consumer->radios[i].interworking_payload;
+                            if (decoded_payload->anqp.anqpParameters[0] != '\0') {
+                                memcpy(&cached_payload->anqp, &decoded_payload->anqp,
+                                    sizeof(decoded_payload->anqp));
+                                memcpy(&cached_payload->roamingConsortium,
+                                    &decoded_payload->roamingConsortium,
+                                    sizeof(decoded_payload->roamingConsortium));
+                            }
+                            if (decoded_payload->passpoint.hs2Parameters[0] != '\0') {
+                                memcpy(&cached_payload->passpoint,
+                                    &decoded_payload->passpoint,
+                                    sizeof(decoded_payload->passpoint));
+                            }
+                        }
                     }
                     break;
                 case webconfig_subdoc_type_mesh:
@@ -2707,6 +2726,14 @@ void set_test_data_radio()
 
     // Radio 1
     radio = &mgr->radio_config[0];
+    memset(&radio->interworking_payload, 0, sizeof(radio->interworking_payload));
+    snprintf((char *)radio->interworking_payload.anqp.anqpParameters,
+        sizeof(radio->interworking_payload.anqp.anqpParameters), "%s", DEFAULT_ANQP_STR_DATA);
+    snprintf((char *)radio->interworking_payload.passpoint.hs2Parameters,
+        sizeof(radio->interworking_payload.passpoint.hs2Parameters), "%s",
+        DEFAULT_PASSPOINT_STR_DATA);
+    memcpy(&webconfig_consumer.radios[0].interworking_payload,
+        &radio->interworking_payload, sizeof(radio->interworking_payload));
 
     strcpy(radio->name, "radio1");
 
@@ -2738,6 +2765,14 @@ void set_test_data_radio()
 
     // Radio 2
     radio = &mgr->radio_config[1];
+    memset(&radio->interworking_payload, 0, sizeof(radio->interworking_payload));
+    snprintf((char *)radio->interworking_payload.anqp.anqpParameters,
+        sizeof(radio->interworking_payload.anqp.anqpParameters), "%s", DEFAULT_ANQP_STR_DATA);
+    snprintf((char *)radio->interworking_payload.passpoint.hs2Parameters,
+        sizeof(radio->interworking_payload.passpoint.hs2Parameters), "%s",
+        DEFAULT_PASSPOINT_STR_DATA);
+    memcpy(&webconfig_consumer.radios[1].interworking_payload,
+        &radio->interworking_payload, sizeof(radio->interworking_payload));
 
     strcpy(radio->name, "radio2");
 
