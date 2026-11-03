@@ -1360,6 +1360,13 @@ webconfig_error_t encode_security_object(const wifi_vap_security_t *security_inf
     return webconfig_error_none;
 }
 
+static webconfig_error_t encode_vap_interworking_object(const wifi_vap_info_t *vap_info,
+    cJSON *interworking_obj)
+{
+    wifi_InterworkingElement_t interworking_element = vap_info->u.bss_info.interworking;
+    return encode_interworking_common_object(&interworking_element, interworking_obj);
+}
+
 webconfig_error_t encode_hotspot_open_vap_object(const wifi_vap_info_t *vap_info,
     const rdk_wifi_vap_info_t *rdk_vap_info, cJSON *vap_obj)
 {
@@ -1390,7 +1397,7 @@ webconfig_error_t encode_hotspot_open_vap_object(const wifi_vap_info_t *vap_info
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1427,7 +1434,7 @@ webconfig_error_t encode_hotspot_secure_vap_object(const wifi_vap_info_t *vap_in
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1474,7 +1481,7 @@ webconfig_error_t encode_lnf_psk_vap_object(const wifi_vap_info_t *vap_info,
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1505,7 +1512,7 @@ webconfig_error_t encode_lnf_radius_vap_object(const wifi_vap_info_t *vap_info,
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1535,7 +1542,7 @@ webconfig_error_t encode_mesh_backhaul_vap_object(const wifi_vap_info_t *vap_inf
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1565,7 +1572,7 @@ webconfig_error_t encode_iot_vap_object(const wifi_vap_info_t *vap_info,
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
@@ -1595,7 +1602,7 @@ webconfig_error_t encode_private_vap_object(const wifi_vap_info_t *vap_info,
 
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(vap_obj, "Interworking", obj);
-    if (encode_interworking_common_object(&vap_info->u.bss_info.interworking, obj) != webconfig_error_none) {
+    if (encode_vap_interworking_object(vap_info, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Interworking object encode failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_encode;
 
