@@ -810,6 +810,7 @@ int validate_interworking(const cJSON *interworking, wifi_vap_info_t *vap_info, 
     const cJSON *param, *venue;
     const cJSON *passpoint, *anqp;
     wifi_radio_interworking_t radio_payload;
+    wifi_InterworkingElement_t vap_interworking;
 
     if(!interworking || !vap_info || !execRetVal){
         wifi_util_dbg_print(WIFI_PASSPOINT,"Interworking entry is NULL\n");
@@ -868,19 +869,20 @@ int validate_interworking(const cJSON *interworking, wifi_vap_info_t *vap_info, 
 
     vap_info->u.bss_info.interworking.venueGroup = VenueGroup;
     vap_info->u.bss_info.interworking.venueType = VenueType;
+    vap_interworking = vap_info->u.bss_info.interworking;
 
     memset(&radio_payload, 0, sizeof(radio_payload));
 
     validate_param_object(interworking, "ANQP",anqp);
 
-    if (validate_anqp(anqp, &vap_info->u.bss_info.interworking, &radio_payload, execRetVal) != 0) {
+    if (validate_anqp(anqp, &vap_interworking, &radio_payload, execRetVal) != 0) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed\n", __func__, __LINE__);
         return RETURN_ERR;
     }
 
     validate_param_object(interworking, "Passpoint",passpoint);
 
-    if (validate_passpoint(passpoint, &vap_info->u.bss_info.interworking, &radio_payload, execRetVal) != 0) {
+    if (validate_passpoint(passpoint, &vap_interworking, &radio_payload, execRetVal) != 0) {
         wifi_util_dbg_print(WIFI_PASSPOINT,"%s:%d: Validation failed\n", __func__, __LINE__);
         return RETURN_ERR;
     }
