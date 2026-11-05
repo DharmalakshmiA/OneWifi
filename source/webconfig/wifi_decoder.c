@@ -1942,18 +1942,6 @@ webconfig_error_t decode_vap_common_object(const cJSON *vap, wifi_vap_info_t *va
     return webconfig_error_none;
 }
 
-static webconfig_error_t decode_vap_interworking_object(const cJSON *interworking,
-    wifi_vap_info_t *vap_info, wifi_radio_interworking_t *payload)
-{
-    wifi_InterworkingElement_t interworking_element = vap_info->u.bss_info.interworking;
-    webconfig_error_t ret = decode_interworking_object(interworking, &interworking_element, payload);
-    if (ret != webconfig_error_none) {
-        return ret;
-    }
-    vap_info->u.bss_info.interworking = interworking_element;
-    return webconfig_error_none;
-}
-
 webconfig_error_t decode_hotspot_open_vap_object(const cJSON *vap, wifi_vap_info_t *vap_info,
     rdk_wifi_vap_info_t *rdk_vap_info, wifi_platform_property_t *wifi_prop)
 {
@@ -1991,7 +1979,7 @@ webconfig_error_t decode_hotspot_open_vap_object(const cJSON *vap, wifi_vap_info
     }
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2038,7 +2026,7 @@ webconfig_error_t decode_hotspot_secure_vap_object(const cJSON *vap, wifi_vap_in
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, payload) != webconfig_error_none) {
+    if (decode_interworking_object(interworking, &vap_info->u.bss_info.interworking, payload) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2080,7 +2068,7 @@ webconfig_error_t decode_lnf_psk_vap_object(const cJSON *vap, wifi_vap_info_t *v
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2120,7 +2108,7 @@ webconfig_error_t decode_lnf_radius_vap_object(const cJSON *vap, wifi_vap_info_t
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2161,7 +2149,7 @@ webconfig_error_t decode_iot_vap_object(const cJSON *vap, wifi_vap_info_t *vap_i
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2202,7 +2190,7 @@ webconfig_error_t decode_mesh_backhaul_vap_object(const cJSON *vap, wifi_vap_inf
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2243,7 +2231,7 @@ webconfig_error_t decode_private_vap_object(const cJSON *vap, wifi_vap_info_t *v
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }
@@ -2292,7 +2280,7 @@ webconfig_error_t decode_wifiapi_vap_object(const cJSON *vap, wifi_vap_info_t *v
 
     decode_param_object(vap, "Interworking", interworking);
 
-    if (decode_vap_interworking_object(interworking, vap_info, NULL) != webconfig_error_none) {
+    if (decode_interworking_common_object(interworking, &vap_info->u.bss_info.interworking) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Interworking objects validation failed for %s\n",__FUNCTION__, __LINE__, vap_info->vap_name);
         return webconfig_error_decode;
     }

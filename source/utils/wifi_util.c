@@ -4164,11 +4164,6 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
             return true;
         }
     } else {
-        wifi_InterworkingElement_t old_interworking =
-            vap_info_old->u.bss_info.interworking;
-        wifi_InterworkingElement_t new_interworking =
-            vap_info_new->u.bss_info.interworking;
-
         // Ignore bssid change to avoid reconfiguration and disconnection
         if (IS_STR_CHANGED(vap_info_old->u.bss_info.ssid, vap_info_new->u.bss_info.ssid,
                 sizeof(vap_info_old->u.bss_info.ssid)) ||
@@ -4191,7 +4186,8 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
                 vap_info_new->u.bss_info.vapStatsEnable) ||
             IS_BIN_CHANGED(&vap_info_old->u.bss_info.security, &vap_info_new->u.bss_info.security,
                 sizeof(wifi_vap_security_t)) ||
-            is_interworking_config_changed(&old_interworking, &new_interworking) ||
+            is_interworking_config_changed(&vap_info_old->u.bss_info.interworking,
+                &vap_info_new->u.bss_info.interworking) ||
             IS_CHANGED(vap_info_old->u.bss_info.mac_filter_enable,
                 vap_info_new->u.bss_info.mac_filter_enable) ||
             IS_CHANGED(vap_info_old->u.bss_info.mac_filter_mode,
