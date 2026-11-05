@@ -283,6 +283,11 @@ void update_dml_subdoc_vap_data(webconfig_subdoc_data_t *data)
                     if (is_vap_hotspot(&params->hal_cap.wifi_prop, vap->vap_index)) {
                         memcpy(dml_vap, vap, sizeof(wifi_vap_info_t));
                     }
+                    if (is_vap_hotspot_secure(&params->hal_cap.wifi_prop, vap->vap_index)) {
+                        memcpy(&webconfig_dml.radios[i].interworking_payload,
+                            &params->radios[i].interworking_payload,
+                            sizeof(wifi_radio_interworking_t));
+                    }
                     break;
                 case webconfig_subdoc_type_lnf:
                     if (is_vap_lnf(&params->hal_cap.wifi_prop, vap->vap_index)) {
