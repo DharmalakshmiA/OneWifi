@@ -287,6 +287,8 @@ void update_dml_subdoc_vap_data(webconfig_subdoc_data_t *data)
                         memcpy(&webconfig_dml.radios[i].interworking_payload,
                             &params->radios[i].interworking_payload,
                             sizeof(wifi_radio_interworking_t));
+                        wifi_dl_print(WIFI_DMCLI, "radio:%u passpoint.enable:%d cached from xfinity subdoc\n", i,
+                            webconfig_dml.radios[i].interworking_payload.passpoint.enable);
                     }
                     break;
                 case webconfig_subdoc_type_lnf:
@@ -545,6 +547,7 @@ void set_webconfig_dml_data(char *eventName, bus_data_prop_t *p_data, void *user
         return;
     }
 
+    wifi_dl_print(WIFI_DMCLI, "dml subdoc type:%d decoded, updating cache\n", data->type);
     dml_cache_update(data);
 
     webconfig_data_free(data);

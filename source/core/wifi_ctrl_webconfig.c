@@ -962,6 +962,9 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
         if (is_vap_hotspot_secure(&mgr->hal_cap.wifi_prop, tgt_vap_index) == TRUE) {
             payload_changed = is_radio_interworking_payload_changed(&radio->interworking_payload,
                 new_payload);
+            wifi_dl_print(WIFI_CTRL, "vap:%s payload_changed:%d mgr_passpoint:%d new_passpoint:%d\n",
+                vap_info->vap_name, payload_changed, radio->interworking_payload.passpoint.enable,
+                new_payload ? new_payload->passpoint.enable : -1);
         }
 
         if (is_vap_param_config_changed(mgr_vap_info, vap_info, mgr_rdk_vap_info, rdk_vap_info,

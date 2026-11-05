@@ -232,6 +232,10 @@ int vap_svc_public_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_inf
             wifi_util_error_print(WIFI_CTRL, "%s:%d: failed to set interworking payload: radio_index:%d vap_index:%d\n",
                 __func__, __LINE__, radio_index, map->vap_array[i].vap_index);
         }
+        wifi_dl_print(WIFI_CTRL, "HAL create vap:%s radio:%d interworkingEnabled:%d passpoint.enable:%d\n",
+            map->vap_array[i].vap_name, (int)radio_index,
+            p_tgt_vap_map->vap_array[0].u.bss_info.interworking.interworkingEnabled,
+            payload ? payload->passpoint.enable : -1);
         if (wifi_hal_createVAP(radio_index, p_tgt_vap_map) != RETURN_OK) {
             wifi_util_error_print(WIFI_CTRL,"%s: wifi vap create failure: radio_index:%d vap_index:%d\n",__FUNCTION__,
                                                 radio_index, map->vap_array[i].vap_index);

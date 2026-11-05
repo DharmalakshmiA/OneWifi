@@ -5041,6 +5041,7 @@ bool passpoint_get_param_bool_value(void *obj_ins_context, char *param_name, boo
     if (STR_CMP(param_name, "Capability")) {
     } else if (STR_CMP(param_name, "Enable")) {
         *output_value = p_radio->interworking_payload.passpoint.enable;
+        wifi_dl_print(WIFI_DMCLI, "vap:%s get passpoint.enable:%d\n", vap_pcfg->vap_name, *output_value);
     } else {
         wifi_util_info_print(WIFI_DMCLI, "%s:%d: unsupported param name:%s\n", __func__, __LINE__,
             param_name);
@@ -5128,6 +5129,7 @@ bool passpoint_set_param_bool_value(void *obj_ins_context, char *param_name, boo
             return false;
         } else if (p_radio->interworking_payload.passpoint.enable != output_value) {
             p_radio->interworking_payload.passpoint.enable = output_value;
+            wifi_dl_print(WIFI_DMCLI, "vap:%s set passpoint.enable:%d\n", pcfg->vap_name, output_value);
             set_dml_cache_vap_config_changed(instance_number - 1);
         }
     } else {

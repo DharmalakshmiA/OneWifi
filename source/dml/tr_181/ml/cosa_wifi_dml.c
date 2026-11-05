@@ -20647,6 +20647,7 @@ Passpoint_GetParamBoolValue
     if (AnscEqualString(ParamName, "Enable", TRUE)) {
                 //WiFi_SetHS2Status(vap_pcfg->vap_index, false, true);
 	*pBool = radio_cfg->interworking_payload.passpoint.enable;
+	wifi_dl_print(WIFI_DMCLI, "vap:%s get passpoint.enable:%d\n", vap_pcfg->vap_name, *pBool);
         return TRUE;
     }
     return FALSE;
@@ -20855,6 +20856,7 @@ Passpoint_SetParamBoolValue
             return FALSE;
         }
 	radio_cfg->interworking_payload.passpoint.enable = bValue;
+	wifi_dl_print(WIFI_DMCLI, "vap:%s set passpoint.enable:%d\n", vapInfo->vap_name, bValue);
     set_dml_cache_vap_config_changed(instance_number - 1);
 	return TRUE;
     }

@@ -137,6 +137,8 @@ void wifi_util_print(wifi_log_level_t level, wifi_dbg_type_t module, const char 
     wifi_util_print(WIFI_LOG_LVL_INFO, module, format, ##__VA_ARGS__)
 #define wifi_util_error_print(module, format, ...) \
     wifi_util_print(WIFI_LOG_LVL_ERROR, module, format, ##__VA_ARGS__)
+#define wifi_dl_print(module, format, ...) \
+    wifi_util_info_print(module, "[DL] %s:%d: " format, __func__, __LINE__, ##__VA_ARGS__)
 
 #define ENUM_TO_STRING 1
 #define STRING_TO_ENUM 2

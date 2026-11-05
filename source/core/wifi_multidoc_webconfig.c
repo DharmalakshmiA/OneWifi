@@ -1196,6 +1196,12 @@ static int update_xfinity_vap_info(cJSON *blob, webconfig_subdoc_data_t *data, p
             return RETURN_ERR;
         }
 
+        if (strncmp(vap_info->vap_name, "hotspot_secure", strlen("hotspot_secure")) == 0) {
+            wifi_dl_print(WIFI_CTRL, "vap:%s radio:%d interworkingEnabled:%d passpoint.enable:%d\n",
+                vap_info->vap_name, (int)radio_index,
+                vap_info->u.bss_info.interworking.interworkingEnabled,
+                params->radios[radio_index].interworking_payload.passpoint.enable);
+        }
         cac_obj = cJSON_GetObjectItem(vb_entry, "VapConnectionControl");
         /*decode cac object */
         if (!cac_obj) {

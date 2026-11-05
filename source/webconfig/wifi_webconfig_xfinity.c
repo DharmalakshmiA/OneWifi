@@ -138,6 +138,7 @@ webconfig_error_t encode_xfinity_subdoc(webconfig_t *config, webconfig_subdoc_da
     }
 
     memcpy(data->u.encoded.raw, str, strlen(str));
+    wifi_dl_print(WIFI_WEBCONFIG, "xfinity encoded JSON:\n%s\n", str);
 
     cJSON_free(str);
     cJSON_Delete(json);
@@ -165,6 +166,7 @@ webconfig_error_t decode_xfinity_subdoc(webconfig_t *config, webconfig_subdoc_da
 
     params = &data->u.decoded;
     doc = &config->subdocs[data->type];
+    wifi_dl_print(WIFI_WEBCONFIG, "xfinity decode input JSON:\n%s\n", (char *)data->u.encoded.raw);
 
     /* get list of hotspot_open SSID */
     num_xfinity_ssid = get_list_of_hotspot_open(&params->hal_cap.wifi_prop, MAX_NUM_RADIOS, vap_names);
@@ -261,6 +263,12 @@ webconfig_error_t decode_xfinity_subdoc(webconfig_t *config, webconfig_subdoc_da
         }
     }
 
+    for (i = 0; i < params->hal_cap.wifi_prop.numRadios; i++) {
+        wifi_radio_interworking_t *pl = &params->radios[i].interworking_payload;
+        wifi_dl_print(WIFI_WEBCONFIG, "radio:%u passpoint.enable:%d anqp_len:%zu hs2_len:%zu\n", i,
+            pl->passpoint.enable, strnlen((char *)pl->anqp.anqpParameters, sizeof(pl->anqp.anqpParameters)),
+            strnlen((char *)pl->passpoint.hs2Parameters, sizeof(pl->passpoint.hs2Parameters)));
+    }
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: decode success\n", __func__, __LINE__);
     cJSON_Delete(json);
     return webconfig_error_none;

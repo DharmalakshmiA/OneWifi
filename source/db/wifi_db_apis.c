@@ -7337,6 +7337,8 @@ int wifidb_update_wifi_passpoint_config(char *vap_name, const wifi_radio_interwo
         sizeof(cpass->hs2Parameters), "Passpoint", &p_root);
     if(p_top == NULL)
     {
+        wifi_dl_print(WIFI_DB, "vap:%s passpoint skipped, hs2Parameters invalid or empty, len:%zu\n", vap_name,
+            strnlen((const char *)cpass->hs2Parameters, sizeof(cpass->hs2Parameters)));
         wifi_util_dbg_print(WIFI_DB,"%s:%d:Empty or invalid hs2 parameters - passpoint update failed \n",__func__, __LINE__);
         return -1;
     }
@@ -7374,6 +7376,7 @@ int wifidb_update_wifi_passpoint_config(char *vap_name, const wifi_radio_interwo
     }
     cJSON_Delete(p_top);
     strncpy(cfg_passpoint.vap_name, vap_name,(sizeof(cfg_passpoint.vap_name)-1));
+    wifi_dl_print(WIFI_DB, "vap:%s Wifi_Passpoint_Config Enable:%d\n", vap_name, cfg_passpoint.enable);
     wifi_util_dbg_print(WIFI_DB,"%s:%d: Update Wifi_Passpoint_Config table vap_name=%s Enable=%d gafDisable=%d p2pDisable=%d capability_length=%d nai_home_realm_length=%d operator_friendly_name_length=%d connection_capability_length=%d \n",__func__, __LINE__,cfg_passpoint.vap_name,cfg_passpoint.enable,cfg_passpoint.group_addressed_forwarding_disable,cfg_passpoint.p2p_cross_connect_disable,cfg_passpoint.capability_length,cfg_passpoint.nai_home_realm_length,cfg_passpoint.operator_friendly_name_length,cfg_passpoint.connection_capability_length);
     if(onewifi_ovsdb_table_upsert_simple(g_wifidb->wifidb_sock_path, &table_Wifi_Passpoint_Config, SCHEMA_COLUMN(Wifi_Passpoint_Config, vap_name), vap_name, &cfg_passpoint, NULL) == false)
     {
